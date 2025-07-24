@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from '@/components/ui/textarea';
-import { Minus, Plus, ShoppingCart, Truck } from 'lucide-react';
+import { Minus, Plus, ShoppingCart } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const product = {
   name: "Artisan Sourdough Bread",
