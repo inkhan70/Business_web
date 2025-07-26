@@ -13,20 +13,40 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Upload } from "lucide-react";
 
 export default function AppearancePage() {
   const { toast } = useToast();
-  const [backgroundImage, setBackgroundImage] = useState("https://placehold.co/1920x1080.png");
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setPreviewImage(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedFile) {
+        toast({
+            title: "No Image Selected",
+            description: "Please select an image file to upload.",
+            variant: "destructive"
+        });
+        return;
+    }
+    
+    // In a real application, you would upload the 'selectedFile' to a storage service
+    // (like Firebase Storage) and save the resulting URL.
+    console.log("Uploading file:", selectedFile.name);
+
     toast({
       title: "Wallpaper Updated",
       description: "The background image has been successfully set.",
     });
-    // In a real application, you would save this URL to a database.
-    console.log("New background image URL:", backgroundImage);
   };
 
   return (
@@ -45,24 +65,25 @@ export default function AppearancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="wallpaper-url">Background Image URL</Label>
-              <div className="flex space-x-2 mt-2">
-                <Input
-                  id="wallpaper-url"
-                  type="text"
-                  placeholder="https://example.com/image.png"
-                  value={backgroundImage}
-                  onChange={(e) => setBackgroundImage(e.target.value)}
-                />
-                <Button type="submit">Save</Button>
+              <Label htmlFor="wallpaper-upload">Upload Background Image</Label>
+              <div className="flex items-center space-x-2 mt-2">
+                 <div className="flex-grow">
+                    <Input id="wallpaper-upload" type="file" accept="image/*" onChange={handleFileChange} className="w-full" />
+                    {selectedFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFile.name}</p>}
+                 </div>
+                <Button type="submit">
+                    <Upload className="mr-2 h-4 w-4"/>
+                    Save
+                </Button>
               </div>
             </div>
+            
             <div className="mt-4">
-                <h3 className="text-sm font-medium">Current Preview:</h3>
-                <div className="mt-2 aspect-video w-full max-w-md rounded-md border border-dashed flex items-center justify-center" style={{backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
-                    {!backgroundImage && <div className="text-center text-muted-foreground"><ImageIcon className="mx-auto h-8 w-8" /><p>No image set</p></div>}
+                <h3 className="text-sm font-medium">Preview:</h3>
+                <div className="mt-2 aspect-video w-full max-w-md rounded-md border border-dashed flex items-center justify-center" style={{backgroundImage: `url(${previewImage})`, backgroundSize: 'cover', backgroundPosition: 'center'}}>
+                    {!previewImage && <div className="text-center text-muted-foreground p-4"><ImageIcon className="mx-auto h-8 w-8 mb-2" /><p>Select an image to see a preview</p></div>}
                 </div>
             </div>
           </form>
