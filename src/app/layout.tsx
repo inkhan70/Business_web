@@ -3,7 +3,8 @@ import './globals.css';
 import { cn } from "@/lib/utils";
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import { Wallpaper } from '@/components/Wallpaper';
 
 export const metadata: Metadata = {
   title: 'CityFind',
@@ -23,6 +24,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
+        <Wallpaper />
         <div className="relative flex min-h-screen flex-col">
           <Header />
           <main className="flex-1">{children}</main>
