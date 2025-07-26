@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
 
 const categories = [
   { name: 'Food', icon: UtensilsCrossed, href: '/products?category=food' },
@@ -15,6 +16,9 @@ const categories = [
 ];
 
 export default function CategoriesPage() {
+  // In a real app, this would be determined by user authentication
+  const isAdmin = true;
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="text-center mb-12">
@@ -25,6 +29,20 @@ export default function CategoriesPage() {
           Find exactly what you're looking for by exploring our business categories.
         </p>
       </div>
+      
+      {isAdmin && (
+        <div className="flex justify-end space-x-2 mb-8">
+            <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Category
+            </Button>
+            <Button variant="outline">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove Category
+            </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {categories.map((category) => (
           <Link href={category.href} key={category.name}>

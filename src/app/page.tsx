@@ -1,12 +1,25 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Home() {
+  // In a real app, this would be determined by user authentication
+  const isAdmin = true; 
+
   return (
     <div className="flex flex-col">
-      <section className="container mx-auto px-4 py-20 md:py-32">
+      <section className="relative container mx-auto px-4 py-20 md:py-32">
+        {isAdmin && (
+            <div className="absolute top-4 right-4">
+                <Button asChild variant="outline">
+                    <Link href="/admin/appearance">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Manage Wallpaper
+                    </Link>
+                </Button>
+            </div>
+        )}
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col items-start text-left">
             <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter mb-6">
