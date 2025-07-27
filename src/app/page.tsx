@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Settings } from 'lucide-react';
+import { ArrowRight, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Home() {
@@ -14,8 +14,8 @@ export default function Home() {
             <div className="absolute top-4 right-4">
                 <Button asChild variant="outline">
                     <Link href="/admin/appearance">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Manage Wallpaper
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        Add/Remove Wallpaper
                     </Link>
                 </Button>
             </div>
