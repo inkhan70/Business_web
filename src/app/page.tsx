@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ImageIcon } from 'lucide-react';
@@ -22,7 +23,7 @@ export default function Home() {
         )}
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="flex flex-col items-start text-left">
-            <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter mb-6">
+            <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter mb-6 text-primary">
               Connect Your Business to Your City.
             </h1>
             <p className="max-w-xl text-lg text-muted-foreground mb-8">
