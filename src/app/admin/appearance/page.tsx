@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,14 +15,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ImageIcon, Upload, Trash2 } from "lucide-react";
+import Link from "next/link";
 
-// LocalStorage has a limit of around 5MB, we'll set a safe limit of 4.5MB
 const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024; 
 
 export default function AppearancePage() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const pagePath = searchParams.get('page') || '/';
+  const wallpaperKey = `wallpaper_${pagePath}`;
+
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    const existingWallpaper = localStorage.getItem(wallpaperKey);
+    if (existingWallpaper) {
+      setPreviewImage(existingWallpaper);
+    }
+  }, [wallpaperKey]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -35,7 +47,7 @@ export default function AppearancePage() {
         });
         setPreviewImage(null);
         setSelectedFile(null);
-        e.target.value = ""; // Reset file input
+        e.target.value = "";
         return;
       }
 
@@ -60,10 +72,10 @@ export default function AppearancePage() {
     }
     
     try {
-        localStorage.setItem("app_wallpaper", previewImage);
+        localStorage.setItem(wallpaperKey, previewImage);
         toast({
           title: "Wallpaper Updated",
-          description: "The background image has been successfully set. It may take a refresh to see the changes everywhere.",
+          description: `The background for ${pagePath} has been set.`,
         });
     } catch (error) {
         toast({
@@ -76,7 +88,7 @@ export default function AppearancePage() {
   };
 
   const handleRemoveWallpaper = () => {
-    localStorage.removeItem("app_wallpaper");
+    localStorage.removeItem(wallpaperKey);
     setPreviewImage(null);
     setSelectedFile(null);
     const fileInput = document.getElementById('wallpaper-upload') as HTMLInputElement;
@@ -85,7 +97,7 @@ export default function AppearancePage() {
     }
     toast({
         title: "Wallpaper Removed",
-        description: "The background image has been removed."
+        description: `The background for ${pagePath} has been removed.`
     });
   }
 
@@ -101,7 +113,9 @@ export default function AppearancePage() {
         <CardHeader>
           <CardTitle>Page Wallpaper</CardTitle>
           <CardDescription>
-            Set a custom background image for the main pages. This will not affect dashboard pages.
+            Set a custom background for the <code className="bg-muted px-2 py-1 rounded-md">{pagePath}</code> page.
+             <br />
+             Go back to the page: <Link href={pagePath} className="text-primary underline">Go to {pagePath}</Link>
           </CardDescription>
         </CardHeader>
         <CardContent>

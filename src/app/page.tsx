@@ -1,28 +1,17 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, ImageIcon } from 'lucide-react';
-import Image from 'next/image';
 import { Wallpaper } from '@/components/Wallpaper';
+import { WallpaperManager } from '@/components/WallpaperManager';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
-  // In a real app, this would be determined by user authentication
-  const isAdmin = true; 
-
   return (
     <>
       <Wallpaper />
       <div className="flex flex-col">
         <section className="relative container mx-auto px-4 py-20 md:py-32">
-          {isAdmin && (
-              <div className="absolute top-4 right-4">
-                  <Button asChild variant="outline">
-                      <Link href="/admin/appearance">
-                          <ImageIcon className="mr-2 h-4 w-4" />
-                          Add/Remove Wallpaper
-                      </Link>
-                  </Button>
-              </div>
-          )}
+          <WallpaperManager />
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="flex flex-col items-start text-left">
               <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter mb-6 text-primary">

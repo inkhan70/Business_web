@@ -1,46 +1,55 @@
 
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function Wallpaper() {
+  const pathname = usePathname();
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // This code now runs only on the client
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = function(key, value) {
-      originalSetItem.apply(this, [key, value]);
-      if (key === 'app_wallpaper') {
-        window.dispatchEvent(new Event('wallpaperChange'));
-      }
-    };
-
-    const originalRemoveItem = localStorage.removeItem;
-    localStorage.removeItem = function(key) {
-        originalRemoveItem.apply(this, [key]);
-        if (key === 'app_wallpaper') {
-            window.dispatchEvent(new Event('wallpaperChange'));
-        }
-    }
-    
     const handleStorageChange = () => {
-      const url = localStorage.getItem('app_wallpaper');
+      const key = `wallpaper_${pathname}`;
+      const url = localStorage.getItem(key);
       setWallpaperUrl(url);
     };
 
     // Initial load
     handleStorageChange();
 
-    // Listen for changes from other tabs
+    // Listen for our custom event
+    window.addEventListener('wallpaperChange', handleStorageChange);
+    // Also listen for direct storage changes (e.g., from other tabs)
     window.addEventListener('storage', handleStorageChange);
 
-    // Custom event to handle changes in the same tab
-    window.addEventListener('wallpaperChange', handleStorageChange);
-
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('wallpaperChange', handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [pathname]); // Re-run effect if the page path changes
+
+  // Override localStorage methods to dispatch a custom event
+  useEffect(() => {
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+      const isWallpaperKey = key.startsWith('wallpaper_');
+      originalSetItem.apply(this, [key, value]);
+      if (isWallpaperKey) {
+        window.dispatchEvent(new Event('wallpaperChange'));
+      }
+    };
+
+    const originalRemoveItem = localStorage.removeItem;
+    localStorage.removeItem = function(key) {
+        const isWallpaperKey = key.startsWith('wallpaper_');
+        originalRemoveItem.apply(this, [key]);
+        if (isWallpaperKey) {
+            window.dispatchEvent(new Event('wallpaperChange'));
+        }
+    }
+    
+    return () => {
       // Restore original functions on cleanup
       localStorage.setItem = originalSetItem;
       localStorage.removeItem = originalRemoveItem;

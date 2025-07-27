@@ -30,6 +30,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { Wallpaper } from '@/components/Wallpaper';
+import { WallpaperManager } from '@/components/WallpaperManager';
 
 const initialCategories = [
   { name: 'Food', icon: UtensilsCrossed, href: '/products?category=food' },
@@ -48,12 +50,10 @@ export default function CategoriesPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const { toast } = useToast();
 
-  // In a real app, this would be determined by user authentication
   const isAdmin = true;
 
   const handleAddCategory = () => {
     if (newCategoryName.trim()) {
-      // In a real app, you would also need to select an icon
       const newCategory = {
         name: newCategoryName,
         icon: MoreHorizontal, // Default icon
@@ -65,7 +65,6 @@ export default function CategoriesPage() {
         title: "Category Added",
         description: `The category "${newCategoryName}" has been created.`,
       });
-      // Find the close button and click it to close the dialog
       document.getElementById('close-add-dialog')?.click();
     } else {
         toast({
@@ -85,7 +84,10 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <>
+    <Wallpaper />
+    <div className="container mx-auto px-4 py-12 relative">
+      <WallpaperManager />
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
           Browse by Category
@@ -182,5 +184,6 @@ export default function CategoriesPage() {
         ))}
       </div>
     </div>
+    </>
   );
 }
