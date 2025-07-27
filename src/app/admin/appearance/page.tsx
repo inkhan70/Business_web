@@ -15,6 +15,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ImageIcon, Upload, Trash2 } from "lucide-react";
 
+// LocalStorage has a limit of around 5MB, we'll set a safe limit of 4.5MB
+const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024; 
+
 export default function AppearancePage() {
   const { toast } = useToast();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -23,6 +26,19 @@ export default function AppearancePage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast({
+            title: "Image Too Large",
+            description: `Please select an image smaller than 4.5 MB.`,
+            variant: "destructive"
+        });
+        setPreviewImage(null);
+        setSelectedFile(null);
+        e.target.value = ""; // Reset file input
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedFile(file);
@@ -43,12 +59,20 @@ export default function AppearancePage() {
         return;
     }
     
-    localStorage.setItem("app_wallpaper", previewImage);
-
-    toast({
-      title: "Wallpaper Updated",
-      description: "The background image has been successfully set. It may take a refresh to see the changes everywhere.",
-    });
+    try {
+        localStorage.setItem("app_wallpaper", previewImage);
+        toast({
+          title: "Wallpaper Updated",
+          description: "The background image has been successfully set. It may take a refresh to see the changes everywhere.",
+        });
+    } catch (error) {
+        toast({
+            title: "Failed to Save Wallpaper",
+            description: "The image might be too large for browser storage. Please try a smaller image.",
+            variant: "destructive"
+        });
+        console.error(error);
+    }
   };
 
   const handleRemoveWallpaper = () => {
