@@ -7,6 +7,23 @@ export function Wallpaper() {
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // This code now runs only on the client
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+      originalSetItem.apply(this, [key, value]);
+      if (key === 'app_wallpaper') {
+        window.dispatchEvent(new Event('wallpaperChange'));
+      }
+    };
+
+    const originalRemoveItem = localStorage.removeItem;
+    localStorage.removeItem = function(key) {
+        originalRemoveItem.apply(this, [key]);
+        if (key === 'app_wallpaper') {
+            window.dispatchEvent(new Event('wallpaperChange'));
+        }
+    }
+    
     const handleStorageChange = () => {
       const url = localStorage.getItem('app_wallpaper');
       setWallpaperUrl(url);
@@ -24,6 +41,9 @@ export function Wallpaper() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('wallpaperChange', handleStorageChange);
+      // Restore original functions on cleanup
+      localStorage.setItem = originalSetItem;
+      localStorage.removeItem = originalRemoveItem;
     };
   }, []);
 
@@ -37,21 +57,4 @@ export function Wallpaper() {
       style={{ backgroundImage: `url(${wallpaperUrl})` }}
     />
   );
-}
-
-// Override localStorage.setItem to dispatch an event
-const originalSetItem = localStorage.setItem;
-localStorage.setItem = function(key, value) {
-  originalSetItem.apply(this, [key, value]);
-  if (key === 'app_wallpaper') {
-    window.dispatchEvent(new Event('wallpaperChange'));
-  }
-};
-// Override localStorage.removeItem to dispatch an event
-const originalRemoveItem = localStorage.removeItem;
-localStorage.removeItem = function(key) {
-    originalRemoveItem.apply(this, [key]);
-    if (key === 'app_wallpaper') {
-        window.dispatchEvent(new Event('wallpaperChange'));
-    }
 }
