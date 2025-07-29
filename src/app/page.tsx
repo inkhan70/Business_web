@@ -1,3 +1,4 @@
+import { AdBanner } from '@/components/AdBanner';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { Button } from '@/components/ui/button';
@@ -9,12 +10,13 @@ export default function Home() {
   return (
     <>
       <Wallpaper />
+      <AdBanner />
       <div className="flex flex-col">
         <section className="relative container mx-auto px-4 py-20 md:py-32">
           <WallpaperManager />
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="flex flex-col items-start text-left">
-              <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter mb-6 text-primary">
+              <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter text-primary">
                 Connect Your Business to Your City.
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground mb-8">
