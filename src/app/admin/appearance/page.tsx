@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageIcon, Upload, Trash2 } from "lucide-react";
 import Link from "next/link";
 
-const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024; 
+const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; 
 
 export default function AppearancePage() {
   const { toast } = useToast();
@@ -42,7 +42,7 @@ export default function AppearancePage() {
       if (file.size > MAX_FILE_SIZE_BYTES) {
         toast({
             title: "Image Too Large",
-            description: `Please select an image smaller than 4.5 MB.`,
+            description: `Please select an image smaller than 4 MB.`,
             variant: "destructive"
         });
         setPreviewImage(null);
