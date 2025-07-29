@@ -8,9 +8,11 @@ import { ImageIcon } from "lucide-react";
 
 export function WallpaperManager() {
     const pathname = usePathname();
-    const isAdmin = true; // In a real app, this would be based on user auth
+    // In a real app, this would be determined by checking if a user is logged in.
+    // We'll assume the user is a member for now.
+    const isMember = true; 
 
-    if (!isAdmin) {
+    if (!isMember) {
         return null;
     }
 
