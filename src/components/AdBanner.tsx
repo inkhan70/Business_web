@@ -3,32 +3,73 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, Award } from 'lucide-react';
+import { X, Award, ShoppingCart } from 'lucide-react';
 
-const SESSION_STORAGE_KEY = 'adBannerDismissed';
+const SESSION_STORAGE_KEY_PREFIX = 'adBannerDismissed_';
+
+// --- Placeholder Data ---
+// In a real app, this would come from a database or a CMS.
+const allAds = [
+    {
+        id: 'soup_ad_1',
+        title: "New! Hearty Chicken Noodle Soup",
+        description: "Perfect for the winter season. Stock your shelves now!",
+        icon: ShoppingCart,
+        targetAudience: ['shopkeeper', 'guest'], // Can be seen by shopkeepers and guests
+    },
+    {
+        id: 'logistics_ad_2',
+        title: "Streamline Your Deliveries",
+        description: "Optimize your routes with our new logistics partnership.",
+        icon: Award,
+        targetAudience: ['distributor', 'wholesaler'], // Only for distributors and wholesalers
+    },
+    {
+        id: 'default_ad_3',
+        title: "A Special Offer for Our Valued Members!",
+        description: "Get 20% off on your next purchase. Use code: MEMBER20",
+        icon: Award,
+        targetAudience: ['guest'], // Default ad for guests if no other ad matches
+    }
+];
+// --- End Placeholder Data ---
+
 
 export function AdBanner() {
+  const [ad, setAd] = useState<typeof allAds[0] | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   
   // This is a placeholder. In a real app, this would be determined by user authentication and roles.
-  const isAppreciatedMember = true; 
+  const currentUserRole = 'shopkeeper'; // Try changing to 'distributor' or 'guest'
 
   useEffect(() => {
-    // Check if the user is a member and if they haven't already dismissed the banner this session.
-    const dismissed = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (isAppreciatedMember && dismissed !== 'true') {
-      setIsVisible(true);
+    // 1. Find a suitable ad for the current user
+    const suitableAds = allAds.filter(ad => ad.targetAudience.includes(currentUserRole));
+    const selectedAd = suitableAds.length > 0 ? suitableAds[0] : null;
+    
+    if (selectedAd) {
+        setAd(selectedAd);
+        // 2. Check if this specific ad has been dismissed this session.
+        const dismissed = sessionStorage.getItem(SESSION_STORAGE_KEY_PREFIX + selectedAd.id);
+        if (dismissed !== 'true') {
+          setIsVisible(true);
+        }
     }
-  }, [isAppreciatedMember]);
+
+  }, [currentUserRole]);
 
   const handleDismiss = () => {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, 'true');
+    if (ad) {
+      sessionStorage.setItem(SESSION_STORAGE_KEY_PREFIX + ad.id, 'true');
+    }
     setIsVisible(false);
   };
 
-  if (!isVisible) {
+  if (!isVisible || !ad) {
     return null;
   }
+  
+  const AdIcon = ad.icon;
 
   return (
     <div className="container mx-auto px-4 pt-6">
@@ -36,12 +77,12 @@ export function AdBanner() {
         <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center space-x-4">
                 <div className="bg-primary/20 p-2 rounded-full">
-                    <Award className="h-6 w-6 text-primary" />
+                    <AdIcon className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-primary">A Special Offer for Our Valued Members!</h3>
+                    <h3 className="font-bold text-primary">{ad.title}</h3>
                     <p className="text-sm text-primary/80">
-                        Get 20% off on your next purchase. Use code: <span className="font-mono bg-background/50 px-1 py-0.5 rounded">MEMBER20</span>
+                        {ad.description}
                     </p>
                 </div>
             </div>
