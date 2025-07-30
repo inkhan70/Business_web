@@ -8,11 +8,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function Header() {
   const languages = [
-    "English", "العربية (Arabic)", "Bengali", "简体中文 (Chinese, Simplified)", "繁體中文 (Chinese, Traditional)",
-    "Français (French)", "Deutsch (German)", "Gujarati", "Hindi", "Italiano (Italian)", "日本語 (Japanese)", 
-    "Kannada", "한국어 (Korean)", "Malayalam", "Marathi", "ਪੰਜਾਬੀ (Punjabi)", "پښتو (Pashto)", "فارسی (Persian)",
-    "Polski (Polish)", "Português (Portuguese)", "Русский (Russian)", "Español (Spanish)", "Swahili", "Tamil", 
-    "Telugu", "ไทย (Thai)", "Türkçe (Turkish)", "اردو (Urdu)", "Tiếng Việt (Vietnamese)"
+    "English", 
+    "العربية (Arabic)", 
+    "اردو (Urdu)", 
+    "فارسی (Farsi)"
   ];
 
   return (
@@ -49,7 +48,7 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <ScrollArea className="h-72 w-48">
+                <ScrollArea className="h-auto w-48">
                   {languages.map(lang => (
                     <DropdownMenuItem key={lang}>{lang}</DropdownMenuItem>
                   ))}
