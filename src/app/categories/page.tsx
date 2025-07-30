@@ -34,15 +34,15 @@ import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 
 const initialCategories = [
-  { name: 'Food', icon: UtensilsCrossed, href: '/products?category=food' },
-  { name: 'Drinks', icon: GlassWater, href: '/products?category=drinks' },
-  { name: 'Electronics', icon: Laptop, href: '/products?category=electronics' },
-  { name: 'Medicine', icon: Pill, href: '/products?category=medicine' },
-  { name: 'Shoes', icon: Footprints, href: '/products?category=shoes' },
-  { name: 'Fabrics', icon: Scissors, href: '/products?category=fabrics' },
-  { name: 'Jewelry', icon: Gem, href: '/products?category=jewelry' },
-  { name: 'Hardware', icon: Building, href: '/products?category=hardware'},
-  { name: 'Other', icon: MoreHorizontal, href: '/products?category=other' },
+  { name: 'Food', icon: UtensilsCrossed, href: '/roles?category=food' },
+  { name: 'Drinks', icon: GlassWater, href: '/roles?category=drinks' },
+  { name: 'Electronics', icon: Laptop, href: '/roles?category=electronics' },
+  { name: 'Medicine', icon: Pill, href: '/roles?category=medicine' },
+  { name: 'Shoes', icon: Footprints, href: '/roles?category=shoes' },
+  { name: 'Fabrics', icon: Scissors, href: '/roles?category=fabrics' },
+  { name: 'Jewelry', icon: Gem, href: '/roles?category=jewelry' },
+  { name: 'Hardware', icon: Building, href: '/roles?category=hardware'},
+  { name: 'Other', icon: MoreHorizontal, href: '/roles?category=other' },
 ];
 
 export default function CategoriesPage() {
@@ -57,7 +57,7 @@ export default function CategoriesPage() {
       const newCategory = {
         name: newCategoryName,
         icon: MoreHorizontal, // Default icon
-        href: `/products?category=${newCategoryName.toLowerCase()}`
+        href: `/roles?category=${newCategoryName.toLowerCase()}`
       };
       setCategories([...categories, newCategory]);
       setNewCategoryName("");
