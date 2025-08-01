@@ -1,3 +1,6 @@
+
+"use client";
+
 import { AdBanner } from '@/components/AdBanner';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
@@ -5,8 +8,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
+  const { t } = useLanguage();
+
   return (
     <>
       <Wallpaper />
@@ -17,23 +23,23 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="flex flex-col items-start text-left">
               <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter text-primary">
-                Connect Your Business to Your City.
+                {t('home.title')}
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground mb-8">
-                If you are a producer, wholesaler, distributor or shopkeeper, put your business online within minutes with us. Sell your products to local and domestic customers for free. Grow your business 24/7 without the need for an expensive storefront.
+                {t('home.description')}
               </p>
               <p className="max-w-xl text-lg text-muted-foreground mb-8">
-                Online your business with us. <Link href="/signup" className="text-primary underline hover:opacity-80">Sign up</Link> now, or <Link href="/signin" className="text-primary underline hover:opacity-80">sign in</Link> if you are already registered.
+                {t('home.sub_description_1')} <Link href="/signup" className="text-primary underline hover:opacity-80">{t('home.sign_up')}</Link> {t('home.sub_description_2')}, {t('home.or')} <Link href="/signin" className="text-primary underline hover:opacity-80">{t('home.sign_in')}</Link> {t('home.sub_description_3')}.
               </p>
               <div className="flex flex-wrap items-center gap-4">
                 <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
                   <Link href="/categories">
-                    Explore Categories <ArrowRight className="ml-2 h-5 w-5" />
+                    {t('home.explore_categories')} <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                  <Button size="lg" variant="outline" asChild>
                   <Link href="/signup">
-                    Get Started
+                    {t('home.get_started')}
                   </Link>
                 </Button>
               </div>

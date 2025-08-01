@@ -1,17 +1,22 @@
+
+"use client";
+
 import Link from 'next/link';
 import { Search, Globe, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function Header() {
+  const { setLanguage, t } = useLanguage();
   const languages = [
-    "English", 
-    "العربية (Arabic)", 
-    "اردو (Urdu)", 
-    "فارسی (Farsi)"
+    { code: "en", name: "English" },
+    { code: "ar", name: "العربية (Arabic)" },
+    { code: "ur", name: "اردو (Urdu)" },
+    { code: "fa", name: "فارسی (Farsi)" }
   ];
 
   return (
@@ -23,8 +28,8 @@ export function Header() {
             <span className="font-bold font-headline text-lg">CityFind</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">Categories</Link>
-            <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">Dashboard</Link>
+            <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
+            <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>
           </nav>
         </div>
 
@@ -34,7 +39,7 @@ export function Header() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search distributors in a specific city..."
+                placeholder={t('header.search_placeholder')}
                 className="pl-9 w-full md:w-80"
               />
             </div>
@@ -50,16 +55,18 @@ export function Header() {
               <DropdownMenuContent align="end">
                 <ScrollArea className="h-auto w-48">
                   {languages.map(lang => (
-                    <DropdownMenuItem key={lang}>{lang}</DropdownMenuItem>
+                    <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang.code as any)}>
+                      {lang.name}
+                    </DropdownMenuItem>
                   ))}
                 </ScrollArea>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="ghost" asChild>
-              <Link href="/signin">Sign In</Link>
+              <Link href="/signin">{t('header.sign_in')}</Link>
             </Button>
             <Button asChild>
-              <Link href="/signup">Sign Up</Link>
+              <Link href="/signup">{t('header.sign_up')}</Link>
             </Button>
           </nav>
         </div>
@@ -80,11 +87,11 @@ export function Header() {
                         <span className="font-bold font-headline text-lg">CityFind</span>
                     </Link>
                     <div className="flex flex-col space-y-4">
-                        <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">Categories</Link>
-                        <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">Dashboard</Link>
-                        <Link href="/signin" className="transition-colors hover:text-foreground/80 text-foreground/60">Sign In</Link>
+                        <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
+                        <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>
+                        <Link href="/signin" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.sign_in')}</Link>
                          <Button asChild>
-                           <Link href="/signup">Sign Up</Link>
+                           <Link href="/signup">{t('header.sign_up')}</Link>
                          </Button>
                     </div>
                 </SheetContent>
