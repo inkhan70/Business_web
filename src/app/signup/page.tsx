@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Location } from "@/components/Location";
 
 const formSchema = z.object({
   emailOrPhone: z.string().min(1, { message: "Email or phone number is required." }),
@@ -30,8 +31,11 @@ const formSchema = z.object({
   role: z.enum(["company", "wholesaler", "distributor", "shopkeeper"], {
     required_error: "You need to select a business role.",
   }),
-  city: z.string().min(2, { message: "City is required." }),
   address: z.string().min(10, { message: "Full address is required." }),
+  city: z.string().min(2, { message: "City is required." }),
+  state: z.string().min(2, { message: "State is required." }),
+  country: z.string().min(2, { message: "Country is required." }),
+  zip: z.string().min(5, { message: "Zip code is required." }),
 });
 
 export default function SignUpPage() {
@@ -45,8 +49,11 @@ export default function SignUpPage() {
             emailOrPhone: "",
             password: "",
             businessName: "",
-            city: "",
             address: "",
+            city: "",
+            state: "",
+            country: "",
+            zip: "",
         },
     });
 
@@ -138,32 +145,7 @@ export default function SignUpPage() {
                 />
               </div>
               
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('signup.city')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('signup.city_placeholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('signup.address')}</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder={t('signup.address_placeholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <Location />
               <Button type="submit" className="w-full">{t('signup.create_account')}</Button>
             </form>
           </Form>
