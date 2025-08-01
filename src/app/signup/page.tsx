@@ -31,7 +31,6 @@ const formSchema = z.object({
     required_error: "You need to select a business role.",
   }),
   city: z.string().min(2, { message: "City is required." }),
-  location: z.string().min(2, { message: "Location/area is required." }),
   address: z.string().min(10, { message: "Full address is required." }),
 });
 
@@ -47,7 +46,6 @@ export default function SignUpPage() {
             password: "",
             businessName: "",
             city: "",
-            location: "",
             address: "",
         },
     });
@@ -139,8 +137,8 @@ export default function SignUpPage() {
                     )}
                 />
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                 <FormField
+              
+                <FormField
                   control={form.control}
                   name="city"
                   render={({ field }) => (
@@ -153,20 +151,6 @@ export default function SignUpPage() {
                     </FormItem>
                   )}
                 />
-                 <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('signup.neighborhood')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('signup.neighborhood_placeholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
               <FormField
                   control={form.control}
                   name="address"
