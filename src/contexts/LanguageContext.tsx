@@ -28,7 +28,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguage] = useState<keyof typeof translations>('en');
 
   const t = (key: keyof Translations): string => {
-    return translations[language][key] || translations['en'][key] || String(key);
+    // Safely access translations, falling back to English if the language or key doesn't exist.
+    const lang_dict = translations[language] || translations['en'];
+    return lang_dict[key] || translations['en'][key] || String(key);
   };
   
   useEffect(() => {
