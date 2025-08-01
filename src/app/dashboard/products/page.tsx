@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,8 +27,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, PlusCircle, Upload } from 'lucide-react';
-import { Suspense } from 'react';
+import { ArrowLeft, Upload, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters."),
@@ -40,40 +41,72 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
-// This is placeholder data. In a real app, you'd fetch this from your database.
-const existingProduct: ProductFormValues = {
-    name: "Organic Apples",
-    description: "Crisp and delicious organic apples, perfect for snacking or baking. Sourced from local farms.",
-    price: 2.99,
-    status: "Active",
-    inventory: 200,
-};
-
 function ProductForm() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const { toast } = useToast();
     const editId = searchParams.get('edit');
 
-    const defaultValues: Partial<ProductFormValues> = editId ? existingProduct : {
-        name: "",
-        description: "",
-        price: 0,
-        status: "Active",
-        inventory: 0,
-    };
-
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
-        defaultValues,
+        defaultValues: {
+            name: "",
+            description: "",
+            price: 0,
+            status: "Active",
+            inventory: 0,
+        },
         mode: "onChange",
     });
 
-    function onSubmit(data: ProductFormValues) {
-        toast({
-            title: `Product ${editId ? 'Updated' : 'Created'}`,
-            description: `The product "${data.name}" has been successfully saved.`,
-        });
-        console.log(data);
+    useEffect(() => {
+        const fetchProduct = async () => {
+            if (editId) {
+                const docRef = doc(db, "products", editId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    form.reset(docSnap.data() as ProductFormValues);
+                } else {
+                    toast({
+                        title: "Error",
+                        description: "Product not found.",
+                        variant: "destructive",
+                    });
+                    router.push('/dashboard');
+                }
+            }
+        };
+        fetchProduct();
+    }, [editId, form, router, toast]);
+
+    async function onSubmit(data: ProductFormValues) {
+        try {
+            if (editId) {
+                // Update existing product
+                const productRef = doc(db, "products", editId);
+                await updateDoc(productRef, data);
+                 toast({
+                    title: "Product Updated",
+                    description: `The product "${data.name}" has been successfully saved.`,
+                });
+            } else {
+                // Add new product
+                await addDoc(collection(db, "products"), data);
+                 toast({
+                    title: "Product Created",
+                    description: `The product "${data.name}" has been successfully added.`,
+                });
+            }
+            router.push('/dashboard');
+            router.refresh(); // To see the changes on dashboard page
+        } catch (error) {
+            console.error("Error saving product: ", error);
+            toast({
+                title: "Error",
+                description: "Could not save the product. Please try again.",
+                variant: "destructive",
+            });
+        }
     }
     
     return (
@@ -127,7 +160,7 @@ function ProductForm() {
                                             <FormItem>
                                             <FormLabel>Price ($)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" placeholder="0.00" {...field} />
+                                                <Input type="number" step="0.01" placeholder="0.00" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                             </FormItem>
@@ -153,7 +186,7 @@ function ProductForm() {
                                     render={({ field }) => (
                                         <FormItem>
                                         <FormLabel>Status</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select product status" />
@@ -187,7 +220,10 @@ function ProductForm() {
                         </div>
 
                         <div className="flex justify-end space-x-2">
-                             <Button type="submit">{editId ? 'Save Changes' : 'Create Product'}</Button>
+                             <Button type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {editId ? 'Save Changes' : 'Create Product'}
+                             </Button>
                         </div>
                     </form>
                 </Form>
