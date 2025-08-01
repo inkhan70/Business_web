@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { ArrowLeft, Upload, Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
+import { Label } from '@/components/ui/label';
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters."),
