@@ -35,7 +35,6 @@ const formSchema = z.object({
   city: z.string().min(2, { message: "City is required." }),
   state: z.string().min(2, { message: "State is required." }),
   country: z.string().min(2, { message: "Country is required." }),
-  zip: z.string().min(5, { message: "Zip code is required." }),
 });
 
 export default function SignUpPage() {
@@ -53,7 +52,6 @@ export default function SignUpPage() {
             city: "",
             state: "",
             country: "",
-            zip: "",
         },
     });
 
