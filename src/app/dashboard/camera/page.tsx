@@ -3,16 +3,24 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, VideoOff } from 'lucide-react';
+import { ArrowLeft, VideoOff, Camera, Upload, RotateCw, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { storage } from '@/lib/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import Image from 'next/image';
 
 export default function CameraPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -47,7 +55,6 @@ export default function CameraPage() {
 
     getCameraPermission();
     
-    // Cleanup function to stop video stream when component unmounts
     return () => {
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
@@ -55,6 +62,51 @@ export default function CameraPage() {
         }
     };
   }, [toast]);
+
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        const dataUrl = canvas.toDataURL('image/png');
+        setCapturedImage(dataUrl);
+      }
+    }
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
+  };
+  
+  const handleSaveImage = async () => {
+    if (!capturedImage) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `captures/${Date.now()}.png`);
+      await uploadString(storageRef, capturedImage, 'data_url');
+      
+      toast({
+        title: 'Image Saved',
+        description: 'Your captured image has been saved to the library.',
+      });
+      router.push('/dashboard/images');
+    } catch (error) {
+      console.error("Error saving image:", error);
+      toast({
+        title: 'Upload Failed',
+        description: 'There was a problem saving your image.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -72,12 +124,15 @@ export default function CameraPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>Camera Feed</CardTitle>
+                <CardTitle>{capturedImage ? 'Image Preview' : 'Camera Feed'}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="w-full max-w-2xl mx-auto">
                     <div className="aspect-video bg-black rounded-md overflow-hidden relative">
-                         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                         <video ref={videoRef} className={`w-full h-full object-cover ${capturedImage ? 'hidden' : ''}`} autoPlay muted playsInline />
+                         {capturedImage && (
+                             <Image src={capturedImage} alt="Captured preview" layout="fill" objectFit="contain" />
+                         )}
                          {hasCameraPermission === false && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4">
                                 <VideoOff className="h-12 w-12 mb-4" />
@@ -94,11 +149,28 @@ export default function CameraPage() {
                         </Alert>
                     )}
                     {hasCameraPermission === true && (
-                        <div className="mt-4 flex justify-center">
-                            <Button size="lg">Capture Image</Button>
+                        <div className="mt-4 flex justify-center space-x-4">
+                            {!capturedImage ? (
+                                <Button size="lg" onClick={handleCapture}>
+                                    <Camera className="mr-2 h-4 w-4" />
+                                    Capture Image
+                                </Button>
+                            ) : (
+                                <>
+                                    <Button size="lg" variant="outline" onClick={handleRetake} disabled={isUploading}>
+                                        <RotateCw className="mr-2 h-4 w-4" />
+                                        Retake
+                                    </Button>
+                                    <Button size="lg" onClick={handleSaveImage} disabled={isUploading}>
+                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                        {isUploading ? 'Saving...' : 'Save Image'}
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
+                <canvas ref={canvasRef} className="hidden"></canvas>
             </CardContent>
         </Card>
     </div>
