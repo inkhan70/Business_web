@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Product {
     id: string;
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+    const { t } = useLanguage();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -99,8 +101,10 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground">Add, edit, or remove products from your inventory.</p>
             </div>
             <div className="flex space-x-2">
-                <Button variant="outline">
-                    <Camera className="mr-2 h-4 w-4" /> Live Camera
+                <Button variant="outline" asChild>
+                    <Link href="/dashboard/camera">
+                        <Camera className="mr-2 h-4 w-4" /> Live Camera
+                    </Link>
                 </Button>
                 <Button asChild>
                     <Link href="/dashboard/products">
@@ -177,7 +181,7 @@ export default function DashboardPage() {
                                             </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuLabel>{t('item_detail.select_variety')}</DropdownMenuLabel>
                                                 <DropdownMenuItem asChild>
                                                     <Link href={`/dashboard/products?edit=${product.id}`}>
                                                         <Edit className="mr-2 h-4 w-4" /> Edit
@@ -195,13 +199,13 @@ export default function DashboardPage() {
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogTitle>{t('categories.are_you_sure')}</AlertDialogTitle>
                                                             <AlertDialogDescription>
                                                                 This action cannot be undone. This will permanently delete the product "{product.name}".
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                            <AlertDialogCancel>{t('categories.cancel')}</AlertDialogCancel>
                                                             <AlertDialogAction 
                                                                 className="bg-destructive hover:bg-destructive/90"
                                                                 onClick={() => handleDelete(product.id, product.name)}>
