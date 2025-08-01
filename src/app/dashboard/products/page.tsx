@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect, Suspense, useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -28,10 +28,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2 } from 'lucide-react';
-import { db } from '@/lib/firebase';
+import { ArrowLeft, Upload, Loader2, Trash2 } from 'lucide-react';
+import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters."),
@@ -39,6 +41,8 @@ const productFormSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number."),
   status: z.enum(["Active", "Archived", "Low Stock", "Out of Stock"]),
   inventory: z.coerce.number().min(0, "Inventory must be a positive number."),
+  image: z.string().optional(),
+  dataAiHint: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -49,6 +53,10 @@ function ProductForm() {
     const { toast } = useToast();
     const editId = searchParams.get('edit');
 
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
         defaultValues: {
@@ -57,6 +65,8 @@ function ProductForm() {
             price: 0,
             status: "Active",
             inventory: 0,
+            image: "",
+            dataAiHint: "",
         },
         mode: "onChange",
     });
@@ -67,7 +77,11 @@ function ProductForm() {
                 const docRef = doc(db, "products", editId);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    form.reset(docSnap.data() as ProductFormValues);
+                    const productData = docSnap.data() as ProductFormValues;
+                    form.reset(productData);
+                    if (productData.image) {
+                        setImagePreview(productData.image);
+                    }
                 } else {
                     toast({
                         title: "Error",
@@ -80,20 +94,50 @@ function ProductForm() {
         };
         fetchProduct();
     }, [editId, form, router, toast]);
+    
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+        form.setValue("image", ""); 
+    }
 
     async function onSubmit(data: ProductFormValues) {
+        setIsUploading(true);
         try {
+            let imageUrl = form.getValues("image");
+
+            if (imageFile) {
+                // Upload new image to Firebase Storage
+                const storageRef = ref(storage, `products/${Date.now()}_${imageFile.name}`);
+                const uploadResult = await uploadBytes(storageRef, imageFile);
+                imageUrl = await getDownloadURL(uploadResult.ref);
+            }
+            
+            const productData = { ...data, image: imageUrl };
+
             if (editId) {
                 // Update existing product
                 const productRef = doc(db, "products", editId);
-                await updateDoc(productRef, data);
+                await updateDoc(productRef, productData);
                  toast({
                     title: "Product Updated",
                     description: `The product "${data.name}" has been successfully saved.`,
                 });
             } else {
                 // Add new product
-                await addDoc(collection(db, "products"), data);
+                await addDoc(collection(db, "products"), productData);
                  toast({
                     title: "Product Created",
                     description: `The product "${data.name}" has been successfully added.`,
@@ -108,6 +152,8 @@ function ProductForm() {
                 description: "Could not save the product. Please try again.",
                 variant: "destructive",
             });
+        } finally {
+            setIsUploading(false);
         }
     }
     
@@ -150,6 +196,22 @@ function ProductForm() {
                                                 {...field}
                                             />
                                         </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="dataAiHint"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Image AI Hint</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., apple fruit" {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                            A short hint for AI to find a suitable image if none is uploaded (e.g. "bread loaf").
+                                        </FormDescription>
                                         <FormMessage />
                                         </FormItem>
                                     )}
@@ -211,19 +273,30 @@ function ProductForm() {
                             </div>
                             <div className="md:col-span-1 space-y-4">
                                 <Label>Product Image</Label>
-                                <Card className="border-dashed">
-                                    <CardContent className="p-6 flex flex-col items-center justify-center text-center h-48">
-                                         <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-                                         <p className="text-sm text-muted-foreground mb-2">Drag & drop or click to upload</p>
-                                         <Button type="button" variant="outline" size="sm">Select Image</Button>
+                                <Card className="border-dashed aspect-square">
+                                    <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
+                                        {!imagePreview ? (
+                                             <>
+                                                <Upload className="h-12 w-12 text-muted-foreground mb-4" />
+                                                <p className="text-sm text-muted-foreground mb-2">Drag & drop or click to upload</p>
+                                                <Input id="image-upload" type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleImageChange} accept="image/*" />
+                                             </>
+                                        ) : (
+                                            <>
+                                                <Image src={imagePreview} alt="Product preview" fill className="object-cover rounded-md" />
+                                                 <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={removeImage}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
                         </div>
 
                         <div className="flex justify-end space-x-2">
-                             <Button type="submit" disabled={form.formState.isSubmitting}>
-                                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                             <Button type="submit" disabled={form.formState.isSubmitting || isUploading}>
+                                {(form.formState.isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editId ? 'Save Changes' : 'Create Product'}
                              </Button>
                         </div>

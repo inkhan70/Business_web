@@ -8,7 +8,7 @@ import { getStorage } from "firebase/storage";
 const firebaseConfig = {
   projectId: "distributors-connect-vrglt",
   appId: "1:419892415781:web:6eafb3827013130dcb1ecc",
-  storageBucket: "distributors-connect-vrglt.firebasestorage.app",
+  storageBucket: "distributors-connect-vrglt.appspot.com",
   apiKey: "AIzaSyCPsC3RzJkiTELNQVmc-UPlz47aZI0nVNM",
   authDomain: "distributors-connect-vrglt.firebaseapp.com",
   messagingSenderId: "419892415781",
