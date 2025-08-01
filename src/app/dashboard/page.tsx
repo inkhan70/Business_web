@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 const products = [
   {
@@ -69,8 +70,10 @@ export default function DashboardPage() {
                 <Button variant="outline">
                     <Camera className="mr-2 h-4 w-4" /> Live Camera
                 </Button>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                <Button asChild>
+                    <Link href="/dashboard/products">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                    </Link>
                 </Button>
             </div>
         </div>
@@ -126,7 +129,11 @@ export default function DashboardPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                                            <DropdownMenuItem asChild>
+                                                <Link href={`/dashboard/products?edit=${product.id}`}>
+                                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                                </Link>
+                                            </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem className="text-red-500 focus:text-red-500 focus:bg-red-50"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                                         </DropdownMenuContent>
