@@ -9,9 +9,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 export function Header() {
-  const { setLanguage, t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const languages = [
     { code: "en", name: "English" },
     { code: "ar", name: "العربية (Arabic)" },
@@ -89,7 +90,37 @@ export function Header() {
                     <div className="flex flex-col space-y-4">
                         <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
                         <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>
-                        <Link href="/signin" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.sign_in')}</Link>
+                        
+                        <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value="item-1" className="border-b-0">
+                                <AccordionTrigger className="transition-colors hover:text-foreground/80 text-foreground/60 py-0 font-medium hover:no-underline">
+                                    <div className="flex items-center space-x-2">
+                                        <Globe className="h-5 w-5" />
+                                        <span>Language</span>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-2 pb-0">
+                                    <div className="pl-7 flex flex-col space-y-2">
+                                        {languages.map(lang => (
+                                            <button
+                                                key={lang.code}
+                                                className={`text-left text-sm transition-colors hover:text-foreground/80 ${language === lang.code ? 'text-foreground font-semibold' : 'text-foreground/60'}`}
+                                                onClick={() => {
+                                                    setLanguage(lang.code as any)
+                                                    // Optionally close the sheet here
+                                                }}
+                                            >
+                                                {lang.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                        
+                        <div className="pt-4 border-t">
+                            <Link href="/signin" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.sign_in')}</Link>
+                        </div>
                          <Button asChild>
                            <Link href="/signup">{t('header.sign_up')}</Link>
                          </Button>
