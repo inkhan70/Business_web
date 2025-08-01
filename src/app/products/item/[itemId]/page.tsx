@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from '@/components/ui/textarea';
 import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const product = {
   name: "Artisan Sourdough Bread",
@@ -25,6 +27,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
   const [selectedVariety, setSelectedVariety] = useState(product.varieties[0]);
   const [quantity, setQuantity] = useState(1);
   const [showAddress, setShowAddress] = useState(false);
+  const { t } = useLanguage();
 
   const totalCost = selectedVariety.price * quantity;
 
@@ -46,11 +49,11 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
           <Card>
             <CardHeader>
               <CardTitle className="font-headline text-3xl">{selectedVariety.name}</CardTitle>
-              <CardDescription>by {selectedVariety.manufacturer}</CardDescription>
+              <CardDescription>{t('item_detail.by_manufacturer')} {selectedVariety.manufacturer}</CardDescription>
               <p className="text-2xl font-bold text-primary pt-2">${selectedVariety.price.toFixed(2)}</p>
             </CardHeader>
             <CardContent>
-              <Label>Select Variety</Label>
+              <Label>{t('item_detail.select_variety')}</Label>
               <RadioGroup value={selectedVariety.id} onValueChange={(id) => setSelectedVariety(product.varieties.find(v => v.id === id) || product.varieties[0])} className="mt-2">
                 {product.varieties.map(v => (
                   <div key={v.id} className="flex items-center space-x-2">
@@ -64,7 +67,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
 
               <div className="flex items-center gap-8">
                   <div>
-                    <Label>Quantity</Label>
+                    <Label>{t('item_detail.quantity')}</Label>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
                       <Input type="number" value={quantity} readOnly className="w-16 text-center" />
@@ -72,7 +75,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Cost</p>
+                    <p className="text-sm text-muted-foreground">{t('item_detail.total_cost')}</p>
                     <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
                   </div>
               </div>
@@ -81,21 +84,21 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
               
               {!showAddress ? (
                 <Button className="w-full" size="lg" onClick={() => setShowAddress(true)}>
-                  <ShoppingCart className="mr-2 h-5 w-5" /> Proceed to Purchase
+                  <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.proceed_to_purchase')}
                 </Button>
               ) : (
                 <div className="space-y-4">
-                  <h3 className="font-bold text-lg">Delivery Information</h3>
-                  <Label htmlFor="address">Complete Address</Label>
-                  <Textarea id="address" placeholder="Enter your full delivery address..." />
-                  <p className="text-sm text-muted-foreground">Transportation Cost: <span className="font-bold text-foreground">$5.00</span></p>
+                  <h3 className="font-bold text-lg">{t('item_detail.delivery_info')}</h3>
+                  <Label htmlFor="address">{t('item_detail.complete_address')}</Label>
+                  <Textarea id="address" placeholder={t('item_detail.address_placeholder')} />
+                  <p className="text-sm text-muted-foreground">{t('item_detail.transport_cost')} <span className="font-bold text-foreground">$5.00</span></p>
                   <div className="flex items-center space-x-2">
                     <Checkbox id="manual-transport" />
                     <Label htmlFor="manual-transport" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        I will transport the products manually.
+                        {t('item_detail.manual_transport_label')}
                     </Label>
                   </div>
-                  <Button className="w-full bg-green-600 hover:bg-green-700">Confirm Order</Button>
+                  <Button className="w-full bg-green-600 hover:bg-green-700">{t('item_detail.confirm_order')}</Button>
                 </div>
               )}
             </CardContent>

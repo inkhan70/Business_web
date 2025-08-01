@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -20,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const formSchema = z.object({
   emailOrPhone: z.string().min(1, { message: "Email or phone number is required." }),
@@ -36,6 +38,7 @@ const formSchema = z.object({
 export default function SignUpPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const { t } = useLanguage();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -52,8 +55,8 @@ export default function SignUpPage() {
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
         toast({
-          title: "Account Created!",
-          description: "Your business is now registered. Redirecting to your dashboard.",
+          title: t('toast.signup_success'),
+          description: t('toast.signup_success_desc'),
         });
         router.push("/dashboard");
     }
@@ -62,9 +65,9 @@ export default function SignUpPage() {
     <div className="container flex items-center justify-center py-12">
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">Create your Business Account</CardTitle>
+          <CardTitle className="text-2xl font-headline">{t('signup.title')}</CardTitle>
           <CardDescription>
-            Join our network of local businesses. It's free!
+            {t('signup.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,9 +79,9 @@ export default function SignUpPage() {
                   name="emailOrPhone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email or Phone Number</FormLabel>
+                      <FormLabel>{t('signup.email_phone')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="contact@mybusiness.com" {...field} />
+                        <Input placeholder={t('signup.email_phone_placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -89,7 +92,7 @@ export default function SignUpPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>{t('signup.password')}</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
@@ -104,9 +107,9 @@ export default function SignUpPage() {
                   name="businessName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Business Name</FormLabel>
+                      <FormLabel>{t('signup.business_name')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., City Grocers" {...field} />
+                        <Input placeholder={t('signup.business_name_placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -117,18 +120,18 @@ export default function SignUpPage() {
                     name="role"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>I am a...</FormLabel>
+                        <FormLabel>{t('signup.role')}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select your business role" />
+                                <SelectValue placeholder={t('signup.role_placeholder')} />
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="company">Company / Producer</SelectItem>
-                                <SelectItem value="wholesaler">Wholesaler</SelectItem>
-                                <SelectItem value="distributor">Distributor</SelectItem>
-                                <SelectItem value="shopkeeper">Shopkeeper</SelectItem>
+                                <SelectItem value="company">{t('signup.role_company')}</SelectItem>
+                                <SelectItem value="wholesaler">{t('signup.role_wholesaler')}</SelectItem>
+                                <SelectItem value="distributor">{t('signup.role_distributor')}</SelectItem>
+                                <SelectItem value="shopkeeper">{t('signup.role_shopkeeper')}</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -142,9 +145,9 @@ export default function SignUpPage() {
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
+                      <FormLabel>{t('signup.city')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Metropolis" {...field} />
+                        <Input placeholder={t('signup.city_placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -155,9 +158,9 @@ export default function SignUpPage() {
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Neighborhood / Area</FormLabel>
+                      <FormLabel>{t('signup.neighborhood')}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Downtown" {...field} />
+                        <Input placeholder={t('signup.neighborhood_placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -169,21 +172,21 @@ export default function SignUpPage() {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Street Address</FormLabel>
+                      <FormLabel>{t('signup.address')}</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="123 Main St, Metropolis, 12345" {...field} />
+                        <Textarea placeholder={t('signup.address_placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              <Button type="submit" className="w-full">Create Account</Button>
+              <Button type="submit" className="w-full">{t('signup.create_account')}</Button>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            Already have an account?{" "}
+            {t('signup.have_account')}{" "}
             <Link href="/signin" className="font-medium text-primary hover:underline">
-              Sign in
+              {t('home.sign_in')}
             </Link>
           </div>
         </CardContent>

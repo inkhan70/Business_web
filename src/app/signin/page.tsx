@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const formSchema = z.object({
   emailOrPhone: z.string().min(1, { message: "Please enter your email or phone number." }),
@@ -29,6 +31,7 @@ const formSchema = z.object({
 export default function SignInPage() {
     const router = useRouter();
     const { toast } = useToast();
+    const { t } = useLanguage();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -42,8 +45,8 @@ export default function SignInPage() {
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
         toast({
-            title: "Sign In Successful",
-            description: "Welcome back! Redirecting you to the dashboard.",
+            title: t('toast.signin_success'),
+            description: t('toast.signin_success_desc'),
         });
         router.push("/dashboard");
     }
@@ -52,9 +55,9 @@ export default function SignInPage() {
     <div className="container flex min-h-[calc(100vh-14rem)] items-center justify-center py-12">
       <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">Sign In</CardTitle>
+          <CardTitle className="text-2xl font-headline">{t('signin.title')}</CardTitle>
           <CardDescription>
-            Enter your credentials to access your dashboard.
+            {t('signin.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -65,9 +68,9 @@ export default function SignInPage() {
                 name="emailOrPhone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email or Phone Number</FormLabel>
+                    <FormLabel>{t('signin.email_phone')}</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
+                      <Input placeholder={t('signin.email_phone_placeholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -79,9 +82,9 @@ export default function SignInPage() {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>{t('signin.password')}</FormLabel>
                         <Link href="#" className="text-sm font-medium text-primary hover:underline">
-                            Forgot password?
+                            {t('signin.forgot_password')}
                         </Link>
                     </div>
                     <FormControl>
@@ -104,19 +107,19 @@ export default function SignInPage() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        Remember me
+                        {t('signin.remember_me')}
                       </FormLabel>
                     </div>
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">Sign In</Button>
+              <Button type="submit" className="w-full">{t('signin.button')}</Button>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            Don't have an account?{" "}
+            {t('signin.no_account')}{" "}
             <Link href="/signup" className="font-medium text-primary hover:underline">
-              Sign up
+              {t('home.sign_up')}
             </Link>
           </div>
         </CardContent>

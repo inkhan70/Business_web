@@ -6,29 +6,31 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Factory, Warehouse, Truck, Store, ArrowRight } from "lucide-react";
 import { Suspense } from "react";
-
-const roles = [
-  { name: 'Producers', icon: Factory, href: (category: string) => `/businesses?category=${category}&role=producers` },
-  { name: 'Wholesalers', icon: Warehouse, href: (category: string) => `/businesses?category=${category}&role=wholesalers` },
-  { name: 'Distributors', icon: Truck, href: (category: string) => `/businesses?category=${category}&role=distributors` },
-  { name: 'Shopkeepers', icon: Store, href: (category: string) => `/businesses?category=${category}&role=shopkeepers` },
-];
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function RolesContent() {
     const searchParams = useSearchParams();
+    const { t } = useLanguage();
     const category = searchParams.get('category') || 'all';
 
     const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
+    const roles = [
+      { name: t('roles.producers'), icon: Factory, href: (category: string) => `/businesses?category=${category}&role=producers` },
+      { name: t('roles.wholesalers'), icon: Warehouse, href: (category: string) => `/businesses?category=${category}&role=wholesalers` },
+      { name: t('roles.distributors'), icon: Truck, href: (category: string) => `/businesses?category=${category}&role=distributors` },
+      { name: t('roles.shopkeepers'), icon: Store, href: (category: string) => `/businesses?category=${category}&role=shopkeepers` },
+    ];
+
     return (
         <div className="container mx-auto px-4 py-12">
             <div className="text-center mb-12">
-                <p className="text-lg text-muted-foreground">Showing results for</p>
+                <p className="text-lg text-muted-foreground">{t('roles.showing_results')}</p>
                 <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
                 {categoryTitle}
                 </h1>
                 <p className="max-w-xl mx-auto text-lg text-muted-foreground mt-4">
-                Who are you looking for in the {categoryTitle} category?
+                {t('roles.who_are_you_looking_for')} {categoryTitle}?
                 </p>
             </div>
             
@@ -40,7 +42,7 @@ function RolesContent() {
                         <role.icon className="h-16 w-16 mb-6 text-primary group-hover:text-accent transition-colors" />
                         <h3 className="text-2xl font-bold font-headline mb-2">{role.name}</h3>
                         <div className="flex items-center text-sm text-muted-foreground group-hover:text-accent transition-colors">
-                            View All {role.name} <ArrowRight className="ml-2 h-4 w-4" />
+                            {t('roles.view_all')} {role.name} <ArrowRight className="ml-2 h-4 w-4" />
                         </div>
                     </CardContent>
                     </Card>

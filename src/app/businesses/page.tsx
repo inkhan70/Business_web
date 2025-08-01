@@ -10,6 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { MapPin, ArrowRight, Search } from "lucide-react";
 import Image from "next/image";
 import { Suspense } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Placeholder data - in a real app, this would be fetched from a database
 const businessData = {
@@ -34,26 +35,27 @@ type BusinessRole = keyof typeof businessData;
 
 function BusinessesContent() {
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
 
   const businesses = businessData[role] || businessData.shopkeepers;
 
-  const roleTitle = role.charAt(0).toUpperCase() + role.slice(1);
+  const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="text-left mb-8">
-        <p className="text-lg text-muted-foreground">Showing {roleTitle} for</p>
+        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          {categoryTitle} in Metropolis
+          {categoryTitle} {t('businesses.in_city')}
         </h1>
          <div className="relative mt-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
             type="search"
-            placeholder="Find your shopkeeper here..."
+            placeholder={t('businesses.search_placeholder')}
             className="pl-9 w-full md:w-1/2 lg:w-1/3"
             />
         </div>
@@ -70,12 +72,12 @@ function BusinessesContent() {
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                     {biz.address}
                 </CardDescription>
-                <p className="text-sm font-semibold text-primary mt-2">{biz.distance} away</p>
+                <p className="text-sm font-semibold text-primary mt-2">{biz.distance} {t('businesses.distance_away')}</p>
             </CardContent>
             <CardFooter className="p-4 pt-0">
               <Button asChild className="w-full">
                 <Link href={`/products/distributor/${biz.id}`}>
-                  View Products <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('businesses.view_products')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </CardFooter>
@@ -85,7 +87,7 @@ function BusinessesContent() {
       <Pagination className="mt-12">
         <PaginationContent>
           <PaginationItem>
-            <PaginationPrevious href="#" />
+            <PaginationPrevious href="#">{t('businesses.pagination_previous')}</PaginationPrevious>
           </PaginationItem>
           <PaginationItem>
             <PaginationLink href="#" isActive>1</PaginationLink>
@@ -97,7 +99,7 @@ function BusinessesContent() {
             <PaginationLink href="#">3</PaginationLink>
           </PaginationItem>
           <PaginationItem>
-            <PaginationNext href="#" />
+            <PaginationNext href="#">{t('businesses.pagination_next')}</PaginationNext>
           </PaginationItem>
         </PaginationContent>
       </Pagination>

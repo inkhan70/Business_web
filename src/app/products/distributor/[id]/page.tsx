@@ -1,9 +1,12 @@
+
+"use client"
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
 import Image from "next/image";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const distributor = { 
   id: 'dist1', 
@@ -21,6 +24,7 @@ const products = [
 ];
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
+  const { t } = useLanguage();
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mb-12">
@@ -37,7 +41,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Search for products in this inventory..."
+          placeholder={t('distributor_inventory.search_placeholder')}
           className="pl-9 w-full md:w-1/2 lg:w-1/3"
         />
       </div>
@@ -55,7 +59,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
             <CardFooter className="p-4 pt-0">
                 <Button asChild className="w-full" variant="outline">
                     <Link href={`/products/item/${product.id}`}>
-                        View Details
+                        {t('distributor_inventory.view_details')}
                     </Link>
                 </Button>
             </CardFooter>

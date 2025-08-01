@@ -34,6 +34,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const initialCategories = [
   { name: 'Food', icon: 'UtensilsCrossed', href: '/roles?category=food', order: 1 },
@@ -64,6 +65,7 @@ export default function CategoriesPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
 
   const isAdmin = true;
 
@@ -91,8 +93,8 @@ export default function CategoriesPage() {
         } catch(error) {
             console.error("Error fetching categories:", error);
             toast({
-                title: "Error",
-                description: "Could not connect to the database. Please check your Firestore rules and configuration.",
+                title: t('toast.error_db_connect'),
+                description: t('toast.error_db_connect_desc'),
                 variant: "destructive",
             });
         } finally {
@@ -101,7 +103,7 @@ export default function CategoriesPage() {
     };
 
     fetchCategories();
-  }, [toast]);
+  }, [toast, t]);
 
   const handleAddCategory = async () => {
     if (newCategoryName.trim()) {
@@ -116,22 +118,22 @@ export default function CategoriesPage() {
         setCategories([...categories, { ...newCategory, id: docRef.id }]);
         setNewCategoryName("");
         toast({
-          title: "Category Added",
-          description: `The category "${newCategoryName}" has been created.`,
+          title: t('toast.category_added'),
+          description: `${t('toast.category_added_desc')} "${newCategoryName}"`,
         });
         document.getElementById('close-add-dialog')?.click();
       } catch (error) {
          toast({
-            title: "Error Adding Category",
-            description: "Could not save the new category to the database.",
+            title: t('toast.error_adding_category'),
+            description: t('toast.error_adding_category_desc'),
             variant: "destructive"
         })
         console.error("Error adding document: ", error);
       }
     } else {
         toast({
-            title: "Error",
-            description: "Category name cannot be empty.",
+            title: t('toast.error_empty_name'),
+            description: t('toast.error_empty_name_desc'),
             variant: "destructive"
         })
     }
@@ -142,13 +144,13 @@ export default function CategoriesPage() {
         await deleteDoc(doc(db, "categories", categoryId));
         setCategories(categories.filter(c => c.id !== categoryId));
         toast({
-            title: "Category Removed",
-            description: `The category "${categoryName}" has been removed.`,
+            title: t('toast.category_removed'),
+            description: `${t('toast.category_removed_desc')} "${categoryName}"`,
         });
     } catch (error) {
         toast({
-            title: "Error Removing Category",
-            description: "Could not remove the category from the database.",
+            title: t('toast.error_removing_category'),
+            description: t('toast.error_removing_category_desc'),
             variant: "destructive"
         })
         console.error("Error removing document: ", error);
@@ -162,10 +164,10 @@ export default function CategoriesPage() {
       <WallpaperManager />
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          Browse by Category
+          {t('categories.title')}
         </h1>
         <p className="max-w-xl mx-auto text-lg text-muted-foreground mt-4">
-          Find exactly what you're looking for by exploring our business categories.
+          {t('categories.description')}
         </p>
       </div>
       
@@ -175,37 +177,37 @@ export default function CategoriesPage() {
                 <DialogTrigger asChild>
                     <Button>
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Category
+                        {t('categories.add_category')}
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Add New Category</DialogTitle>
+                        <DialogTitle>{t('categories.add_new_category')}</DialogTitle>
                         <DialogDescription>
-                            Enter the name for the new category you want to create.
+                            {t('categories.new_category_description')}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">
-                                Name
+                                {t('categories.name_label')}
                             </Label>
                             <Input
                                 id="name"
                                 value={newCategoryName}
                                 onChange={(e) => setNewCategoryName(e.target.value)}
                                 className="col-span-3"
-                                placeholder="e.g., Clothing"
+                                placeholder={t('categories.name_placeholder')}
                             />
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button type="button" variant="secondary" id="close-add-dialog">
-                                Cancel
+                                {t('categories.cancel')}
                             </Button>
                         </DialogClose>
-                        <Button type="button" onClick={handleAddCategory}>Add Category</Button>
+                        <Button type="button" onClick={handleAddCategory}>{t('categories.add_button')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -213,7 +215,7 @@ export default function CategoriesPage() {
       )}
 
         {loading ? (
-            <p className="text-center">Loading categories from database...</p>
+            <p className="text-center">{t('categories.loading')}</p>
         ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {categories.map((category) => {
@@ -241,17 +243,16 @@ export default function CategoriesPage() {
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogTitle>{t('categories.are_you_sure')}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete the 
+                                            {t('categories.delete_description')}
                                             <span className="font-bold"> {category.name} </span> 
-                                            category from the database.
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogCancel>{t('categories.cancel')}</AlertDialogCancel>
                                         <AlertDialogAction onClick={() => handleRemoveCategory(category.id, category.name)}>
-                                            Continue
+                                            {t('categories.continue')}
                                         </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
