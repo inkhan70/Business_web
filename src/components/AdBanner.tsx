@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, Award, ShoppingCart } from 'lucide-react';
+import { X, Award, ShoppingBag } from 'lucide-react';
 
 const SESSION_STORAGE_KEY_PREFIX = 'adBannerDismissed_';
 
@@ -14,7 +15,7 @@ const allAds = [
         id: 'soup_ad_1',
         title: "New! Hearty Chicken Noodle Soup",
         description: "Perfect for the winter season. Stock your shelves now!",
-        icon: ShoppingCart,
+        icon: ShoppingBag,
         targetAudience: ['shopkeeper', 'guest'], // Can be seen by shopkeepers and guests
     },
     {
