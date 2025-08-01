@@ -3,7 +3,7 @@ import { Search, Globe, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function Header() {
@@ -72,6 +72,9 @@ export function Header() {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="right">
+                    <SheetHeader>
+                        <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                    </SheetHeader>
                     <Link href="/" className="mr-6 flex items-center space-x-2 mb-6">
                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-6 w-6"><rect width="256" height="256" fill="none"></rect><path d="M128,24a104,104,0,1,0,104,104A104.2,104.2,0,0,0,128,24Zm0,176a72,72,0,1,1,72-72A72.1,72.1,0,0,1,128,200Z" fill="hsl(var(--primary))"></path><path d="M168,104a40,40,0,1,1-40-40,40,40,0,0,1,40,40" fill="hsl(var(--primary))" opacity="0.5"></path></svg>
                         <span className="font-bold font-headline text-lg">CityFind</span>
