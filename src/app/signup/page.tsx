@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -34,7 +33,6 @@ const formSchema = z.object({
   address: z.string().min(10, { message: "Full address is required." }),
   city: z.string().min(2, { message: "City is required." }),
   state: z.string().min(2, { message: "State is required." }),
-  country: z.string().min(2, { message: "Country is required." }),
 });
 
 export default function SignUpPage() {
@@ -51,7 +49,6 @@ export default function SignUpPage() {
             address: "",
             city: "",
             state: "",
-            country: "",
         },
     });
 

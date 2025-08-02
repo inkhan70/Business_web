@@ -32,7 +32,7 @@ export function Location() {
           setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
           setValue("city", "Geolocated City");
           setValue("state", "Geolocated State");
-          setValue("country", "Geolocated Country");
+          // setValue("country", "Geolocated Country");
           toast({
             title: "Location Fetched",
             description: `Address fields have been pre-filled. Please verify them.`,
@@ -101,21 +101,6 @@ export function Location() {
                     <FormLabel>State / Province</FormLabel>
                     <FormControl>
                         <Input placeholder="e.g., California" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                control={control}
-                name="country"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Country</FormLabel>
-                    <FormControl>
-                        <Input placeholder="e.g., United States" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
