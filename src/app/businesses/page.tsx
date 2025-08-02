@@ -7,31 +7,49 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { MapPin, ArrowRight, Search } from "lucide-react";
+import { MapPin, ArrowRight, Search, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-// Placeholder data - in a real app, this would be fetched from a database
+// --- Helper Functions ---
+// Haversine formula to calculate distance between two lat/lon points
+const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+  return d; // Distance in km
+};
+
+
+// Placeholder data - added lat/lon for distance calculation
 const businessData = {
-    producers: [...Array(4)].map((_, i) => ({ id: `prod${i+1}`, name: `Organic Farm ${i+1}`, address: `${10+i} Green Valley, Metropolis`, distance: `${20+i} km`, image: 'https://placehold.co/350x200.png', dataAiHint: 'farm field' })),
-    wholesalers: [...Array(3)].map((_, i) => ({ id: `whole${i+1}`, name: `Bulk Goods Co ${i+1}`, address: `${20+i} Warehouse Rd, Metropolis`, distance: `${10+i} km`, image: 'https://placehold.co/350x200.png', dataAiHint: 'warehouse interior' })),
+    producers: [...Array(4)].map((_, i) => ({ id: `prod${i+1}`, name: `Organic Farm ${i+1}`, address: `${10+i} Green Valley, Metropolis`, lat: 34.1 + i * 0.05, lon: -118.3 - i*0.05, image: 'https://placehold.co/350x200.png', dataAiHint: 'farm field' })),
+    wholesalers: [...Array(3)].map((_, i) => ({ id: `whole${i+1}`, name: `Bulk Goods Co ${i+1}`, address: `${20+i} Warehouse Rd, Metropolis`, lat: 34.05 + i * 0.02, lon: -118.25 - i*0.02, image: 'https://placehold.co/350x200.png', dataAiHint: 'warehouse interior' })),
     distributors: [
-      { id: 'dist1', name: 'Metro Food Distributors', address: '123 Market St, Metropolis', distance: '5.2 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'warehouse interior' },
-      { id: 'dist2', name: 'Gourmet Provisions Inc.', address: '456 Grand Ave, Metropolis', distance: '8.1 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'food packaging' },
-      { id: 'dist3', name: 'Fresh Farm Logistics', address: '789 Farm Rd, Metropolis Outskirts', distance: '15.7 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'delivery truck' },
-      { id: 'dist4', name: 'Citywide Beverage Supply', address: '101 Industrial Park, Metropolis', distance: '12.3 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'beverage bottles' },
+      { id: 'dist1', name: 'Metro Food Distributors', address: '123 Market St, Metropolis', lat: 34.0522, lon: -118.2437, image: 'https://placehold.co/350x200.png', dataAiHint: 'warehouse interior' },
+      { id: 'dist2', name: 'Gourmet Provisions Inc.', address: '456 Grand Ave, Metropolis', lat: 34.0407, lon: -118.2448, image: 'https://placehold.co/350x200.png', dataAiHint: 'food packaging' },
+      { id: 'dist3', name: 'Fresh Farm Logistics', address: '789 Farm Rd, Metropolis Outskirts', lat: 34.1522, lon: -118.3437, image: 'https://placehold.co/350x200.png', dataAiHint: 'delivery truck' },
+      { id: 'dist4', name: 'Citywide Beverage Supply', address: '101 Industrial Park, Metropolis', lat: 33.9922, lon: -118.2137, image: 'https://placehold.co/350x200.png', dataAiHint: 'beverage bottles' },
     ],
     shopkeepers: [
-      { id: 'shop1', name: 'The Corner Store', address: '1 Main St, Metropolis', distance: '1.2 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'corner store' },
-      { id: 'shop2', name: 'Green Grocer', address: '22 Park Ave, Metropolis', distance: '2.5 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'vegetable stand' },
-      { id: 'shop3', name: 'Fresh Mart', address: '300 Station Rd, Metropolis', distance: '3.1 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'supermarket aisle' },
-      { id: 'shop4', name: 'City Electronics', address: '404 Tech Square, Metropolis', distance: '4.0 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'electronics store' },
-      { id: 'shop5', name: 'The Shoe Box', address: '55 Fashion St, Metropolis', distance: '4.2 km', image: 'https://placehold.co/350x200.png', dataAiHint: 'shoe store' },
+      { id: 'shop1', name: 'The Corner Store', address: '1 Main St, Metropolis', lat: 34.0549, lon: -118.2426, image: 'https://placehold.co/350x200.png', dataAiHint: 'corner store' },
+      { id: 'shop2', name: 'Green Grocer', address: '22 Park Ave, Metropolis', lat: 34.0600, lon: -118.2500, image: 'https://placehold.co/350x200.png', dataAiHint: 'vegetable stand' },
+      { id: 'shop3', name: 'Fresh Mart', address: '300 Station Rd, Metropolis', lat: 34.03, lon: -118.26, image: 'https://placehold.co/350x200.png', dataAiHint: 'supermarket aisle' },
+      { id: 'shop4', name: 'City Electronics', address: '404 Tech Square, Metropolis', lat: 34.07, lon: -118.23, image: 'https://placehold.co/350x200.png', dataAiHint: 'electronics store' },
+      { id: 'shop5', name: 'The Shoe Box', address: '55 Fashion St, Metropolis', lat: 34.045, lon: -118.255, image: 'https://placehold.co/350x200.png', dataAiHint: 'shoe store' },
     ]
 };
 
 type BusinessRole = keyof typeof businessData;
+type Business = (typeof businessData)[BusinessRole][0] & { distance?: number };
+
 
 function BusinessesContent() {
   const searchParams = useSearchParams();
@@ -39,10 +57,52 @@ function BusinessesContent() {
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
 
-  const businesses = businessData[role] || businessData.shopkeepers;
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [loadingLocation, setLoadingLocation] = useState(true);
+
+  useEffect(() => {
+    const initialBusinesses = businessData[role] || businessData.shopkeepers;
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const sortedBusinesses = initialBusinesses
+            .map(biz => ({
+              ...biz,
+              distance: getDistance(latitude, longitude, biz.lat, biz.lon),
+            }))
+            .sort((a, b) => a.distance - b.distance);
+          
+          setBusinesses(sortedBusinesses);
+          setLoadingLocation(false);
+        },
+        (error) => {
+          console.warn("Geolocation denied, showing default list.", error);
+          // If user denies, just use the default list without distances
+          setBusinesses(initialBusinesses);
+          setLoadingLocation(false);
+        }
+      );
+    } else {
+        console.warn("Geolocation not supported, showing default list.");
+        // If browser doesn't support, show default list
+        setBusinesses(initialBusinesses);
+        setLoadingLocation(false);
+    }
+  }, [role]);
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+
+  if (loadingLocation) {
+      return (
+          <div className="container mx-auto px-4 py-12 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+              <p className="mt-4 text-muted-foreground">Finding nearest businesses...</p>
+          </div>
+      )
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -72,7 +132,11 @@ function BusinessesContent() {
                     <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
                     {biz.address}
                 </CardDescription>
-                <p className="text-sm font-semibold text-primary mt-2">{biz.distance} {t('businesses.distance_away')}</p>
+                {biz.distance !== undefined && (
+                    <p className="text-sm font-semibold text-primary mt-2">
+                        {biz.distance.toFixed(1)} km {t('businesses.distance_away')}
+                    </p>
+                )}
             </CardContent>
             <CardFooter className="p-4 pt-0">
               <Button asChild className="w-full">
