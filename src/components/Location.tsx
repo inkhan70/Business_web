@@ -15,6 +15,7 @@ import { MapPin, LocateFixed } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
+import { Label } from "./ui/label";
 
 export function Location() {
   const { control, setValue } = useFormContext();
@@ -32,7 +33,6 @@ export function Location() {
           setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
           setValue("city", "Geolocated City");
           setValue("state", "Geolocated State");
-          // setValue("country", "Geolocated Country");
           toast({
             title: "Location Fetched",
             description: `Address fields have been pre-filled. Please verify them.`,
