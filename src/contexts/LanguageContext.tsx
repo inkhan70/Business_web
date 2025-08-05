@@ -6,6 +6,12 @@ import en from '@/locales/en.json';
 import ar from '@/locales/ar.json';
 import ur from '@/locales/ur.json';
 import fa from '@/locales/fa.json';
+import es from '@/locales/es.json';
+import fr from '@/locales/fr.json';
+import de from '@/locales/de.json';
+import hi from '@/locales/hi.json';
+import zh from '@/locales/zh.json';
+
 
 // Define the shape of the translations
 type Translations = typeof en;
@@ -15,6 +21,11 @@ const translations: { [key: string]: Translations } = {
   ar,
   ur,
   fa,
+  es,
+  fr,
+  de,
+  hi,
+  zh,
 };
 
 // Define the shape of the context

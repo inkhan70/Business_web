@@ -17,7 +17,12 @@ export function Header() {
     { code: "en", name: "English" },
     { code: "ar", name: "العربية (Arabic)" },
     { code: "ur", name: "اردو (Urdu)" },
-    { code: "fa", name: "فارسی (Farsi)" }
+    { code: "fa", name: "فارسی (Farsi)" },
+    { code: "es", name: "Español (Spanish)" },
+    { code: "fr", name: "Français (French)" },
+    { code: "de", name: "Deutsch (German)" },
+    { code: "hi", name: "हिन्दी (Hindi)" },
+    { code: "zh", name: "中文 (Chinese)" },
   ];
 
   return (
