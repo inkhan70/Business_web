@@ -28,12 +28,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Trash2, Library } from 'lucide-react';
 import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, getDoc, addDoc, updateDoc, collection, list, getDocs } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters."),
@@ -47,6 +49,12 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
+interface ImageAsset {
+    id: string;
+    src: string;
+    alt: string;
+}
+
 function ProductForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -56,6 +64,8 @@ function ProductForm() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
+    const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
@@ -94,6 +104,36 @@ function ProductForm() {
         };
         fetchProduct();
     }, [editId, form, router, toast]);
+
+    useEffect(() => {
+        const fetchImages = async () => {
+            try {
+                const capturesRef = ref(storage, 'captures');
+                const productsRef = ref(storage, 'products');
+
+                const [capturesList, productsList] = await Promise.all([
+                    listAll(capturesRef),
+                    listAll(productsRef)
+                ]);
+
+                const allItems = [...capturesList.items, ...productsList.items];
+
+                const imagePromises = allItems.map(async (itemRef) => {
+                    const url = await getDownloadURL(itemRef);
+                    return { id: itemRef.name, src: url, alt: itemRef.name };
+                });
+                
+                const images = await Promise.all(imagePromises);
+                setImageLibrary(images.reverse());
+            } catch (error) {
+                console.error("Error fetching images: ", error);
+                toast({ title: "Error fetching images", variant: "destructive" });
+            }
+        };
+        if(isLibraryOpen) {
+            fetchImages();
+        }
+    }, [isLibraryOpen, toast]);
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -111,6 +151,13 @@ function ProductForm() {
         setImageFile(null);
         setImagePreview(null);
         form.setValue("image", ""); 
+    }
+
+    const selectImageFromLibrary = (image: ImageAsset) => {
+        setImagePreview(image.src);
+        form.setValue("image", image.src);
+        setImageFile(null); // Clear any selected file
+        setIsLibraryOpen(false);
     }
 
     async function onSubmit(data: ProductFormValues) {
@@ -271,16 +318,16 @@ function ProductForm() {
                                     )}
                                     />
                             </div>
-                            <div className="md:col-span-1 space-y-4">
+                            <div className="md:col-span-1 space-y-2">
                                 <Label>Product Image</Label>
                                 <Card className="border-dashed aspect-square">
                                     <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
                                         {!imagePreview ? (
-                                             <>
-                                                <Upload className="h-12 w-12 text-muted-foreground mb-4" />
-                                                <p className="text-sm text-muted-foreground mb-2">Drag & drop or click to upload</p>
+                                             <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-4">
+                                                <Upload className="h-12 w-12 mb-4" />
+                                                <p className="mb-2">Drag & drop or click to upload</p>
                                                 <Input id="image-upload" type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleImageChange} accept="image/*" />
-                                             </>
+                                             </div>
                                         ) : (
                                             <>
                                                 <Image src={imagePreview} alt="Product preview" fill className="object-cover rounded-md" />
@@ -291,6 +338,28 @@ function ProductForm() {
                                         )}
                                     </CardContent>
                                 </Card>
+                                 <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button type="button" variant="outline" className="w-full">
+                                            <Library className="mr-2 h-4 w-4" />
+                                            Select from Library
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Image Library</DialogTitle>
+                                        </DialogHeader>
+                                        <ScrollArea className="h-[60vh]">
+                                            <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                                {imageLibrary.map(image => (
+                                                    <button key={image.id} type="button" className="focus:ring-2 ring-primary rounded-md overflow-hidden" onClick={() => selectImageFromLibrary(image)}>
+                                                        <Image src={image.src} alt={image.alt} width={200} height={200} className="w-full h-full object-cover" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </div>
 

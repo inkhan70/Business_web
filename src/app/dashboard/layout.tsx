@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide } from "lucide-react";
+import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const sidebarNavItems = [
@@ -22,6 +22,11 @@ const sidebarNavItems = [
         title: "Images",
         href: "/dashboard/images",
         icon: ImageIconLucide,
+    },
+    {
+        title: "Camera",
+        href: "/dashboard/camera",
+        icon: Camera,
     },
     {
         title: "Orders",
