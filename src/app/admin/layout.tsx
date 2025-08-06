@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Settings, Users, Image as ImageIcon, Store, LogOut } from "lucide-react";
+import { LayoutDashboard, Settings, Users, Image as ImageIcon, Store, LogOut, Languages } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const sidebarNavItems = [
@@ -28,6 +28,11 @@ const sidebarNavItems = [
         title: "Appearance",
         href: "/admin/appearance",
         icon: ImageIcon,
+    },
+    {
+        title: "Languages",
+        href: "/admin/languages",
+        icon: Languages,
     },
     {
         title: "Settings",

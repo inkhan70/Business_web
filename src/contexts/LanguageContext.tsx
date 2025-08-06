@@ -16,23 +16,34 @@ import zh from '@/locales/zh.json';
 // Define the shape of the translations
 type Translations = typeof en;
 
-const translations: { [key: string]: Translations } = {
-  en,
-  ar,
-  ur,
-  fa,
-  es,
-  fr,
-  de,
-  hi,
-  zh,
+// Default languages bundled with the app
+const bundledTranslations: { [key: string]: Translations } = {
+  en, ar, ur, fa, es, fr, de, hi, zh,
 };
+
+const bundledLanguageInfo = [
+    { code: "en", name: "English" },
+    { code: "ar", name: "العربية (Arabic)" },
+    { code: "ur", name: "اردو (Urdu)" },
+    { code: "fa", name: "فارسی (Farsi)" },
+    { code: "es", name: "Español (Spanish)" },
+    { code: "fr", name: "Français (French)" },
+    { code: "de", name: "Deutsch (German)" },
+    { code: "hi", name: "हिन्दी (Hindi)" },
+    { code: "zh", name: "中文 (Chinese)" },
+];
+
+interface LanguageInfo {
+    code: string;
+    name: string;
+}
 
 // Define the shape of the context
 interface LanguageContextType {
-  language: keyof typeof translations;
-  setLanguage: (language: keyof typeof translations) => void;
+  language: string;
+  setLanguage: (language: string) => void;
   t: (key: keyof Translations | string) => string;
+  availableLanguages: LanguageInfo[];
 }
 
 // Create the context with a default value
@@ -40,12 +51,50 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 // Create the provider component
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<keyof typeof translations>('en');
+  const [language, setLanguage] = useState('en');
+  const [translations, setTranslations] = useState(() => bundledTranslations);
+  const [availableLanguages, setAvailableLanguages] = useState<LanguageInfo[]>(() => bundledLanguageInfo);
+
+  const loadCustomLanguages = () => {
+    const customLangsRaw = localStorage.getItem('customLanguages');
+    if (customLangsRaw) {
+        try {
+            const customLangs: {code: string, name: string, dict: object}[] = JSON.parse(customLangsRaw);
+            const newTranslations = { ...bundledTranslations };
+            const newLangInfo = [...bundledLanguageInfo];
+
+            customLangs.forEach(lang => {
+                newTranslations[lang.code] = lang.dict as Translations;
+                if (!newLangInfo.some(l => l.code === lang.code)) {
+                     newLangInfo.push({ code: lang.code, name: lang.name });
+                }
+            });
+
+            setTranslations(newTranslations);
+            setAvailableLanguages(newLangInfo);
+        } catch (e) {
+            console.error("Failed to parse custom languages", e);
+        }
+    } else {
+        setTranslations(bundledTranslations);
+        setAvailableLanguages(bundledLanguageInfo);
+    }
+  }
+
+  useEffect(() => {
+    loadCustomLanguages();
+    
+    // Listen for custom event when languages are added/removed
+    window.addEventListener('languageChange', loadCustomLanguages);
+
+    return () => {
+        window.removeEventListener('languageChange', loadCustomLanguages);
+    }
+  }, []);
+
 
   const t = (key: keyof Translations | string): string => {
-    // Safely access translations, falling back to English if the language or key doesn't exist.
     const lang_dict = translations[language] || translations['en'];
-    // The key must be asserted as a key of Translations for the lookup to be valid
     const translationKey = key as keyof Translations;
     return lang_dict[translationKey] || translations['en'][translationKey] || String(key);
   };
@@ -58,7 +107,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, availableLanguages }}>
       {children}
     </LanguageContext.Provider>
   );

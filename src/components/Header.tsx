@@ -12,19 +12,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 export function Header() {
-  const { language, setLanguage, t } = useLanguage();
-  const languages = [
-    { code: "en", name: "English" },
-    { code: "ar", name: "العربية (Arabic)" },
-    { code: "ur", name: "اردو (Urdu)" },
-    { code: "fa", name: "فارسی (Farsi)" },
-    { code: "es", name: "Español (Spanish)" },
-    { code: "fr", name: "Français (French)" },
-    { code: "de", name: "Deutsch (German)" },
-    { code: "hi", name: "हिन्दी (Hindi)" },
-    { code: "zh", name: "中文 (Chinese)" },
-  ];
-
+  const { language, setLanguage, t, availableLanguages } = useLanguage();
+  
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -59,8 +48,8 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <ScrollArea className="h-auto w-48">
-                  {languages.map(lang => (
+                <ScrollArea className="h-auto max-h-80 w-48">
+                  {availableLanguages.map(lang => (
                     <DropdownMenuItem key={lang.code} onClick={() => setLanguage(lang.code as any)}>
                       {lang.name}
                     </DropdownMenuItem>
@@ -105,20 +94,22 @@ export function Header() {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pt-2 pb-0">
-                                    <div className="pl-7 flex flex-col space-y-2">
-                                        {languages.map(lang => (
-                                            <button
-                                                key={lang.code}
-                                                className={`text-left text-sm transition-colors hover:text-foreground/80 ${language === lang.code ? 'text-foreground font-semibold' : 'text-foreground/60'}`}
-                                                onClick={() => {
-                                                    setLanguage(lang.code as any)
-                                                    // Optionally close the sheet here
-                                                }}
-                                            >
-                                                {lang.name}
-                                            </button>
-                                        ))}
-                                    </div>
+                                     <ScrollArea className="h-auto max-h-48">
+                                        <div className="pl-7 flex flex-col space-y-2">
+                                            {availableLanguages.map(lang => (
+                                                <button
+                                                    key={lang.code}
+                                                    className={`text-left text-sm transition-colors hover:text-foreground/80 ${language === lang.code ? 'text-foreground font-semibold' : 'text-foreground/60'}`}
+                                                    onClick={() => {
+                                                        setLanguage(lang.code as any)
+                                                        // Optionally close the sheet here
+                                                    }}
+                                                >
+                                                    {lang.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                     </ScrollArea>
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
