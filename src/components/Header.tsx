@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, Globe, Menu } from 'lucide-react';
+import { Search, Globe, Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -10,9 +10,20 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { useAuth } from '@/contexts/AuthContext';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export function Header() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+      await signOut(auth);
+      router.push('/');
+  };
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -24,7 +35,7 @@ export function Header() {
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
-            <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>
+            {user && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
           </nav>
         </div>
 
@@ -57,12 +68,20 @@ export function Header() {
                 </ScrollArea>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" asChild>
-              <Link href="/signin">{t('header.sign_in')}</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">{t('header.sign_up')}</Link>
-            </Button>
+            {user ? (
+                <Button variant="ghost" onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                </Button>
+            ) : (
+                <>
+                    <Button variant="ghost" asChild>
+                      <Link href="/signin">{t('header.sign_in')}</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href="/signup">{t('header.sign_up')}</Link>
+                    </Button>
+                </>
+            )}
           </nav>
         </div>
         
@@ -83,7 +102,7 @@ export function Header() {
                     </Link>
                     <div className="flex flex-col space-y-4">
                         <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
-                        <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>
+                         {user && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
                         
                         <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value="item-1" className="border-b-0">
@@ -115,11 +134,17 @@ export function Header() {
                         </Accordion>
                         
                         <div className="pt-4 border-t">
-                            <Link href="/signin" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.sign_in')}</Link>
+                            {user ? (
+                                <button onClick={handleSignOut} className="transition-colors hover:text-foreground/80 text-foreground/60 w-full text-left">{t('header.sign_out')}</button>
+                            ) : (
+                                <>
+                                 <Link href="/signin" className="transition-colors hover:text-foreground/80 text-foreground/60 block mb-4">{t('header.sign_in')}</Link>
+                                 <Button asChild className="w-full">
+                                   <Link href="/signup">{t('header.sign_up')}</Link>
+                                 </Button>
+                                </>
+                            )}
                         </div>
-                         <Button asChild>
-                           <Link href="/signup">{t('header.sign_up')}</Link>
-                         </Button>
                     </div>
                 </SheetContent>
             </Sheet>

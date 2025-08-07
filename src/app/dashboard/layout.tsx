@@ -1,11 +1,16 @@
+
 "use client"
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, Camera } from "lucide-react";
+import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, Camera, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const sidebarNavItems = [
     {
@@ -50,6 +55,24 @@ const sidebarNavItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/signin');
+        }
+    }, [user, loading, router]);
+    
+    const handleSignOut = async () => {
+        await signOut(auth);
+        router.push('/');
+    };
+
+    if (loading || !user) {
+        // You can return a loading spinner here if you want
+        return null;
+    }
 
     return (
         <div className="container mx-auto my-8">
@@ -62,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                            <p className="text-xs text-muted-foreground">Distributor</p>
                        </div>
                    </div>
-                    <nav className="flex flex-col space-y-1">
+                    <nav className="flex flex-col space-y-1 flex-grow">
                         {sidebarNavItems.map((item) => (
                             <Link
                                 key={item.href}
@@ -80,6 +103,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </Link>
                         ))}
                     </nav>
+                    <div className="mt-auto">
+                        <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
+                            <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                        </Button>
+                    </div>
                 </aside>
                 <main className="bg-background rounded-lg shadow-sm border p-6 min-h-[60vh]">
                     {children}

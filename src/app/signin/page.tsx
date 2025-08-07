@@ -5,6 +5,8 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { auth } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +23,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -32,6 +36,7 @@ export default function SignInPage() {
     const router = useRouter();
     const { toast } = useToast();
     const { t } = useLanguage();
+    const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -42,13 +47,40 @@ export default function SignInPage() {
         },
     });
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
-        toast({
-            title: t('toast.signin_success'),
-            description: t('toast.signin_success_desc'),
-        });
-        router.push("/dashboard");
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        setIsLoading(true);
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
+
+            if (user.emailVerified) {
+                toast({
+                    title: t('toast.signin_success'),
+                    description: t('toast.signin_success_desc'),
+                });
+                router.push("/dashboard");
+            } else {
+                 toast({
+                    title: "Email Not Verified",
+                    description: "Please check your inbox and verify your email address to continue.",
+                    variant: "destructive",
+                });
+                 // Optional: allow resending verification email
+            }
+        } catch (error: any) {
+             let description = "An unexpected error occurred. Please try again.";
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                description = "Invalid email or password. Please try again.";
+            }
+            toast({
+                title: "Sign In Failed",
+                description: description,
+                variant: "destructive",
+            });
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
   return (
@@ -68,9 +100,9 @@ export default function SignInPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('signup.email_phone')}</FormLabel>
+                    <FormLabel>{t('signup.email_label')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('signin.email_phone_placeholder')} {...field} />
+                      <Input placeholder={t('signup.email_placeholder')} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -113,7 +145,10 @@ export default function SignInPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">{t('signin.button')}</Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('signin.button')}
+              </Button>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
