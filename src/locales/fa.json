@@ -76,7 +76,7 @@
 
   "signin.title": "ورود",
   "signin.description": "برای دسترسی به داشبورد خود، اطلاعات کاربری خود را وارد کنید.",
-  "signin.email_phone": "ایمیل یا شماره تلفن",
+  "signin.email_phone": "ایمیل",
   "signin.email_phone_placeholder": "you@example.com",
   "signin.password": "رمز عبور",
   "signin.forgot_password": "رمز عبور را فراموش کرده اید؟",
@@ -88,7 +88,7 @@
 
   "signup.title": "حساب تجاری خود را ایجاد کنید",
   "signup.description": "به شبکه مشاغل محلی ما بپیوندید. رایگان است!",
-  "signup.email_phone": "ایمیل یا شماره تلفن",
+  "signup.email_label": "ایمیل",
   "signup.email_phone_placeholder": "contact@mybusiness.com",
   "signup.password": "رمز عبور",
   "signup.business_name": "نام کسب و کار",
@@ -108,7 +108,7 @@
   "signup.create_account": "ایجاد حساب",
   "signup.have_account": "قبلاً حساب کاربری دارید؟",
   "toast.signup_success": "حساب ایجاد شد!",
-  "toast.signup_success_desc": "کسب و کار شما اکنون ثبت شده است. در حال هدایت شما به داشبورد.",
+  "toast.signup_success_desc": "کسب و کار شما اکنون ثبت شده است. ما یک پیوند تأیید به ایمیل شما ارسال کرده ایم.",
 
   "footer.tagline": "ارتباط تجاری محلی شما.",
   "footer.about": "درباره ما",

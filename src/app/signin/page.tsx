@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const formSchema = z.object({
-  emailOrPhone: z.string().min(1, { message: "Please enter your email or phone number." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(1, { message: "Please enter your password." }),
   rememberMe: z.boolean().default(false).optional(),
 });
@@ -36,7 +36,7 @@ export default function SignInPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            emailOrPhone: "",
+            email: "",
             password: "",
             rememberMe: false,
         },
@@ -65,10 +65,10 @@ export default function SignInPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="emailOrPhone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('signin.email_phone')}</FormLabel>
+                    <FormLabel>{t('signup.email_phone')}</FormLabel>
                     <FormControl>
                       <Input placeholder={t('signin.email_phone_placeholder')} {...field} />
                     </FormControl>

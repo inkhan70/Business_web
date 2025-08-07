@@ -76,7 +76,7 @@
 
   "signin.title": "Sign In",
   "signin.description": "Enter your credentials to access your dashboard.",
-  "signin.email_phone": "Email or Phone Number",
+  "signin.email_phone": "Email",
   "signin.email_phone_placeholder": "you@example.com",
   "signin.password": "Password",
   "signin.forgot_password": "Forgot password?",
@@ -88,7 +88,7 @@
 
   "signup.title": "Create your Business Account",
   "signup.description": "Join our network of local businesses. It's free!",
-  "signup.email_phone": "Email or Phone Number",
+  "signup.email_label": "Email",
   "signup.email_phone_placeholder": "contact@mybusiness.com",
   "signup.password": "Password",
   "signup.business_name": "Business Name",
@@ -108,8 +108,8 @@
   "signup.create_account": "Create Account",
   "signup.have_account": "Already have an account?",
   "toast.signup_success": "Account Created!",
-  "toast.signup_success_desc": "Your business is now registered. Redirecting to your dashboard.",
-
+  "toast.signup_success_desc": "Your business is now registered. We've sent a verification link to your email.",
+  
   "footer.tagline": "Your local business connection.",
   "footer.about": "About Us",
   "footer.contact": "Contact",

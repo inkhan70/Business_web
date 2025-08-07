@@ -24,7 +24,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Location } from "@/components/Location";
 
 const formSchema = z.object({
-  emailOrPhone: z.string().min(1, { message: "Email or phone number is required." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
   businessName: z.string().min(2, { message: "Business name is required." }),
   role: z.enum(["company", "wholesaler", "distributor", "shopkeeper"], {
@@ -43,7 +43,7 @@ export default function SignUpPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            emailOrPhone: "",
+            email: "",
             password: "",
             businessName: "",
             address: "",
@@ -76,10 +76,10 @@ export default function SignUpPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="emailOrPhone"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('signup.email_phone')}</FormLabel>
+                      <FormLabel>{t('signup.email_label')}</FormLabel>
                       <FormControl>
                         <Input placeholder={t('signup.email_phone_placeholder')} {...field} />
                       </FormControl>

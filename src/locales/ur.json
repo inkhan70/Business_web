@@ -76,7 +76,7 @@
 
   "signin.title": "سائن ان کریں",
   "signin.description": "اپنے ڈیش بورڈ تک رسائی کے لیے اپنی اسناد درج کریں۔",
-  "signin.email_phone": "ای میل یا فون نمبر",
+  "signin.email_phone": "ای میل",
   "signin.email_phone_placeholder": "you@example.com",
   "signin.password": "پاس ورڈ",
   "signin.forgot_password": "پاس ورڈ بھول گئے؟",
@@ -88,7 +88,7 @@
 
   "signup.title": "اپنا کاروباری اکاؤنٹ بنائیں",
   "signup.description": "مقامی کاروباروں کے ہمارے نیٹ ورک میں شامل ہوں۔ یہ مفت ہے!",
-  "signup.email_phone": "ای میل یا فون نمبر",
+  "signup.email_label": "ای میل",
   "signup.email_phone_placeholder": "contact@mybusiness.com",
   "signup.password": "پاس ورڈ",
   "signup.business_name": "کاروبار کا نام",
@@ -108,7 +108,7 @@
   "signup.create_account": "اکاؤنٹ بنائیں",
   "signup.have_account": "پہلے سے ہی اکاؤنٹ ہے؟",
   "toast.signup_success": "اکاؤنٹ بن گیا!",
-  "toast.signup_success_desc": "آپ کا کاروبار اب رجسٹرڈ ہے۔ آپ کو اپنے ڈیش بورڈ پر بھیج رہا ہے۔",
+  "toast.signup_success_desc": "آپ کا کاروبار اب رجسٹرڈ ہے۔ ہم نے آپ کے ای میل پر ایک تصدیقی لنک بھیجا ہے۔",
 
   "footer.tagline": "آپ کا مقامی کاروباری کنکشن۔",
   "footer.about": "ہمارے بارے میں",

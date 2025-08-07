@@ -76,7 +76,7 @@
 
   "signin.title": "تسجيل الدخول",
   "signin.description": "أدخل بيانات الاعتماد الخاصة بك للوصول إلى لوحة التحكم.",
-  "signin.email_phone": "البريد الإلكتروني أو رقم الهاتف",
+  "signin.email_phone": "البريد الإلكتروني",
   "signin.email_phone_placeholder": "you@example.com",
   "signin.password": "كلمة المرور",
   "signin.forgot_password": "هل نسيت كلمة المرور؟",
@@ -88,7 +88,7 @@
 
   "signup.title": "أنشئ حساب عملك",
   "signup.description": "انضم إلى شبكتنا من الشركات المحلية. إنه مجاني!",
-  "signup.email_phone": "البريد الإلكتروني أو رقم الهاتف",
+  "signup.email_label": "البريد الإلكتروني",
   "signup.email_phone_placeholder": "contact@mybusiness.com",
   "signup.password": "كلمة المرور",
   "signup.business_name": "اسم العمل",
@@ -108,7 +108,7 @@
   "signup.create_account": "إنشاء حساب",
   "signup.have_account": "هل لديك حساب بالفعل؟",
   "toast.signup_success": "تم إنشاء الحساب!",
-  "toast.signup_success_desc": "تم تسجيل عملك الآن. جارٍ إعادة توجيهك إلى لوحة التحكم.",
+  "toast.signup_success_desc": "تم تسجيل عملك الآن. لقد أرسلنا رابط تحقق إلى بريدك الإلكتروني.",
   
   "footer.tagline": "اتصالك التجاري المحلي.",
   "footer.about": "معلومات عنا",
