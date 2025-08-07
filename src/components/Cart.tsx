@@ -39,67 +39,68 @@ export function Cart() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg">
-        <SheetHeader className="px-4">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
+        <SheetHeader className="px-6">
           <SheetTitle>Shopping Cart</SheetTitle>
           <SheetDescription>
             Review your items and proceed to checkout.
           </SheetDescription>
         </SheetHeader>
-        <Separator />
+        
         {cartCount > 0 ? (
           <>
             <ScrollArea className="flex-1">
-              <div className="flex flex-col gap-4 p-4">
-                {cart.map((item) => (
-                  <div key={item.varietyId} className="flex items-start gap-4">
-                    <Image
-                      src={item.image || "https://placehold.co/100x100.png"}
-                      alt={item.varietyName}
-                      width={80}
-                      height={80}
-                      className="rounded-md object-cover"
-                    />
-                    <div className="flex-1">
-                      <p className="font-semibold">{item.varietyName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        ${item.price.toFixed(2)}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.varietyId, item.quantity - 1)}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span>{item.quantity}</span>
-                         <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => updateQuantity(item.varietyId, item.quantity + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
+              <div className="px-6 py-4">
+                <div className="flex flex-col gap-4">
+                  {cart.map((item) => (
+                    <div key={item.varietyId} className="flex items-start gap-4">
+                      <Image
+                        src={item.image || "https://placehold.co/100x100.png"}
+                        alt={item.varietyName}
+                        width={80}
+                        height={80}
+                        className="rounded-md object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="font-semibold">{item.varietyName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          ${item.price.toFixed(2)}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(item.varietyId, item.quantity - 1)}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span>{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => updateQuantity(item.varietyId, item.quantity + 1)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+                      <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => removeFromCart(item.varietyId)}
+                      >
+                          <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                     <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => removeFromCart(item.varietyId)}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-            <Separator />
-            <SheetFooter>
-                <div className="p-4 space-y-4 w-full">
+                  ))}
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="space-y-4">
                     <div className="flex justify-between font-semibold text-lg">
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
@@ -113,7 +114,8 @@ export function Cart() {
                         {t('item_detail.confirm_order')}
                     </Button>
                 </div>
-            </SheetFooter>
+              </div>
+            </ScrollArea>
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
