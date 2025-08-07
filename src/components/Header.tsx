@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, Globe, Menu, LogOut } from 'lucide-react';
+import { Search, Globe, Menu, LogOut, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -14,10 +14,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { useCart } from '@/contexts/CartContext';
+import { Cart } from './Cart';
 
 export function Header() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const { user } = useAuth();
+  const { cart } = useCart();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -51,6 +54,7 @@ export function Header() {
             </div>
           </div>
           <nav className="hidden md:flex items-center space-x-2">
+            <Cart />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -85,7 +89,8 @@ export function Header() {
           </nav>
         </div>
         
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center">
+            <Cart />
             <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon">

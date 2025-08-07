@@ -9,12 +9,14 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Textarea } from '@/components/ui/textarea';
 import { Minus, Plus, ShoppingCart } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCart } from '@/contexts/CartContext';
+import { useToast } from '@/hooks/use-toast';
+
 
 const product = {
+  id: 'item2',
   name: "Artisan Sourdough Bread",
   varieties: [
     { id: 'var1', name: 'Classic White Sourdough', price: 5.50, manufacturer: 'Golden Grains Bakery', image: 'https://placehold.co/500x500.png', dataAiHint: 'white bread' },
@@ -26,10 +28,26 @@ const product = {
 export default function ItemDetailPage({ params }: { params: { itemId: string } }) {
   const [selectedVariety, setSelectedVariety] = useState(product.varieties[0]);
   const [quantity, setQuantity] = useState(1);
-  const [showAddress, setShowAddress] = useState(false);
   const { t } = useLanguage();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
 
-  const totalCost = selectedVariety.price * quantity;
+  const handleAddToCart = () => {
+    addToCart({
+        productId: product.id,
+        productName: product.name,
+        varietyId: selectedVariety.id,
+        varietyName: selectedVariety.name,
+        price: selectedVariety.price,
+        image: selectedVariety.image,
+        quantity: quantity,
+    });
+    toast({
+        title: "Item Added to Cart",
+        description: `${quantity} x ${selectedVariety.name} has been added.`
+    });
+  }
+
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -70,37 +88,17 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
                     <Label>{t('item_detail.quantity')}</Label>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
-                      <Input type="number" value={quantity} readOnly className="w-16 text-center" />
+                      <Input type="number" value={quantity} readOnly className="w-16 text-center" onChange={e => setQuantity(parseInt(e.target.value) || 1)}/>
                       <Button variant="outline" size="icon" onClick={() => setQuantity(q => q + 1)}><Plus className="h-4 w-4" /></Button>
                     </div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{t('item_detail.total_cost')}</p>
-                    <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
                   </div>
               </div>
 
               <Separator className="my-6" />
               
-              {!showAddress ? (
-                <Button className="w-full" size="lg" onClick={() => setShowAddress(true)}>
-                  <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.proceed_to_purchase')}
+                <Button className="w-full" size="lg" onClick={handleAddToCart}>
+                  <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.add_to_cart')}
                 </Button>
-              ) : (
-                <div className="space-y-4">
-                  <h3 className="font-bold text-lg">{t('item_detail.delivery_info')}</h3>
-                  <Label htmlFor="address">{t('item_detail.complete_address')}</Label>
-                  <Textarea id="address" placeholder={t('item_detail.address_placeholder')} />
-                  <p className="text-sm text-muted-foreground">{t('item_detail.transport_cost')} <span className="font-bold text-foreground">$5.00</span></p>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="manual-transport" />
-                    <Label htmlFor="manual-transport" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {t('item_detail.manual_transport_label')}
-                    </Label>
-                  </div>
-                  <Button className="w-full bg-green-600 hover:bg-green-700">{t('item_detail.confirm_order')}</Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

@@ -1,0 +1,136 @@
+
+"use client";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "./ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { Badge } from "./ui/badge";
+import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import Image from "next/image";
+import { ScrollArea } from "./ui/scroll-area";
+import { Separator } from "./ui/separator";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+
+export function Cart() {
+  const { cart, cartCount, updateQuantity, removeFromCart, subtotal } = useCart();
+
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="icon" className="relative">
+          <ShoppingCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <Badge
+              variant="destructive"
+              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-1"
+            >
+              {cartCount}
+            </Badge>
+          )}
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="flex w-full flex-col pr-0 sm:max-w-lg">
+        <SheetHeader className="px-4">
+          <SheetTitle>Shopping Cart</SheetTitle>
+          <SheetDescription>
+            Review your items and proceed to checkout.
+          </SheetDescription>
+        </SheetHeader>
+        <Separator />
+        {cartCount > 0 ? (
+          <>
+            <ScrollArea className="flex-1">
+              <div className="flex flex-col gap-4 p-4">
+                {cart.map((item) => (
+                  <div key={item.varietyId} className="flex items-start gap-4">
+                    <Image
+                      src={item.image || "https://placehold.co/100x100.png"}
+                      alt={item.varietyName}
+                      width={80}
+                      height={80}
+                      className="rounded-md object-cover"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold">{item.varietyName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        ${item.price.toFixed(2)}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(item.varietyId, item.quantity - 1)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span>{item.quantity}</span>
+                         <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(item.varietyId, item.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => removeFromCart(item.varietyId)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <Separator />
+            <SheetFooter>
+                <div className="p-4 space-y-4 w-full">
+                    <div className="flex justify-between font-semibold text-lg">
+                        <span>Subtotal</span>
+                        <span>${subtotal.toFixed(2)}</span>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="font-bold text-lg">Delivery Information</h3>
+                        <Label htmlFor="address">Complete Address</Label>
+                        <Textarea id="address" placeholder="Enter your full delivery address..." />
+                        <p className="text-sm text-muted-foreground">Transportation Cost: <span className="font-bold text-foreground">$5.00</span></p>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="manual-transport" />
+                            <Label htmlFor="manual-transport" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                I will transport the products manually.
+                            </Label>
+                        </div>
+                    </div>
+
+                    <Button size="lg" className="w-full bg-green-600 hover:bg-green-700">
+                        Proceed to Checkout
+                    </Button>
+                </div>
+            </SheetFooter>
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+            <ShoppingCart className="h-16 w-16 text-muted-foreground" />
+            <p className="text-muted-foreground">Your cart is empty.</p>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}

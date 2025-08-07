@@ -74,6 +74,7 @@
   "item_detail.transport_cost": "Transportation Cost:",
   "item_detail.manual_transport_label": "I will transport the products manually.",
   "item_detail.confirm_order": "Confirm Order",
+  "item_detail.add_to_cart": "Add to Cart",
 
   "signin.title": "Sign In",
   "signin.description": "Enter your credentials to access your dashboard.",
