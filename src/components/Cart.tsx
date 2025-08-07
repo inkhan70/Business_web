@@ -17,12 +17,12 @@ import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import Image from "next/image";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
-import { Checkbox } from "./ui/checkbox";
-import { Label } from "./ui/label";
-import { Textarea } from "./ui/textarea";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { ItemDelivery } from "./ItemDelivery";
 
 export function Cart() {
   const { cart, cartCount, updateQuantity, removeFromCart, subtotal } = useCart();
+  const { t } = useLanguage();
 
   return (
     <Sheet>
@@ -105,21 +105,12 @@ export function Cart() {
                         <span>${subtotal.toFixed(2)}</span>
                     </div>
 
-                    <div className="space-y-4">
-                        <h3 className="font-bold text-lg">Delivery Information</h3>
-                        <Label htmlFor="address">Complete Address</Label>
-                        <Textarea id="address" placeholder="Enter your full delivery address..." />
-                        <p className="text-sm text-muted-foreground">Transportation Cost: <span className="font-bold text-foreground">$5.00</span></p>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="manual-transport" />
-                            <Label htmlFor="manual-transport" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                I will transport the products manually.
-                            </Label>
-                        </div>
-                    </div>
+                    <ItemDelivery />
 
+                    <p className="text-sm text-muted-foreground">Transportation Cost: <span className="font-bold text-foreground">$5.00</span></p>
+                    
                     <Button size="lg" className="w-full bg-green-600 hover:bg-green-700">
-                        Proceed to Checkout
+                        {t('item_detail.confirm_order')}
                     </Button>
                 </div>
             </SheetFooter>
