@@ -13,6 +13,7 @@ import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import { ItemDelivery } from '@/components/ItemDelivery';
 
 
 const product = {
@@ -93,6 +94,10 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
                     </div>
                   </div>
               </div>
+
+              <Separator className="my-6" />
+              
+              <ItemDelivery />
 
               <Separator className="my-6" />
               
