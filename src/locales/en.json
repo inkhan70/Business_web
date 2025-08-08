@@ -118,5 +118,22 @@
   "footer.contact": "Contact",
   "footer.privacy": "Privacy Policy",
   "footer.terms": "Terms of Service",
-  "footer.copyright": "CityFind. All rights reserved."
+  "footer.copyright": "CityFind. All rights reserved.",
+
+  "product_search.placeholder": "Search for a product...",
+  "product_search.search_button": "Search",
+  "product_search.advanced_search": "Advanced Search",
+  "product_search.price_range": "Price Range",
+  "product_search.min": "Min",
+  "product_search.max": "Max",
+  "product_search.weight": "Weight",
+  "product_search.weight_placeholder": "e.g., 500g, 1kg",
+  "product_search.color": "Color",
+  "product_search.color_placeholder": "e.g., Red, Blue",
+  "product_search.release_date": "Release Date",
+  "product_search.date_placeholder": "Pick a date",
+  "product_search.type": "Type",
+  "product_search.type_placeholder": "e.g., Organic, Handmade",
+  "product_search.size": "Size",
+  "product_search.size_placeholder": "e.g., Small, Large"
 }

@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ProductSearch } from '@/components/ProductSearch';
 
 const initialCategories = [
   { name: 'Food', icon: 'UtensilsCrossed', href: '/roles?category=food', order: 1 },
@@ -162,7 +163,7 @@ export default function CategoriesPage() {
     <Wallpaper />
     <div className="container mx-auto px-4 py-12 relative">
       <WallpaperManager />
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
           {t('categories.title')}
         </h1>
@@ -170,9 +171,10 @@ export default function CategoriesPage() {
           {t('categories.description')}
         </p>
       </div>
+
+      <ProductSearch />
       
-      {isAdmin && (
-        <div className="flex justify-end space-x-2 mb-8">
+      <div className="flex justify-end space-x-2 mb-8 mt-8">
             <Dialog>
                 <DialogTrigger asChild>
                     <Button>
@@ -212,7 +214,7 @@ export default function CategoriesPage() {
                 </DialogContent>
             </Dialog>
         </div>
-      )}
+      
 
         {loading ? (
             <p className="text-center">{t('categories.loading')}</p>

@@ -115,5 +115,22 @@
   "footer.contact": "تماس با ما",
   "footer.privacy": "سیاست حفظ حریم خصوصی",
   "footer.terms": "شرایط خدمات",
-  "footer.copyright": "سیتی‌فایند. تمامی حقوق محفوظ است."
+  "footer.copyright": "سیتی‌فایند. تمامی حقوق محفوظ است.",
+
+  "product_search.placeholder": "جستجو برای یک محصول...",
+  "product_search.search_button": "جستجو",
+  "product_search.advanced_search": "جستجوی پیشرفته",
+  "product_search.price_range": "محدوده قیمت",
+  "product_search.min": "حداقل",
+  "product_search.max": "حداکثر",
+  "product_search.weight": "وزن",
+  "product_search.weight_placeholder": "مثال: 500 گرم، 1 کیلوگرم",
+  "product_search.color": "رنگ",
+  "product_search.color_placeholder": "مثال: قرمز، آبی",
+  "product_search.release_date": "تاریخ انتشار",
+  "product_search.date_placeholder": "یک تاریخ انتخاب کنید",
+  "product_search.type": "نوع",
+  "product_search.type_placeholder": "مثال: ارگانیک، دست ساز",
+  "product_search.size": "اندازه",
+  "product_search.size_placeholder": "مثال: کوچک، بزرگ"
 }

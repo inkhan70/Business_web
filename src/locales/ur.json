@@ -115,5 +115,22 @@
   "footer.contact": "رابطہ کریں",
   "footer.privacy": "رازداری کی پالیسی",
   "footer.terms": "سروس کی شرائط",
-  "footer.copyright": "سٹی فائنڈ۔ جملہ حقوق محفوظ ہیں۔"
+  "footer.copyright": "سٹی فائنڈ۔ جملہ حقوق محفوظ ہیں۔",
+
+  "product_search.placeholder": "ایک پروڈکٹ تلاش کریں...",
+  "product_search.search_button": "تلاش کریں",
+  "product_search.advanced_search": "اعلی درجے کی تلاش",
+  "product_search.price_range": "قیمت کی حد",
+  "product_search.min": "کم سے کم",
+  "product_search.max": "زیادہ سے زیادہ",
+  "product_search.weight": "وزن",
+  "product_search.weight_placeholder": "مثال کے طور پر، 500 گرام، 1 کلوگرام",
+  "product_search.color": "رنگ",
+  "product_search.color_placeholder": "مثال کے طور پر، سرخ، نیلا",
+  "product_search.release_date": "ریلیز کی تاریخ",
+  "product_search.date_placeholder": "ایک تاریخ منتخب کریں",
+  "product_search.type": "قسم",
+  "product_search.type_placeholder": "مثال کے طور پر، نامیاتی، ہاتھ سے تیار",
+  "product_search.size": "سائز",
+  "product_search.size_placeholder": "مثال کے طور پر، چھوٹا، بڑا"
 }

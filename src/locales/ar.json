@@ -115,5 +115,22 @@
   "footer.contact": "اتصل بنا",
   "footer.privacy": "سياسة الخصوصية",
   "footer.terms": "شروط الخدمة",
-  "footer.copyright": "CityFind. جميع الحقوق محفوظة."
+  "footer.copyright": "CityFind. جميع الحقوق محفوظة.",
+
+  "product_search.placeholder": "ابحث عن منتج...",
+  "product_search.search_button": "بحث",
+  "product_search.advanced_search": "بحث متقدم",
+  "product_search.price_range": "نطاق السعر",
+  "product_search.min": "الحد الأدنى",
+  "product_search.max": "الحد الأقصى",
+  "product_search.weight": "الوزن",
+  "product_search.weight_placeholder": "مثال: 500 جرام، 1 كجم",
+  "product_search.color": "اللون",
+  "product_search.color_placeholder": "مثال: أحمر، أزرق",
+  "product_search.release_date": "تاريخ الإصدار",
+  "product_search.date_placeholder": "اختر تاريخًا",
+  "product_search.type": "النوع",
+  "product_search.type_placeholder": "مثال: عضوي، مصنوع يدويًا",
+  "product_search.size": "الحجم",
+  "product_search.size_placeholder": "مثال: صغير، كبير"
 }
