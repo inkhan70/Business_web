@@ -58,51 +58,38 @@ function BusinessesContent() {
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loadingLocation, setLoadingLocation] = useState(true);
-
+  
   useEffect(() => {
+    // Immediately display businesses
     const initialBusinesses = businessData[role] || businessData.shopkeepers;
+    setBusinesses(initialBusinesses);
 
+    // Then, try to get location and re-sort
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          const sortedBusinesses = initialBusinesses
-            .map(biz => ({
-              ...biz,
-              distance: getDistance(latitude, longitude, biz.lat, biz.lon),
-            }))
-            .sort((a, b) => a.distance - b.distance);
-          
-          setBusinesses(sortedBusinesses);
-          setLoadingLocation(false);
+          setBusinesses(currentBusinesses => 
+            [...currentBusinesses] // Create a new array to trigger re-render
+              .map(biz => ({
+                ...biz,
+                distance: getDistance(latitude, longitude, biz.lat, biz.lon),
+              }))
+              .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+          );
         },
         (error) => {
           console.warn("Geolocation denied, showing default list.", error);
-          // If user denies, just use the default list without distances
-          setBusinesses(initialBusinesses);
-          setLoadingLocation(false);
+          // No need to do anything, the default list is already shown.
         }
       );
     } else {
         console.warn("Geolocation not supported, showing default list.");
-        // If browser doesn't support, show default list
-        setBusinesses(initialBusinesses);
-        setLoadingLocation(false);
     }
   }, [role]);
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
-
-  if (loadingLocation) {
-      return (
-          <div className="container mx-auto px-4 py-12 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-              <p className="mt-4 text-muted-foreground">Finding nearest businesses...</p>
-          </div>
-      )
-  }
 
   return (
     <div className="container mx-auto px-4 py-12">
