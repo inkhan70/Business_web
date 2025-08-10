@@ -79,6 +79,8 @@ export default function SignUpPage() {
             let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email address is already in use by another account.";
+            } else if (error.code === 'auth/configuration-not-found') {
+                description = "Authentication is not configured correctly. Please enable Email/Password sign-in provider in the Firebase console.";
             }
             toast({
                 title: "Sign-up Failed",
