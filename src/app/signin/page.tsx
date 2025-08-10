@@ -69,8 +69,8 @@ export default function SignInPage() {
             }
         } catch (error: any) {
              let description = "An unexpected error occurred. Please try again.";
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                description = "Invalid email or password. Please try again.";
+            if (error.code === 'auth/invalid-credential') {
+                description = "Invalid email or password. Please check your details and try again.";
             }
             toast({
                 title: "Sign In Failed",
