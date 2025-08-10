@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -60,12 +60,12 @@ export default function SignInPage() {
                 });
                 router.push("/dashboard");
             } else {
+                 await signOut(auth);
                  toast({
                     title: "Email Not Verified",
                     description: "Please check your inbox and verify your email address to continue.",
                     variant: "destructive",
                 });
-                 // Optional: allow resending verification email
             }
         } catch (error: any) {
              let description = "An unexpected error occurred. Please try again.";

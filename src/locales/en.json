@@ -87,7 +87,6 @@
   "signin.no_account": "Don't have an account?",
   "toast.signin_success": "Sign In Successful",
   "toast.signin_success_desc": "Welcome back! Redirecting you to the dashboard.",
-  "toast.signin_success_desc_verification": "A verification email has been sent. Please check your inbox.",
 
   "signup.title": "Create your Business Account",
   "signup.description": "Join our network of local businesses. It's free!",
