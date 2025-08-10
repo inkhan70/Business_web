@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MapPin, LocateFixed } from "lucide-react";
@@ -10,13 +9,29 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { Label } from "./ui/label";
 
-export function ItemDelivery() {
+export interface Address {
+    address: string;
+    city: string;
+    state: string;
+}
+
+interface ItemDeliveryProps {
+    address: Address;
+    onAddressChange: (address: Address) => void;
+}
+
+
+export function ItemDelivery({ address, onAddressChange }: ItemDeliveryProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    onAddressChange({
+      ...address,
+      [id.replace('-manual', '')]: value,
+    });
+  };
 
   const handleGetCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -26,9 +41,11 @@ export function ItemDelivery() {
           // In a real app, you would use a reverse geocoding API
           // to turn these coordinates into an address and fill the fields.
           // For now, we'll just pre-fill with a placeholder and coordinates.
-          setAddress(`Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
-          setCity("Geolocated City");
-          setState("Geolocated State");
+          onAddressChange({
+            address: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`,
+            city: "Geolocated City",
+            state: "Geolocated State",
+          });
           toast({
             title: "Location Fetched",
             description: `Address fields have been pre-filled. Please verify them.`,
@@ -64,16 +81,16 @@ export function ItemDelivery() {
             <p className="text-sm text-muted-foreground">If you prefer, enter your business address details below.</p>
              <div>
                 <Label htmlFor="address-manual" className="text-xs">{t('signup.address')}</Label>
-                <Input id="address-manual" placeholder={t('signup.address_placeholder')} value={address} onChange={(e) => setAddress(e.target.value)} />
+                <Input id="address-manual" name="address" placeholder={t('signup.address_placeholder')} value={address.address} onChange={handleInputChange} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="city-manual" className="text-xs">{t('signup.city')}</Label>
-                    <Input id="city-manual" placeholder={t('signup.city_placeholder')} value={city} onChange={(e) => setCity(e.target.value)} />
+                    <Input id="city-manual" name="city" placeholder={t('signup.city_placeholder')} value={address.city} onChange={handleInputChange} />
                 </div>
                  <div>
                     <Label htmlFor="state-manual" className="text-xs">State / Province</Label>
-                    <Input id="state-manual" placeholder="e.g., California" value={state} onChange={(e) => setState(e.target.value)} />
+                    <Input id="state-manual" name="state" placeholder="e.g., California" value={address.state} onChange={handleInputChange} />
                 </div>
             </div>
         </div>

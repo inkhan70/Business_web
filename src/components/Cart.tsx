@@ -1,11 +1,11 @@
 
 "use client";
 
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -19,10 +19,16 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ItemDelivery } from "./ItemDelivery";
+import type { Address } from "./ItemDelivery";
 
 export function Cart() {
   const { cart, cartCount, updateQuantity, removeFromCart, subtotal } = useCart();
   const { t } = useLanguage();
+  const [deliveryAddress, setDeliveryAddress] = useState<Address>({
+    address: "",
+    city: "",
+    state: "",
+  });
 
   return (
     <Sheet>
@@ -48,75 +54,76 @@ export function Cart() {
         </SheetHeader>
         
         {cartCount > 0 ? (
-          <>
-            <ScrollArea className="flex-1">
-              <div className="px-6 py-4">
-                <div className="flex flex-col gap-4">
-                  {cart.map((item) => (
-                    <div key={item.varietyId} className="flex items-start gap-4">
-                      <Image
-                        src={item.image || "https://placehold.co/100x100.png"}
-                        alt={item.varietyName}
-                        width={80}
-                        height={80}
-                        className="rounded-md object-cover"
-                      />
-                      <div className="flex-1">
-                        <p className="font-semibold">{item.varietyName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ${item.price.toFixed(2)}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => updateQuantity(item.varietyId, item.quantity - 1)}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span>{item.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => updateQuantity(item.varietyId, item.quantity + 1)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <Button
-                          variant="ghost"
+          <ScrollArea className="flex-1">
+            <div className="px-6 py-4">
+              <div className="flex flex-col gap-4">
+                {cart.map((item) => (
+                  <div key={item.varietyId} className="flex items-start gap-4">
+                    <Image
+                      src={item.image || "https://placehold.co/100x100.png"}
+                      alt={item.varietyName}
+                      width={80}
+                      height={80}
+                      className="rounded-md object-cover"
+                    />
+                    <div className="flex-1">
+                      <p className="font-semibold">{item.varietyName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        ${item.price.toFixed(2)}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Button
+                          variant="outline"
                           size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => removeFromCart(item.varietyId)}
-                      >
-                          <Trash2 className="h-4 w-4" />
-                      </Button>
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(item.varietyId, item.quantity - 1)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span>{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => updateQuantity(item.varietyId, item.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  ))}
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="space-y-4">
-                    <div className="flex justify-between font-semibold text-lg">
-                        <span>Subtotal</span>
-                        <span>${subtotal.toFixed(2)}</span>
-                    </div>
-
-                    <ItemDelivery />
-
-                    <p className="text-sm text-muted-foreground">Transportation Cost: <span className="font-bold text-foreground">$5.00</span></p>
-                    
-                    <Button size="lg" className="w-full bg-green-600 hover:bg-green-700">
-                        {t('item_detail.confirm_order')}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => removeFromCart(item.varietyId)}
+                    >
+                        <Trash2 className="h-4 w-4" />
                     </Button>
-                </div>
+                  </div>
+                ))}
               </div>
-            </ScrollArea>
-          </>
+
+              <Separator className="my-4" />
+
+              <div className="space-y-4">
+                  <div className="flex justify-between font-semibold text-lg">
+                      <span>Subtotal</span>
+                      <span>${subtotal.toFixed(2)}</span>
+                  </div>
+
+                  <ItemDelivery
+                    address={deliveryAddress}
+                    onAddressChange={setDeliveryAddress}
+                  />
+
+                  <p className="text-sm text-muted-foreground">Transportation Cost: <span className="font-bold text-foreground">$5.00</span></p>
+                  
+                  <Button size="lg" className="w-full bg-green-600 hover:bg-green-700">
+                      {t('item_detail.confirm_order')}
+                  </Button>
+              </div>
+            </div>
+          </ScrollArea>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
             <ShoppingCart className="h-16 w-16 text-muted-foreground" />
