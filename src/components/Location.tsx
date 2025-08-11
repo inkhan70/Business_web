@@ -55,7 +55,7 @@ export function Location() {
             description = "You have denied location access. Please fill in your address manually.";
         } else if (error.code === error.POSITION_UNAVAILABLE) {
             title = "Location Unavailable";
-            description = "Your location information is currently unavailable. Please enter your address manually.";
+            description = "Your location could not be determined. Please ensure your device's GPS is turned on and try again.";
         }
         
         toast({
