@@ -32,29 +32,39 @@ export function Location() {
       return;
     }
 
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
-      });
-      
-      const { latitude, longitude } = position.coords;
-      // In a real app, you would use a reverse geocoding API
-      // to turn these coordinates into an address and fill the fields.
-      // For now, we'll just pre-fill with a placeholder and coordinates.
-      setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
-      setValue("city", "Geolocated City");
-      setValue("state", "Geolocated State");
-      toast({
-        title: "Location Fetched",
-        description: `Address fields have been pre-filled. Please verify them.`,
-      });
-    } catch (error: any) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        // In a real app, you would use a reverse geocoding API
+        // to turn these coordinates into an address and fill the fields.
+        // For now, we'll just pre-fill with a placeholder and coordinates.
+        setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
+        setValue("city", "Geolocated City");
+        setValue("state", "Geolocated State");
         toast({
-            title: "Location Error",
-            description: `Could not fetch location: ${error.message}`,
-            variant: "destructive",
+          title: "Location Fetched",
+          description: `Address fields have been pre-filled. Please verify them.`,
         });
-    }
+      },
+      (error) => {
+        let title = "Location Error";
+        let description = "Could not fetch your location. Please try again or enter your address manually.";
+
+        if (error.code === error.PERMISSION_DENIED) {
+            title = "Location Access Denied";
+            description = "You have denied location access. Please fill in your address manually.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+            title = "Location Unavailable";
+            description = "Your location information is currently unavailable. Please enter your address manually.";
+        }
+        
+        toast({
+          title: title,
+          description: description,
+          variant: "destructive",
+        });
+      }
+    );
   };
 
 
