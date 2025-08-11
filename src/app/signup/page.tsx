@@ -28,7 +28,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({ message: "A valid email is required." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
   businessName: z.string().min(2, { message: "Business name is required." }),
   role: z.enum(["company", "wholesaler", "distributor", "shopkeeper"], {
@@ -78,7 +78,7 @@ export default function SignUpPage() {
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/email-already-in-use') {
-                description = "This email address is already in use by another account.";
+                description = "This email address is already in use by another account. Please sign in instead.";
             } else if (error.code === 'auth/configuration-not-found') {
                 description = "Authentication is not configured correctly. Please enable Email/Password sign-in provider in the Firebase console.";
             } else if (error.code === 'auth/invalid-email') {
