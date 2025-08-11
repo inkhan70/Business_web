@@ -104,7 +104,7 @@ export function ItemDelivery({ address, onAddressChange }: ItemDeliveryProps) {
         <div>
              <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation}>
                 <LocateFixed className="mr-2 h-4 w-4" />
-                Use My Current Location (GPS)
+                GPS Location
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-2">
                 Let your browser find your location automatically.
