@@ -87,6 +87,13 @@
   "signin.no_account": "Don't have an account?",
   "toast.signin_success": "Sign In Successful",
   "toast.signin_success_desc": "Welcome back! Redirecting you to the dashboard.",
+  "toast.email_not_verified_title": "Email Not Verified",
+  "toast.email_not_verified_desc": "Please check your inbox and verify your email address to continue.",
+  "toast.resend_verification_button": "Resend",
+  "toast.verification_sent_title": "Verification Email Sent",
+  "toast.verification_sent_desc": "A new verification link has been sent to your email address.",
+  "toast.error_sending_verification_title": "Error Sending Verification",
+  "toast.error_sending_verification_desc": "Could not send a new verification email. Please try again.",
 
   "signup.title": "Create your Business Account",
   "signup.description": "Join our network of local businesses. It's free!",

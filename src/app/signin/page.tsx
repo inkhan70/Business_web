@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, sendEmailVerification } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { ToastAction } from "@/components/ui/toast";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -47,6 +48,28 @@ export default function SignInPage() {
         },
     });
 
+    const handleResendVerification = async (email: string) => {
+        // We need a dummy user object with the email to resend.
+        // The `sendEmailVerification` function primarily needs a user object that has an `email` and can be processed by Firebase SDK.
+        // We can get the current user from auth state before signing them out.
+        const user = auth.currentUser;
+        if(user) {
+            try {
+                await sendEmailVerification(user);
+                toast({
+                    title: t('toast.verification_sent_title'),
+                    description: t('toast.verification_sent_desc'),
+                });
+            } catch (error) {
+                 toast({
+                    title: t('toast.error_sending_verification_title'),
+                    description: t('toast.error_sending_verification_desc'),
+                    variant: "destructive"
+                });
+            }
+        }
+    }
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
@@ -60,12 +83,17 @@ export default function SignInPage() {
                 });
                 router.push("/dashboard");
             } else {
-                 await signOut(auth);
                  toast({
-                    title: "Email Not Verified",
-                    description: "Please check your inbox and verify your email address to continue.",
+                    title: t('toast.email_not_verified_title'),
+                    description: t('toast.email_not_verified_desc'),
                     variant: "destructive",
-                });
+                    action: (
+                        <ToastAction altText={t('toast.resend_verification_button')} onClick={() => handleResendVerification(values.email)}>
+                            {t('toast.resend_verification_button')}
+                        </ToastAction>
+                    ),
+                 });
+                 await signOut(auth);
             }
         } catch (error: any) {
              let description = "An unexpected error occurred. Please try again.";
