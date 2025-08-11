@@ -9,6 +9,11 @@ export function Wallpaper() {
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only run this component in production to avoid dev server loops
+    if (process.env.NODE_ENV !== 'production') {
+        return;
+    }
+
     const handleStorageChange = () => {
       const key = `wallpaper_${pathname}`;
       const url = localStorage.getItem(key);
@@ -31,6 +36,11 @@ export function Wallpaper() {
 
   // Override localStorage methods to dispatch a custom event
   useEffect(() => {
+    // Only run this component in production
+    if (process.env.NODE_ENV !== 'production') {
+        return;
+    }
+      
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key, value) {
       const isWallpaperKey = key.startsWith('wallpaper_');
@@ -56,7 +66,7 @@ export function Wallpaper() {
     };
   }, []);
 
-  if (!wallpaperUrl) {
+  if (!wallpaperUrl || process.env.NODE_ENV !== 'production') {
     return null;
   }
 
