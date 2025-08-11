@@ -69,7 +69,7 @@ export default function SignInPage() {
             }
         } catch (error: any) {
              let description = "An unexpected error occurred. Please try again.";
-            if (error.code === 'auth/invalid-credential') {
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 description = "Invalid email or password. Please check your details and try again.";
             }
             toast({
@@ -115,7 +115,7 @@ export default function SignInPage() {
                   <FormItem>
                     <div className="flex items-center justify-between">
                         <FormLabel>{t('signin.password')}</FormLabel>
-                        <Link href="#" className="text-sm font-medium text-primary hover:underline">
+                        <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
                             {t('signin.forgot_password')}
                         </Link>
                     </div>

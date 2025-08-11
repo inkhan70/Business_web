@@ -112,6 +112,17 @@
   "toast.signup_success": "Account Created!",
   "toast.signup_success_desc_verification": "Your account has been created. Please check your email to verify your account before signing in.",
   
+  "forgot_password.title": "Forgot Password",
+  "forgot_password.description": "Enter your email and we'll send you a link to reset your password.",
+  "forgot_password.sent_description": "A password reset link has been sent to your email address. Please check your inbox.",
+  "forgot_password.button": "Send Reset Link",
+  "forgot_password.resend_button": "Resend Link",
+  "forgot_password.back_to_signin": "Back to Sign In",
+  "forgot_password.did_not_receive": "Didn't receive the email?",
+  "toast.reset_link_sent": "Password Reset Link Sent",
+  "toast.reset_link_sent_desc": "Please check your email for instructions.",
+  "toast.reset_link_failed": "Failed to Send Link",
+
   "footer.tagline": "Your local business connection.",
   "footer.about": "About Us",
   "footer.contact": "Contact",
