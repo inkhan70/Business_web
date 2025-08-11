@@ -22,36 +22,38 @@ export function Location() {
   const { t } = useLanguage();
   const { toast } = useToast();
 
-  const handleGetCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          // In a real app, you would use a reverse geocoding API
-          // to turn these coordinates into an address and fill the fields.
-          // For now, we'll just pre-fill with a placeholder and coordinates.
-          setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
-          setValue("city", "Geolocated City");
-          setValue("state", "Geolocated State");
-          toast({
-            title: "Location Fetched",
-            description: `Address fields have been pre-filled. Please verify them.`,
-          });
-        },
-        (error) => {
-          toast({
-            title: "Location Error",
-            description: `Could not fetch location: ${error.message}`,
-            variant: "destructive",
-          });
-        }
-      );
-    } else {
+  const handleGetCurrentLocation = async () => {
+    if (!navigator.geolocation) {
        toast({
         title: "Geolocation Not Supported",
         description: "Your browser does not support geolocation.",
         variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+      
+      const { latitude, longitude } = position.coords;
+      // In a real app, you would use a reverse geocoding API
+      // to turn these coordinates into an address and fill the fields.
+      // For now, we'll just pre-fill with a placeholder and coordinates.
+      setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
+      setValue("city", "Geolocated City");
+      setValue("state", "Geolocated State");
+      toast({
+        title: "Location Fetched",
+        description: `Address fields have been pre-filled. Please verify them.`,
+      });
+    } catch (error: any) {
+        toast({
+            title: "Location Error",
+            description: `Could not fetch location: ${error.message}`,
+            variant: "destructive",
+        });
     }
   };
 
