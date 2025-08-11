@@ -28,7 +28,9 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().refine((val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: "Please enter a valid email address.",
+  }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
   businessName: z.string().min(2, { message: "Business name is required." }),
   role: z.enum(["company", "wholesaler", "distributor", "shopkeeper"], {
