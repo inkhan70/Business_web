@@ -6,8 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
+import { doc, setDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,8 +25,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Location } from "@/components/Location";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+
+interface Category {
+    id: string;
+    name: string;
+}
 
 const formSchema = z.object({
   email: z.string().email({ message: "A valid email is required." }).min(1, { message: "Email is required." }),
@@ -34,6 +40,7 @@ const formSchema = z.object({
   role: z.enum(["company", "wholesaler", "distributor", "shopkeeper"], {
     required_error: "You need to select a business role.",
   }),
+  category: z.string({ required_error: "You need to select a business category." }),
   address: z.string().min(10, { message: "Full address is required." }),
   city: z.string().min(2, { message: "City is required." }),
   state: z.string().min(2, { message: "State is required." }),
@@ -44,6 +51,27 @@ export default function SignUpPage() {
     const { toast } = useToast();
     const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
+    const [categories, setCategories] = useState<Category[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const categoriesCollection = collection(db, 'categories');
+                const q = query(categoriesCollection, orderBy('name'));
+                const categorySnapshot = await getDocs(q);
+                const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name as string }));
+                setCategories(categoriesList);
+            } catch (error) {
+                console.error("Error fetching categories for signup form:", error);
+                toast({
+                    title: "Could not load categories",
+                    description: "There was a problem fetching the list of business categories.",
+                    variant: "destructive"
+                });
+            }
+        };
+        fetchCategories();
+    }, [toast]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -63,10 +91,24 @@ export default function SignUpPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
-            await sendEmailVerification(user);
+            // Add business name to user's profile
+            await updateProfile(user, { displayName: values.businessName });
 
-            // Here you would typically also save business info to Firestore
-            // For now, we just focus on auth.
+            // Save business info to Firestore
+            const userDocRef = doc(db, 'users', user.uid);
+            await setDoc(userDocRef, {
+                uid: user.uid,
+                email: values.email,
+                businessName: values.businessName,
+                role: values.role,
+                category: values.category,
+                address: values.address,
+                city: values.city,
+                state: values.state,
+                createdAt: new Date(),
+            });
+
+            await sendEmailVerification(user);
 
             toast({
               title: t('toast.signup_success'),
@@ -173,6 +215,32 @@ export default function SignUpPage() {
                     )}
                 />
               </div>
+               <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Business Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your primary business category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.length === 0 ? (
+                            <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                          ) : (
+                            categories.map(cat => (
+                              <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               
                 <Location />
               <Button type="submit" className="w-full" disabled={isLoading}>
