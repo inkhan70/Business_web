@@ -6,7 +6,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, signOut, sendEmailVerification } from "firebase/auth";
+import { 
+    signInWithEmailAndPassword, 
+    signOut, 
+    sendEmailVerification, 
+    setPersistence, 
+    browserLocalPersistence, 
+    browserSessionPersistence 
+} from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,7 +35,9 @@ import { Loader2 } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z.string().email({
+    message: "A valid email is required.",
+  }),
   password: z.string().min(1, { message: "Please enter your password." }),
   rememberMe: z.boolean().default(false).optional(),
 });
@@ -49,9 +58,6 @@ export default function SignInPage() {
     });
 
     const handleResendVerification = async (email: string) => {
-        // We need a dummy user object with the email to resend.
-        // The `sendEmailVerification` function primarily needs a user object that has an `email` and can be processed by Firebase SDK.
-        // We can get the current user from auth state before signing them out.
         const user = auth.currentUser;
         if(user) {
             try {
@@ -73,6 +79,10 @@ export default function SignInPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
+            // Set session persistence based on "Remember Me"
+            const persistence = values.rememberMe ? browserLocalPersistence : browserSessionPersistence;
+            await setPersistence(auth, persistence);
+
             const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
@@ -96,9 +106,11 @@ export default function SignInPage() {
                  await signOut(auth);
             }
         } catch (error: any) {
-             let description = "An unexpected error occurred. Please try again.";
+            let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 description = "Invalid email or password. Please check your details and try again.";
+            } else if (error.code === 'auth/configuration-not-found') {
+                description = "Authentication is not configured correctly. Please enable Email/Password sign-in provider in the Firebase console.";
             }
             toast({
                 title: "Sign In Failed",
