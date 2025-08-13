@@ -55,7 +55,7 @@ const sidebarNavItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const { user, loading } = useAuth();
+    const { user, userProfile, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -74,6 +74,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return null;
     }
 
+    const capitalizeFirstLetter = (string: string) => {
+        if (!string) return string;
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
     return (
         <div className="container mx-auto my-8">
             <div className="grid lg:grid-cols-[280px_1fr] gap-8 items-start">
@@ -81,8 +86,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                    <div className="flex items-center space-x-3 p-2">
                        <UserCircle className="w-10 h-10 text-muted-foreground" />
                        <div>
-                           <p className="font-semibold text-sm">City Grocers</p>
-                           <p className="text-xs text-muted-foreground">Distributor</p>
+                           <p className="font-semibold text-sm">{userProfile?.businessName || user?.displayName || 'Business User'}</p>
+                           <p className="text-xs text-muted-foreground">{userProfile?.role ? capitalizeFirstLetter(userProfile.role) : 'User'}</p>
                        </div>
                    </div>
                     <nav className="flex flex-col space-y-1 flex-grow">
