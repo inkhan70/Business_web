@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageIcon, Upload, Trash2 } from "lucide-react";
 import Link from "next/link";
 
-const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024; 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export default function AppearancePage() {
   const { toast } = useToast();
@@ -42,7 +42,7 @@ export default function AppearancePage() {
       if (file.size > MAX_FILE_SIZE_BYTES) {
         toast({
             title: "Image Too Large",
-            description: `Please select an image smaller than 4 MB.`,
+            description: `Please select an image smaller than 10 MB.`,
             variant: "destructive"
         });
         setPreviewImage(null);
@@ -83,7 +83,7 @@ export default function AppearancePage() {
             description: "The image might be too large for browser storage. Please try a smaller image.",
             variant: "destructive"
         });
-        console.error(error);
+        console.error("Error saving to localStorage:", error);
     }
   };
 
@@ -121,7 +121,7 @@ export default function AppearancePage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="wallpaper-upload">Upload Background Image</Label>
+              <Label htmlFor="wallpaper-upload">Upload Background Image (Max 10MB)</Label>
               <div className="flex items-center space-x-2 mt-2">
                  <div className="flex-grow">
                     <Input id="wallpaper-upload" type="file" accept="image/*" onChange={handleFileChange} className="w-full" />

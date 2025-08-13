@@ -95,11 +95,17 @@ export default function CameraPage() {
         description: 'Your captured image has been saved to the library.',
       });
       router.push('/dashboard/images');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving image:", error);
+      let description = "There was a problem saving your image. Please try again.";
+      if (error.code === 'storage/unauthorized') {
+        description = "You do not have permission to upload images. Please check your storage security rules.";
+      } else if (error.code === 'storage/retry-limit-exceeded') {
+        description = "Upload timed out. Please check your internet connection and try again.";
+      }
       toast({
         title: 'Upload Failed',
-        description: 'There was a problem saving your image.',
+        description: description,
         variant: 'destructive',
       });
     } finally {

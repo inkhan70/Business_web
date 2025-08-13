@@ -47,11 +47,17 @@ export default function ProductImagesPage() {
                 
                 const images = await Promise.all(imagePromises);
                 setImageLibrary(images.reverse()); // Show newest first
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error fetching images: ", error);
+                let description = "Could not load images from storage.";
+                if (error.code === 'storage/unauthorized') {
+                    description = "You do not have permission to view images. Please check your storage security rules.";
+                } else if (error.code === 'storage/retry-limit-exceeded') {
+                    description = "Connection timed out. Please check your internet connection and try again.";
+                }
                 toast({
                     title: "Error fetching images",
-                    description: "Could not load images from storage.",
+                    description: description,
                     variant: "destructive",
                 });
             } finally {
@@ -79,11 +85,15 @@ export default function ProductImagesPage() {
                 title: "Image Deleted",
                 description: `Successfully removed "${image.alt}" from your library.`,
             });
-        } catch (error) {
+        } catch (error: any) {
              console.error("Error deleting image: ", error);
+             let description = "Could not delete the image from storage.";
+             if (error.code === 'storage/unauthorized') {
+                description = "You do not have permission to delete this image.";
+             }
              toast({
                 title: "Error deleting image",
-                description: "Could not delete the image from storage.",
+                description: description,
                 variant: "destructive",
             });
         }

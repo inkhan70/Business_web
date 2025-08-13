@@ -125,9 +125,13 @@ function ProductForm() {
                 
                 const images = await Promise.all(imagePromises);
                 setImageLibrary(images.reverse());
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error fetching images: ", error);
-                toast({ title: "Error fetching images", variant: "destructive" });
+                let description = "Could not load image library.";
+                 if (error.code === 'storage/unauthorized') {
+                    description = "You do not have permission to view images. Please check your storage security rules.";
+                }
+                toast({ title: "Error fetching images", description, variant: "destructive" });
             }
         };
         if(isLibraryOpen) {
@@ -138,6 +142,14 @@ function ProductForm() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                toast({
+                    title: "Image Too Large",
+                    description: "Please select an image smaller than 10MB.",
+                    variant: "destructive"
+                });
+                return;
+            }
             setImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -192,11 +204,17 @@ function ProductForm() {
             }
             router.push('/dashboard');
             router.refresh(); // To see the changes on dashboard page
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving product: ", error);
+            let description = "Could not save the product. Please try again.";
+            if (error.code === 'storage/unauthorized') {
+                description = "You do not have permission to upload images. Please check your storage security rules.";
+            } else if (error.code === 'storage/retry-limit-exceeded') {
+                description = "Upload timed out. Please check your internet connection and try again.";
+            }
             toast({
                 title: "Error",
-                description: "Could not save the product. Please try again.",
+                description: description,
                 variant: "destructive",
             });
         } finally {
