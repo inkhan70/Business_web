@@ -98,7 +98,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-6">
             <div>
                 <h1 className="text-2xl font-bold font-headline">Manage Products</h1>
-                <p className="text-muted-foreground">Add, edit, or remove products from your inventory.</p>
+                <p className="text-muted-foreground">here you can add or delete products pictures and information for your business</p>
             </div>
             <div className="flex space-x-2">
                 <Button variant="outline" asChild>
