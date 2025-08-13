@@ -32,12 +32,12 @@ export default function Home() {
                 {t('home.sub_description_1')} <Link href="/signup" className="text-primary underline hover:opacity-80">{t('home.sign_up')}</Link> {t('home.sub_description_2')}, {t('home.or')} <Link href="/signin" className="text-primary underline hover:opacity-80">{t('home.sign_in')}</Link> {t('home.sub_description_3')}.
               </p>
               <div className="flex flex-wrap items-center gap-4">
-                <Button size="lg" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button size="lg" asChild variant="shine">
                   <Link href="/categories">
                     {t('home.explore_categories')} <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                 <Button size="lg" variant="outline" asChild>
+                 <Button size="lg" variant="secondary" asChild>
                   <Link href="/signup">
                     {t('home.get_started')}
                   </Link>
