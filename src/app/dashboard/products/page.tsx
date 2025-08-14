@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/contexts/AuthContext';
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters."),
@@ -43,6 +44,7 @@ const productFormSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number."),
   status: z.enum(["Active", "Archived", "Low Stock", "Out of Stock"]),
   inventory: z.coerce.number().min(0, "Inventory must be a positive number."),
+  category: z.string().min(1, "Category is required."),
   image: z.string().optional(),
   dataAiHint: z.string().optional(),
 });
@@ -59,6 +61,7 @@ function ProductForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
+    const { userProfile } = useAuth();
     const editId = searchParams.get('edit');
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -75,11 +78,18 @@ function ProductForm() {
             price: 0,
             status: "Active",
             inventory: 0,
+            category: userProfile?.category || "",
             image: "",
             dataAiHint: "",
         },
         mode: "onChange",
     });
+    
+    useEffect(() => {
+        if (userProfile?.category) {
+            form.setValue('category', userProfile.category);
+        }
+    }, [userProfile, form]);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -244,6 +254,22 @@ function ProductForm() {
                                         <FormControl>
                                             <Input placeholder="e.g., Artisan Sourdough Bread" {...field} />
                                         </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="category"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Category</FormLabel>
+                                        <FormControl>
+                                            <Input readOnly disabled {...field} />
+                                        </FormControl>
+                                         <FormDescription>
+                                            This is your primary business category set during sign-up.
+                                        </FormDescription>
                                         <FormMessage />
                                         </FormItem>
                                     )}
