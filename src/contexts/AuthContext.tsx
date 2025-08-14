@@ -7,7 +7,7 @@ import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 
-interface UserProfile {
+export interface UserProfile {
     uid: string;
     email: string;
     businessName: string;
@@ -80,3 +80,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    

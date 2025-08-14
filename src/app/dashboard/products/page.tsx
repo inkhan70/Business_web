@@ -36,7 +36,7 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserProfile } from '@/contexts/AuthContext';
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Product name must be at least 2 characters."),
@@ -57,11 +57,10 @@ interface ImageAsset {
     alt: string;
 }
 
-function ProductForm() {
+function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
-    const { userProfile } = useAuth();
     const editId = searchParams.get('edit');
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -86,7 +85,7 @@ function ProductForm() {
     });
     
     useEffect(() => {
-        if (userProfile?.category) {
+        if (userProfile?.category && !form.getValues('category')) {
             form.setValue('category', userProfile.category);
         }
     }, [userProfile, form]);
@@ -421,6 +420,7 @@ function ProductForm() {
 }
 
 export default function AddEditProductPage() {
+    const { userProfile } = useAuth();
     return (
         <div className="space-y-6">
             <div className="flex items-center space-x-4">
@@ -435,10 +435,12 @@ export default function AddEditProductPage() {
                 </div>
             </div>
              <Suspense fallback={<div>Loading form...</div>}>
-                <ProductForm />
+                <ProductForm userProfile={userProfile} />
             </Suspense>
         </div>
     )
 }
+
+    
 
     
