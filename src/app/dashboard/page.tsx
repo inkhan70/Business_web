@@ -7,7 +7,7 @@ import { collection, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/fi
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, PlusCircle, Camera, Trash2, Edit } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Camera, Trash2, Edit, Loader2 } from "lucide-react";
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -53,17 +53,22 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const fetchProducts = async () => {
+            setLoading(true);
             try {
                 const productsCollection = collection(db, 'products');
                 const q = query(productsCollection, orderBy('name'));
                 const productSnapshot = await getDocs(q);
                 const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
                 setProducts(productList);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error fetching products:", error);
+                let description = "Could not fetch products from the database.";
+                if (error.code === 'permission-denied') {
+                    description = "You do not have permission to view products. Please check your Firestore security rules."
+                }
                 toast({
                     title: "Error",
-                    description: "Could not fetch products from the database.",
+                    description: description,
                     variant: "destructive",
                 });
             } finally {
@@ -133,7 +138,9 @@ export default function DashboardPage() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center">Loading products...</TableCell>
+                                <TableCell colSpan={7} className="h-24 text-center">
+                                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                                </TableCell>
                             </TableRow>
                         ) : products.length === 0 ? (
                             <TableRow>
