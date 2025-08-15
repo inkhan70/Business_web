@@ -225,9 +225,13 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             router.refresh();
         } catch (error: any) {
             console.error("Error saving product: ", error);
+            let description = "Could not save the product. Please try again.";
+            if (error.code === 'permission-denied') {
+                description = "You do not have permission to perform this action. Please check your Firestore security rules.";
+            }
             toast({
                 title: "Error",
-                description: "Could not save the product. Please try again.",
+                description: description,
                 variant: "destructive",
             });
         }

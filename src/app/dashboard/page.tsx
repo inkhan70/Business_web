@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
     id: string;
@@ -43,9 +44,10 @@ interface Product {
     inventory: number;
     varieties?: number;
     category?: string;
+    userId?: string;
 }
 
-const sampleProducts: Omit<Product, 'id'>[] = [
+const sampleProducts: Omit<Product, 'id' | 'userId'>[] = [
     { name: 'Organic Fuji Apples', status: 'Active', price: 2.99, inventory: 150, category: 'Food', dataAiHint: 'apple fruit' },
     { name: 'Artisan Sourdough Bread', status: 'Active', price: 5.50, inventory: 80, category: 'Food', dataAiHint: 'bread loaf' },
     { name: 'Cage-Free Brown Eggs', status: 'Low Stock', price: 6.00, inventory: 24, category: 'Food', dataAiHint: 'egg carton' },
@@ -59,9 +61,14 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const { t } = useLanguage();
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchProducts = async () => {
+            if (!user) {
+                setLoading(false);
+                return;
+            };
             setLoading(true);
             try {
                 const productsCollection = collection(db, 'products');
@@ -71,7 +78,7 @@ export default function DashboardPage() {
                 if (productSnapshot.empty) {
                     // Seed the database if it's empty
                     for (const prod of sampleProducts) {
-                        await addDoc(productsCollection, prod);
+                        await addDoc(productsCollection, { ...prod, userId: user.uid });
                     }
                     // Refetch after seeding
                     const newSnapshot = await getDocs(q);
@@ -99,7 +106,7 @@ export default function DashboardPage() {
         };
 
         fetchProducts();
-    }, [toast]);
+    }, [toast, user]);
 
     const handleDelete = async (productId: string, productName: string) => {
         try {
@@ -109,11 +116,15 @@ export default function DashboardPage() {
                 title: "Product Deleted",
                 description: `"${productName}" has been removed.`,
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error deleting product: ", error);
+            let description = "Could not delete the product.";
+            if (error.code === 'permission-denied') {
+                description = "You do not have permission to delete this product. Please check your Firestore security rules.";
+            }
             toast({
                 title: "Error",
-                description: "Could not delete the product.",
+                description: description,
                 variant: "destructive",
             });
         }
