@@ -118,7 +118,7 @@ export default function ProductImagesPage() {
         </div>
         <Button asChild>
             <Link href="/dashboard/products">
-              <PlusCircle className="mr-2 h-4 w-4" /> Upload New Image
+              <PlusCircle className="mr-2 h-4 w-4" /> Add a Product
             </Link>
         </Button>
       </div>
@@ -157,7 +157,12 @@ export default function ProductImagesPage() {
                         <CardContent className="p-12 flex flex-col items-center justify-center text-center">
                             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4"/>
                             <h3 className="text-xl font-semibold">No Images Available</h3>
-                            <p className="text-muted-foreground mt-2">Your image library is empty. Upload images via the product form or camera page.</p>
+                            <p className="text-muted-foreground mt-2">Your image library is empty. Upload images via the product form or capture them on the camera page.</p>
+                             <Button asChild className="mt-4">
+                                <Link href="/dashboard/camera">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Go to Camera Page
+                                </Link>
+                            </Button>
                         </CardContent>
                     </Card>
                 )}

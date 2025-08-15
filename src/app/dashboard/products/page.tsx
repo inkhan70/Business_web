@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { ArrowLeft, Upload, Loader2, Trash2, Library } from 'lucide-react';
 import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, addDoc, updateDoc, collection, list, getDocs } from 'firebase/firestore';
+import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
@@ -65,7 +65,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [imageFile, setImageFile] = useState<File | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
@@ -148,7 +148,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
     }, [isLibraryOpen, toast]);
     
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.size > 10 * 1024 * 1024) { // 10MB limit
@@ -159,17 +159,34 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 });
                 return;
             }
-            setImageFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            setIsSubmitting(true);
+            try {
+                const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
+                await uploadBytes(storageRef, file);
+                const imageUrl = await getDownloadURL(storageRef);
+                
+                setImagePreview(imageUrl);
+                form.setValue("image", imageUrl);
+                
+                toast({
+                    title: "Image Uploaded",
+                    description: "Your image is ready to be saved with the product.",
+                });
+            } catch (error) {
+                 toast({
+                    title: "Upload Failed",
+                    description: "There was an issue uploading your image.",
+                    variant: "destructive"
+                });
+            } finally {
+                setIsSubmitting(false);
+                const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+                if(fileInput) fileInput.value = "";
+            }
         }
     };
     
     const removeImage = () => {
-        setImageFile(null);
         setImagePreview(null);
         form.setValue("image", ""); 
     }
@@ -177,57 +194,37 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const selectImageFromLibrary = (image: ImageAsset) => {
         setImagePreview(image.src);
         form.setValue("image", image.src);
-        setImageFile(null); // Clear any selected file
         setIsLibraryOpen(false);
     }
 
     async function onSubmit(data: ProductFormValues) {
-        setIsUploading(true);
+        setIsSubmitting(true);
         try {
-            let imageUrl = form.getValues("image");
-
-            if (imageFile) {
-                // Upload new image to Firebase Storage
-                const storageRef = ref(storage, `products/${Date.now()}_${imageFile.name}`);
-                const uploadResult = await uploadBytes(storageRef, imageFile);
-                imageUrl = await getDownloadURL(uploadResult.ref);
-            }
-            
-            const productData = { ...data, image: imageUrl };
-
             if (editId) {
-                // Update existing product
                 const productRef = doc(db, "products", editId);
-                await updateDoc(productRef, productData);
+                await updateDoc(productRef, data);
                  toast({
                     title: "Product Updated",
                     description: `The product "${data.name}" has been successfully saved.`,
                 });
             } else {
-                // Add new product
-                await addDoc(collection(db, "products"), productData);
+                await addDoc(collection(db, "products"), data);
                  toast({
                     title: "Product Created",
                     description: `The product "${data.name}" has been successfully added.`,
                 });
             }
             router.push('/dashboard');
-            router.refresh(); // To see the changes on dashboard page
+            router.refresh();
         } catch (error: any) {
             console.error("Error saving product: ", error);
-            let description = "Could not save the product. Please try again.";
-            if (error.code === 'storage/unauthorized') {
-                description = "You do not have permission to upload images. Please check your storage security rules.";
-            } else if (error.code === 'storage/retry-limit-exceeded') {
-                description = "Upload timed out. Please check your internet connection and try again. This can also be caused by incorrect Storage security rules.";
-            }
             toast({
                 title: "Error",
-                description: description,
+                description: "Could not save the product. Please try again.",
                 variant: "destructive",
             });
         } finally {
-            setIsUploading(false);
+            setIsSubmitting(false);
         }
     }
     
@@ -366,11 +363,10 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                 <Card className="border-dashed aspect-square">
                                     <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
                                         {!imagePreview ? (
-                                             <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-4">
-                                                <Upload className="h-12 w-12 mb-4" />
-                                                <p className="mb-2">Drag & drop or click to upload</p>
-                                                <Input id="image-upload" type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleImageChange} accept="image/*" />
-                                             </div>
+                                            <div className="p-4 text-muted-foreground">
+                                                <p className='mb-4'>No image selected.</p>
+                                                <p className='text-xs'>Upload an image or select one from the library.</p>
+                                            </div>
                                         ) : (
                                             <>
                                                 <Image src={imagePreview} alt="Product preview" fill className="object-cover rounded-md" />
@@ -381,34 +377,45 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                         )}
                                     </CardContent>
                                 </Card>
-                                 <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button type="button" variant="outline" className="w-full">
-                                            <Library className="mr-2 h-4 w-4" />
-                                            Select from Library
+                                <div className='space-y-2'>
+                                    <Label htmlFor='image-upload' className='w-full'>
+                                         <Button type="button" variant="outline" className="w-full" asChild>
+                                            <span>
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                Upload New Image
+                                            </span>
                                         </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-4xl">
-                                        <DialogHeader>
-                                            <DialogTitle>Image Library</DialogTitle>
-                                        </DialogHeader>
-                                        <ScrollArea className="h-[60vh]">
-                                            <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                                {imageLibrary.map(image => (
-                                                    <button key={image.id} type="button" className="focus:ring-2 ring-primary rounded-md overflow-hidden" onClick={() => selectImageFromLibrary(image)}>
-                                                        <Image src={image.src} alt={image.alt} width={200} height={200} className="w-full h-full object-cover" />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                    </DialogContent>
-                                </Dialog>
+                                        <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" disabled={isSubmitting}/>
+                                    </Label>
+                                     <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button type="button" variant="outline" className="w-full">
+                                                <Library className="mr-2 h-4 w-4" />
+                                                Select from Library
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-4xl">
+                                            <DialogHeader>
+                                                <DialogTitle>Image Library</DialogTitle>
+                                            </DialogHeader>
+                                            <ScrollArea className="h-[60vh]">
+                                                <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                                    {imageLibrary.map(image => (
+                                                        <button key={image.id} type="button" className="focus:ring-2 ring-primary rounded-md overflow-hidden" onClick={() => selectImageFromLibrary(image)}>
+                                                            <Image src={image.src} alt={image.alt} width={200} height={200} className="w-full h-full object-cover" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                             </div>
                         </div>
 
                         <div className="flex justify-end space-x-2">
-                             <Button type="submit" disabled={form.formState.isSubmitting || isUploading}>
-                                {(form.formState.isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                             <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editId ? 'Save Changes' : 'Create Product'}
                              </Button>
                         </div>
@@ -440,7 +447,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    
-
-    
