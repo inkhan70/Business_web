@@ -68,7 +68,8 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
-  const isAdmin = true;
+  // In a real app, this would be derived from the user's auth state/role
+  const isAdmin = true; 
 
   // Fetch categories from Firestore
   useEffect(() => {
@@ -78,8 +79,8 @@ export default function CategoriesPage() {
             const q = query(categoriesCollection, orderBy('order'));
             const categorySnapshot = await getDocs(q);
 
-            if (categorySnapshot.empty) {
-                // If no categories, seed the database with initial data
+            if (categorySnapshot.empty && isAdmin) {
+                // If no categories, seed the database with initial data ONLY if user is admin
                 for (const cat of initialCategories) {
                     await addDoc(categoriesCollection, cat);
                 }
@@ -104,7 +105,7 @@ export default function CategoriesPage() {
     };
 
     fetchCategories();
-  }, [toast, t]);
+  }, [toast, t, isAdmin]);
 
   const handleAddCategory = async () => {
     if (newCategoryName.trim()) {
@@ -174,7 +175,8 @@ export default function CategoriesPage() {
 
       <ProductSearch />
       
-      <div className="flex justify-end space-x-2 mb-8 mt-8">
+      {isAdmin && (
+        <div className="flex justify-end space-x-2 mb-8 mt-8">
             <Dialog>
                 <DialogTrigger asChild>
                     <Button>
@@ -214,6 +216,7 @@ export default function CategoriesPage() {
                 </DialogContent>
             </Dialog>
         </div>
+      )}
       
 
         {loading ? (
@@ -269,3 +272,5 @@ export default function CategoriesPage() {
     </>
   );
 }
+
+    
