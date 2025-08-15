@@ -57,16 +57,6 @@ export default function SignInPage() {
         },
     });
 
-    const handleResendVerification = async (email: string) => {
-        // This function is now deprecated in favor of the forgot-password flow
-        // but kept here in case it's needed for other purposes.
-        // For now, it will simply guide the user.
-        toast({
-            title: "Having Trouble?",
-            description: "If your verification link has expired, please use the 'Forgot Password' link to reset your password, which also re-verifies your email.",
-        });
-    }
-
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
@@ -86,13 +76,9 @@ export default function SignInPage() {
             } else {
                  toast({
                     title: t('toast.email_not_verified_title'),
-                    description: t('toast.email_not_verified_desc'),
+                    description: t('toast.email_not_verified_desc_new'),
                     variant: "destructive",
-                    action: (
-                        <ToastAction altText={t('toast.resend_verification_button')} onClick={() => handleResendVerification(values.email)}>
-                            {t('toast.resend_verification_button')}
-                        </ToastAction>
-                    ),
+                    duration: 10000,
                  });
                  await signOut(auth);
             }
