@@ -53,7 +53,7 @@ export default function ProductImagesPage() {
                 if (error.code === 'storage/unauthorized') {
                     description = "You do not have permission to view images. Please check your storage security rules.";
                 } else if (error.code === 'storage/retry-limit-exceeded') {
-                    description = "Connection timed out. Please check your internet connection and try again.";
+                    description = "Connection timed out. Please check your internet connection and try again. This can also be caused by incorrect Storage security rules.";
                 }
                 toast({
                     title: "Error fetching images",
@@ -89,7 +89,7 @@ export default function ProductImagesPage() {
              console.error("Error deleting image: ", error);
              let description = "Could not delete the image from storage.";
              if (error.code === 'storage/unauthorized') {
-                description = "You do not have permission to delete this image.";
+                description = "You do not have permission to delete this image. Please check your storage security rules.";
              }
              toast({
                 title: "Error deleting image",

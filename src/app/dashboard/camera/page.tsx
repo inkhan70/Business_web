@@ -101,7 +101,7 @@ export default function CameraPage() {
       if (error.code === 'storage/unauthorized') {
         description = "You do not have permission to upload images. Please check your storage security rules.";
       } else if (error.code === 'storage/retry-limit-exceeded') {
-        description = "Upload timed out. Please check your internet connection and try again.";
+        description = "Upload timed out. Please check your internet connection and try again. This can also be caused by incorrect Storage security rules.";
       }
       toast({
         title: 'Upload Failed',
