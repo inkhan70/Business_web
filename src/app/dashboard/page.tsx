@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, doc, query, orderBy, addDoc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -42,7 +42,16 @@ interface Product {
     price: number;
     inventory: number;
     varieties?: number;
+    category?: string;
 }
+
+const sampleProducts: Omit<Product, 'id'>[] = [
+    { name: 'Organic Fuji Apples', status: 'Active', price: 2.99, inventory: 150, category: 'Food', dataAiHint: 'apple fruit' },
+    { name: 'Artisan Sourdough Bread', status: 'Active', price: 5.50, inventory: 80, category: 'Food', dataAiHint: 'bread loaf' },
+    { name: 'Cage-Free Brown Eggs', status: 'Low Stock', price: 6.00, inventory: 24, category: 'Food', dataAiHint: 'egg carton' },
+    { name: 'Unsweetened Almond Milk', status: 'Active', price: 4.25, inventory: 100, category: 'Drinks', dataAiHint: 'milk carton' },
+    { name: 'Running Shoes', status: 'Out of Stock', price: 120.00, inventory: 0, category: 'Shoes', dataAiHint: 'running shoes' },
+];
 
 
 export default function DashboardPage() {
@@ -58,12 +67,25 @@ export default function DashboardPage() {
                 const productsCollection = collection(db, 'products');
                 const q = query(productsCollection, orderBy('name'));
                 const productSnapshot = await getDocs(q);
-                const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-                setProducts(productList);
+                
+                if (productSnapshot.empty) {
+                    // Seed the database if it's empty
+                    for (const prod of sampleProducts) {
+                        await addDoc(productsCollection, prod);
+                    }
+                    // Refetch after seeding
+                    const newSnapshot = await getDocs(q);
+                    const productList = newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+                    setProducts(productList);
+                } else {
+                    const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+                    setProducts(productList);
+                }
+
             } catch (error: any) {
                 console.error("Error fetching products:", error);
                 let description = "Could not fetch products from the database.";
-                if (error.code === 'permission-denied') {
+                if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
                     description = "You do not have permission to view products. Please check your Firestore security rules."
                 }
                 toast({
