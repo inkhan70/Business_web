@@ -64,8 +64,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const editId = searchParams.get('edit');
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
@@ -83,6 +82,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         },
         mode: "onChange",
     });
+
+    const { formState: { isSubmitting } } = form;
     
     useEffect(() => {
         if (userProfile?.category && !form.getValues('category')) {
@@ -159,7 +160,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 });
                 return;
             }
-            setIsSubmitting(true);
+            setIsUploading(true);
             try {
                 const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
                 await uploadBytes(storageRef, file);
@@ -179,7 +180,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     variant: "destructive"
                 });
             } finally {
-                setIsSubmitting(false);
+                setIsUploading(false);
                 const fileInput = document.getElementById('image-upload') as HTMLInputElement;
                 if(fileInput) fileInput.value = "";
             }
@@ -198,7 +199,6 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }
 
     async function onSubmit(data: ProductFormValues) {
-        setIsSubmitting(true);
         try {
             if (editId) {
                 const productRef = doc(db, "products", editId);
@@ -223,8 +223,6 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 description: "Could not save the product. Please try again.",
                 variant: "destructive",
             });
-        } finally {
-            setIsSubmitting(false);
         }
     }
     
@@ -385,7 +383,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                 Upload New Image
                                             </span>
                                         </Button>
-                                        <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" disabled={isSubmitting}/>
+                                        <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" disabled={isUploading || isSubmitting}/>
                                     </Label>
                                      <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
                                         <DialogTrigger asChild>
@@ -414,8 +412,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                         </div>
 
                         <div className="flex justify-end space-x-2">
-                             <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                             <Button type="submit" disabled={isUploading || isSubmitting}>
+                                {(isUploading || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editId ? 'Save Changes' : 'Create Product'}
                              </Button>
                         </div>
@@ -447,3 +445,5 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
