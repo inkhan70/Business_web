@@ -47,6 +47,7 @@ const productFormSchema = z.object({
   category: z.string().min(1, "Category is required."),
   image: z.string().optional(),
   dataAiHint: z.string().optional(),
+  userId: z.string().optional(), // Add userId to the schema
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -61,6 +62,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
+    const { user } = useAuth();
     const editId = searchParams.get('edit');
 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -199,6 +201,11 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }
 
     async function onSubmit(data: ProductFormValues) {
+        if (!user) {
+            toast({ title: "Not Authenticated", description: "You must be logged in.", variant: "destructive" });
+            return;
+        }
+
         try {
             if (editId) {
                 const productRef = doc(db, "products", editId);
@@ -208,7 +215,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     description: `The product "${data.name}" has been successfully saved.`,
                 });
             } else {
-                await addDoc(collection(db, "products"), data);
+                await addDoc(collection(db, "products"), { ...data, userId: user.uid });
                  toast({
                     title: "Product Created",
                     description: `The product "${data.name}" has been successfully added.`,
@@ -445,5 +452,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    
