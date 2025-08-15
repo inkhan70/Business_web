@@ -58,22 +58,13 @@ export default function SignInPage() {
     });
 
     const handleResendVerification = async (email: string) => {
-        const user = auth.currentUser;
-        if(user) {
-            try {
-                await sendEmailVerification(user);
-                toast({
-                    title: t('toast.verification_sent_title'),
-                    description: t('toast.verification_sent_desc'),
-                });
-            } catch (error) {
-                 toast({
-                    title: t('toast.error_sending_verification_title'),
-                    description: t('toast.error_sending_verification_desc'),
-                    variant: "destructive"
-                });
-            }
-        }
+        // This function is now deprecated in favor of the forgot-password flow
+        // but kept here in case it's needed for other purposes.
+        // For now, it will simply guide the user.
+        toast({
+            title: "Having Trouble?",
+            description: "If your verification link has expired, please use the 'Forgot Password' link to reset your password, which also re-verifies your email.",
+        });
     }
 
     async function onSubmit(values: z.infer<typeof formSchema>) {

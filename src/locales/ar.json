@@ -110,7 +110,7 @@
   "signup.have_account": "هل لديك حساب بالفعل؟",
   "toast.signup_success": "تم إنشاء الحساب!",
   "toast.signup_success_desc_verification": "تم إنشاء حسابك. يرجى التحقق من بريدك الإلكتروني للتحقق من حسابك قبل تسجيل الدخول.",
-
+  
   "forgot_password.title": "نسيت كلمة المرور",
   "forgot_password.description": "أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور الخاصة بك.",
   "forgot_password.sent_description": "تم إرسال رابط إعادة تعيين كلمة المرور إلى عنوان بريدك الإلكتروني. يرجى التحقق من بريدك الوارد.",
@@ -121,7 +121,7 @@
   "toast.reset_link_sent": "تم إرسال رابط إعادة تعيين كلمة المرور",
   "toast.reset_link_sent_desc": "يرجى التحقق من بريدك الإلكتروني للحصول على التعليمات.",
   "toast.reset_link_failed": "فشل إرسال الرابط",
-  
+
   "footer.tagline": "اتصالك التجاري المحلي.",
   "footer.about": "معلومات عنا",
   "footer.contact": "اتصل بنا",
