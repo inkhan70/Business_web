@@ -34,7 +34,7 @@ export function Header() {
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-6 w-6"><rect width="256" height="256" fill="none"></rect><path d="M128,24a104,104,0,1,0,104,104A104.2,104.2,0,0,0,128,24Zm0,176a72,72,0,1,1,72-72A72.1,72.1,0,0,1,128,200Z" fill="hsl(var(--primary))"></path><path d="M168,104a40,40,0,1,1-40-40,40,40,0,0,1,40,40" fill="hsl(var(--primary))" opacity="0.5"></path></svg>
-            <span className="font-bold font-headline text-lg">CityFind</span>
+            <span className="font-bold font-headline text-lg">Digital World</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
@@ -103,7 +103,7 @@ export function Header() {
                     </SheetHeader>
                     <Link href="/" className="mr-6 flex items-center space-x-2 mb-6">
                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" className="h-6 w-6"><rect width="256" height="256" fill="none"></rect><path d="M128,24a104,104,0,1,0,104,104A104.2,104.2,0,0,0,128,24Zm0,176a72,72,0,1,1,72-72A72.1,72.1,0,0,1,128,200Z" fill="hsl(var(--primary))"></path><path d="M168,104a40,40,0,1,1-40-40,40,40,0,0,1,40,40" fill="hsl(var(--primary))" opacity="0.5"></path></svg>
-                        <span className="font-bold font-headline text-lg">CityFind</span>
+                        <span className="font-bold font-headline text-lg">Digital World</span>
                     </Link>
                     <div className="flex flex-col space-y-4">
                         <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>

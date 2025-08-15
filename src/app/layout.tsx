@@ -9,7 +9,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 
 export const metadata: Metadata = {
-  title: 'CityFind',
+  title: 'Digital World',
   description: 'Find and connect with local businesses and distributors in your city.',
 };
 
