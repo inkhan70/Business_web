@@ -58,46 +58,38 @@ function BusinessesContent() {
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
 
   const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
   useEffect(() => {
     // Immediately display businesses from placeholder data
-    const initialBusinesses = businessData[role] || businessData.shopkeepers;
-    setAllBusinesses(initialBusinesses);
-    setFilteredBusinesses(initialBusinesses);
+    let initialBusinesses = businessData[role] || businessData.shopkeepers;
 
     // Then, try to get location and re-sort
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setAllBusinesses(currentBusinesses => 
-            [...currentBusinesses] // Create a new array to trigger re-render
-              .map(biz => ({
-                ...biz,
-                distance: getDistance(latitude, longitude, biz.lat, biz.lon),
-              }))
-              .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
-          );
+          const businessesWithDistance = initialBusinesses.map(biz => ({
+            ...biz,
+            distance: getDistance(latitude, longitude, biz.lat, biz.lon),
+          }));
+          setAllBusinesses(businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)));
         },
         (error) => {
           console.warn("Geolocation denied, showing default list.", error);
-          // No need to do anything, the default list is already shown.
+          setAllBusinesses(initialBusinesses);
         }
       );
     } else {
         console.warn("Geolocation not supported, showing default list.");
+        setAllBusinesses(initialBusinesses);
     }
   }, [role]);
 
-  useEffect(() => {
-    const results = allBusinesses.filter(biz =>
-        biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        biz.address.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredBusinesses(results);
-  }, [searchTerm, allBusinesses]);
+  const filteredBusinesses = allBusinesses.filter(biz =>
+    biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    biz.address.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
