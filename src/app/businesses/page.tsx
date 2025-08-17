@@ -55,46 +55,70 @@ function BusinessesContent() {
   const { t } = useLanguage();
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
-
-  const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  useEffect(() => {
-    // 1. Get all businesses for the selected ROLE
-    const businessesForRole = businessData[role] || [];
-    
-    // 2. Filter those businesses by the selected CATEGORY
-    const businessesForCategory = businessesForRole.filter(biz => biz.category.toLowerCase() === category.toLowerCase());
+  const [loading, setLoading] = useState(true);
 
-    // 3. Attempt to get location and re-sort by distance
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const businessesWithDistance = businessesForCategory.map(biz => ({
-            ...biz,
-            distance: getDistance(latitude, longitude, biz.lat, biz.lon),
-          }));
-          setAllBusinesses(businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity)));
-        },
-        (error) => {
-          console.warn("Geolocation denied, showing default list.", error);
-          setAllBusinesses(businessesForCategory); // Fallback to category-filtered list
-        }
-      );
-    } else {
-        console.warn("Geolocation not supported, showing default list.");
-        setAllBusinesses(businessesForCategory); // Fallback to category-filtered list
+  useEffect(() => {
+    try {
+      // 1. Get all businesses for the selected ROLE
+      const businessesForRole = businessData[role] || [];
+      
+      // 2. Filter those businesses by the selected CATEGORY
+      let businessesForCategory = businessesForRole;
+      if (category !== 'all') {
+          businessesForCategory = businessesForRole.filter(biz => biz.category.toLowerCase() === category.toLowerCase());
+      }
+      
+      // 3. Attempt to get location and re-sort by distance
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const businessesWithDistance = businessesForCategory.map(biz => ({
+              ...biz,
+              distance: getDistance(latitude, longitude, biz.lat, biz.lon),
+            }));
+            const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+            setBusinesses(sortedByDistance);
+          },
+          (error) => {
+            console.warn("Geolocation denied, showing default list.", error);
+            setBusinesses(businessesForCategory); // Fallback to category-filtered list
+          }
+        );
+      } else {
+          console.warn("Geolocation not supported, showing default list.");
+          setBusinesses(businessesForCategory); // Fallback to category-filtered list
+      }
+    } catch(e) {
+        console.error("Storage not found or error loading data", e);
+        setBusinesses([]);
+    } finally {
+        setLoading(false);
     }
   }, [role, category]);
 
-  const filteredBusinesses = allBusinesses.filter(biz =>
-    biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    biz.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    const results = businesses.filter(biz =>
+      (biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      biz.address.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (biz.distance === undefined || biz.distance <= 100) // Also filter by distance <= 100km
+    );
+    setFilteredBusinesses(results);
+  }, [searchTerm, businesses]);
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+
+  if(loading) {
+    return (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -147,7 +171,7 @@ function BusinessesContent() {
         <div className="text-center py-16">
           <p className="text-xl font-semibold">No businesses found</p>
           <p className="text-muted-foreground mt-2">
-            There are no businesses matching "{roleTitle}" in the "{categoryTitle}" category.
+             {businesses.length === 0 ? "Storage not found or no businesses available for this category." : `Your search for "${searchTerm}" did not match any businesses.`}
           </p>
         </div>
        )}
@@ -181,3 +205,5 @@ export default function BusinessesPage() {
         </Suspense>
     )
 }
+
+    
