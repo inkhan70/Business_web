@@ -207,9 +207,9 @@ export default function DashboardPage() {
                                             alt={product.name}
                                             className="aspect-square rounded-md object-cover"
                                             height="40"
-                                            src={product.varieties[0]?.image || "https://placehold.co/40x40.png"}
+                                            src={product.varieties?.[0]?.image || "https://placehold.co/40x40.png"}
                                             width="40"
-                                            data-ai-hint={product.varieties[0]?.dataAiHint || "product image"}
+                                            data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"}
                                         />
                                     </TableCell>
                                     <TableCell className="font-medium">
