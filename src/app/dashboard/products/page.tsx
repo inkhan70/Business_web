@@ -4,7 +4,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, Suspense, useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,29 +28,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2, Trash2, Library } from 'lucide-react';
-import { storage } from '@/lib/firebase';
-import { ref, listAll, getDownloadURL } from "firebase/storage";
-import { Label } from '@/components/ui/label';
+import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle } from 'lucide-react';
+import { useAuth, UserProfile } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, UserProfile } from '@/contexts/AuthContext';
+import { Separator } from '@/components/ui/separator';
+
+const varietySchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Variety name is required."),
+  price: z.coerce.number().min(0, "Price must be a positive number."),
+  image: z.string().optional(),
+  dataAiHint: z.string().optional(),
+});
 
 const productFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Product name must be at least 2 characters."),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, "Price must be a positive number."),
+  category: z.string().min(1, "Category is required."),
   status: z.enum(["Active", "Archived", "Low Stock", "Out of Stock"]),
   inventory: z.coerce.number().min(0, "Inventory must be a positive number."),
-  category: z.string().min(1, "Category is required."),
-  image: z.string().optional(),
-  dataAiHint: z.string().optional(),
   userId: z.string().optional(),
+  varieties: z.array(varietySchema).min(1, "At least one product variety is required."),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
+type Variety = z.infer<typeof varietySchema>;
 
 interface ImageAsset {
     id: string;
@@ -65,33 +70,35 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const { user } = useAuth();
     const editId = searchParams.get('edit');
 
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
-    const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+    const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
         defaultValues: {
             name: "",
             description: "",
-            price: 0,
             status: "Active",
             inventory: 0,
             category: userProfile?.category || "",
-            image: "",
-            dataAiHint: "",
+            varieties: [{ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' }],
         },
         mode: "onChange",
     });
 
-    const { formState: { isSubmitting } } = form;
+    const { control, formState: { isSubmitting }, getValues, setValue } = form;
+
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: "varieties"
+    });
     
     useEffect(() => {
-        if (userProfile?.category && !form.getValues('category')) {
-            form.setValue('category', userProfile.category);
+        if (userProfile?.category && !getValues('category')) {
+            setValue('category', userProfile.category);
         }
-    }, [userProfile, form]);
+    }, [userProfile, getValues, setValue]);
 
     useEffect(() => {
         const fetchProduct = () => {
@@ -102,9 +109,6 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     const productData = products.find((p: ProductFormValues) => p.id === editId);
                     if (productData) {
                         form.reset(productData);
-                        if (productData.image) {
-                            setImagePreview(productData.image);
-                        }
                     } else {
                          toast({
                             title: "Error",
@@ -118,42 +122,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         };
         fetchProduct();
     }, [editId, form, router, toast]);
-
-    useEffect(() => {
-        const fetchImages = async () => {
-            try {
-                const capturesRef = ref(storage, 'captures');
-                const productsRef = ref(storage, 'products');
-
-                const [capturesList, productsList] = await Promise.all([
-                    listAll(capturesRef),
-                    listAll(productsRef)
-                ]);
-
-                const allItems = [...capturesList.items, ...productsList.items];
-
-                const imagePromises = allItems.map(async (itemRef) => {
-                    const url = await getDownloadURL(itemRef);
-                    return { id: itemRef.name, src: url, alt: itemRef.name };
-                });
-                
-                const images = await Promise.all(imagePromises);
-                setImageLibrary(images.reverse());
-            } catch (error: any) {
-                console.error("Error fetching images: ", error);
-                let description = "Could not load image library.";
-                 if (error.code === 'storage/unauthorized') {
-                    description = "You do not have permission to view images. Please check your storage security rules.";
-                }
-                toast({ title: "Error fetching images", description, variant: "destructive" });
-            }
-        };
-        if(isLibraryOpen) {
-            fetchImages();
-        }
-    }, [isLibraryOpen, toast]);
     
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.size > 10 * 1024 * 1024) { // 10MB limit
@@ -169,8 +139,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const dataUrl = reader.result as string;
-                setImagePreview(dataUrl);
-                form.setValue("image", dataUrl, { shouldValidate: true });
+                setValue(`varieties.${fieldIndex}.image`, dataUrl, { shouldValidate: true });
                 setIsUploading(false);
                 toast({
                     title: "Image Ready",
@@ -189,15 +158,15 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
     };
     
-    const removeImage = () => {
-        setImagePreview(null);
-        form.setValue("image", ""); 
+    const removeVarietyImage = (fieldIndex: number) => {
+        setValue(`varieties.${fieldIndex}.image`, ""); 
     }
 
     const selectImageFromLibrary = (image: ImageAsset) => {
-        setImagePreview(image.src);
-        form.setValue("image", image.src);
-        setIsLibraryOpen(false);
+        if (isLibraryOpen.fieldIndex !== null) {
+            setValue(`varieties.${isLibraryOpen.fieldIndex}.image`, image.src);
+            setIsLibraryOpen({open: false, fieldIndex: null});
+        }
     }
 
     async function onSubmit(data: ProductFormValues) {
@@ -256,99 +225,68 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             <CardContent>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                         <div className="grid md:grid-cols-3 gap-8">
-                            <div className="md:col-span-2 space-y-8">
-                                <FormField
+                         <div className="grid md:grid-cols-2 gap-8">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Product Name / Brand</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Artisan Sourdough Bread" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="category"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Category</FormLabel>
+                                    <FormControl>
+                                        <Input readOnly disabled value={userProfile?.category || 'N/A'} />
+                                    </FormControl>
+                                     <FormDescription>
+                                        This is your primary business category set during sign-up.
+                                    </FormDescription>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem className="md:col-span-2">
+                                    <FormLabel>Description</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            placeholder="Provide a detailed description of the product brand..."
+                                            className="resize-none"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                 <FormField
                                     control={form.control}
-                                    name="name"
+                                    name="inventory"
                                     render={({ field }) => (
                                         <FormItem>
-                                        <FormLabel>Product Name</FormLabel>
+                                        <FormLabel>Total Inventory</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Artisan Sourdough Bread" {...field} />
+                                            <Input type="number" placeholder="0" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                         </FormItem>
                                     )}
                                 />
                                  <FormField
-                                    control={form.control}
-                                    name="category"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Category</FormLabel>
-                                        <FormControl>
-                                            <Input readOnly disabled {...field} />
-                                        </FormControl>
-                                         <FormDescription>
-                                            This is your primary business category set during sign-up.
-                                        </FormDescription>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Provide a detailed description of the product..."
-                                                className="resize-none"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="dataAiHint"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Image AI Hint</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g., apple fruit" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            A short hint for AI to find a suitable image if none is uploaded (e.g. "bread loaf").
-                                        </FormDescription>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="grid grid-cols-2 gap-4">
-                                     <FormField
-                                        control={form.control}
-                                        name="price"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Price ($)</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                     <FormField
-                                        control={form.control}
-                                        name="inventory"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Inventory</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="0" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <FormField
                                     control={form.control}
                                     name="status"
                                     render={({ field }) => (
@@ -367,72 +305,100 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                 <SelectItem value="Out of Stock">Out of Stock</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <FormDescription>
-                                            'Active' products are visible to customers. 'Archived' are hidden.
-                                        </FormDescription>
                                         <FormMessage />
                                         </FormItem>
                                     )}
-                                    />
-                            </div>
-                            <div className="md:col-span-1 space-y-2">
-                                <Label>Product Image</Label>
-                                <Card className="border-dashed aspect-square">
-                                    <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
-                                        {!imagePreview ? (
-                                            <div className="p-4 text-muted-foreground">
-                                                <p className='mb-4'>No image selected.</p>
-                                                <p className='text-xs'>Upload an image or select one from the library.</p>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <Image src={imagePreview} alt="Product preview" layout="fill" className="object-cover rounded-md" />
-                                                 <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={removeImage}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                                <div className='space-y-2'>
-                                    <Label htmlFor='image-upload' className='w-full'>
-                                         <Button type="button" variant="outline" className="w-full" asChild>
-                                            <span>
-                                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                                {isUploading ? "Reading..." : "Upload New Image"}
-                                            </span>
-                                        </Button>
-                                        <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" disabled={isUploading || isSubmitting}/>
-                                    </Label>
-                                     <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button type="button" variant="outline" className="w-full" disabled={isUploading || isSubmitting}>
-                                                <Library className="mr-2 h-4 w-4" />
-                                                Select from Library
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-4xl">
-                                            <DialogHeader>
-                                                <DialogTitle>Image Library</DialogTitle>
-                                            </DialogHeader>
-                                            <ScrollArea className="h-[60vh]">
-                                                <div className="p-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                                    {imageLibrary.map(image => (
-                                                        <button key={image.id} type="button" className="focus:ring-2 ring-primary rounded-md overflow-hidden" onClick={() => selectImageFromLibrary(image)}>
-                                                            <Image src={image.src} alt={image.alt} width={200} height={200} className="w-full h-full object-cover" />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </ScrollArea>
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
+                                />
                             </div>
                         </div>
 
-                        <div className="flex justify-end space-x-2">
+                        <Separator />
+
+                        <div>
+                            <h3 className="text-lg font-medium mb-4">Product Varieties</h3>
+                            <div className="space-y-6">
+                                {fields.map((field, index) => (
+                                    <Card key={field.id} className="p-4 bg-muted/50 relative">
+                                        <CardContent className="p-0">
+                                            <div className="grid md:grid-cols-3 gap-6">
+                                                <div className="md:col-span-2 space-y-4">
+                                                     <FormField
+                                                        control={form.control}
+                                                        name={`varieties.${index}.name`}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Variety Name</FormLabel>
+                                                                <FormControl>
+                                                                    <Input placeholder="e.g., Classic White" {...field} />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <FormField
+                                                        control={form.control}
+                                                        name={`varieties.${index}.price`}
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Price ($)</FormLabel>
+                                                                <FormControl>
+                                                                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Variety Image</Label>
+                                                    <Card className="border-dashed aspect-square">
+                                                        <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
+                                                            {getValues(`varieties.${index}.image`) ? (
+                                                                <>
+                                                                    <Image src={getValues(`varieties.${index}.image`)!} alt="Product preview" layout="fill" className="object-cover rounded-md" />
+                                                                    <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeVarietyImage(index)}>
+                                                                        <Trash2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                 <div className="p-2 text-muted-foreground text-xs">No image</div>
+                                                            )}
+                                                        </CardContent>
+                                                    </Card>
+                                                    <Label htmlFor={`image-upload-${index}`} className='w-full'>
+                                                        <Button type="button" variant="outline" size="sm" className="w-full" asChild>
+                                                            <span><Upload className="mr-2 h-4 w-4" /> Upload</span>
+                                                        </Button>
+                                                        <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
+                                                    </Label>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                        {fields.length > 1 && (
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => remove(index)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </Card>
+                                ))}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => append({ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' })}
+                                >
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Add Another Variety
+                                </Button>
+                                {form.formState.errors.varieties && (
+                                    <p className="text-sm font-medium text-destructive">{form.formState.errors.varieties.message}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 pt-8">
                              <Button type="submit" disabled={isUploading || isSubmitting}>
-                                {(isUploading || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editId ? 'Save Changes' : 'Create Product'}
                              </Button>
                         </div>
@@ -455,7 +421,7 @@ export default function AddEditProductPage() {
                 </Button>
                 <div>
                      <h1 className="text-2xl font-bold font-headline">Product Details</h1>
-                     <p className="text-muted-foreground">Manage your product information.</p>
+                     <p className="text-muted-foreground">Manage your product information and all its varieties.</p>
                 </div>
             </div>
              <Suspense fallback={<div>Loading form...</div>}>
@@ -464,5 +430,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    

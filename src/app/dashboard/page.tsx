@@ -32,25 +32,45 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Product {
+interface Variety {
     id: string;
     name: string;
+    price: number;
     image?: string;
     dataAiHint?: string;
+}
+
+interface Product {
+    id: string;
+    name: string; // This is now the Brand/Product Line name
     status: "Active" | "Archived" | "Low Stock" | "Out of Stock";
-    price: number;
     inventory: number;
-    varieties?: number;
     category?: string;
     userId?: string;
+    varieties: Variety[];
 }
 
 const sampleProducts: Omit<Product, 'id' | 'userId'>[] = [
-    { name: 'Organic Fuji Apples', status: 'Active', price: 2.99, inventory: 150, category: 'Food', dataAiHint: 'apple fruit' },
-    { name: 'Artisan Sourdough Bread', status: 'Active', price: 5.50, inventory: 80, category: 'Food', dataAiHint: 'bread loaf' },
-    { name: 'Cage-Free Brown Eggs', status: 'Low Stock', price: 6.00, inventory: 24, category: 'Food', dataAiHint: 'egg carton' },
-    { name: 'Unsweetened Almond Milk', status: 'Active', price: 4.25, inventory: 100, category: 'Drinks', dataAiHint: 'milk carton' },
-    { name: 'Running Shoes', status: 'Out of Stock', price: 120.00, inventory: 0, category: 'Shoes', dataAiHint: 'running shoes' },
+    { 
+        name: 'Organic Fuji Apples', 
+        status: 'Active', 
+        inventory: 150, 
+        category: 'Food',
+        varieties: [
+            { id: 'v1', name: 'Single Apple', price: 0.50, dataAiHint: 'apple fruit' },
+            { id: 'v2', name: 'Bag of Apples (5 lb)', price: 2.99, dataAiHint: 'apples bag' },
+        ]
+    },
+    { 
+        name: 'Artisan Sourdough', 
+        status: 'Active', 
+        inventory: 80, 
+        category: 'Food', 
+        varieties: [
+            { id: 'v3', name: 'Classic White Loaf', price: 5.50, dataAiHint: 'bread loaf' },
+            { id: 'v4', name: 'Whole Wheat Loaf', price: 6.00, dataAiHint: 'brown bread' },
+        ]
+    },
 ];
 
 
@@ -151,11 +171,10 @@ export default function DashboardPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
-                            <TableHead>Name</TableHead>
+                            <TableHead>Product / Brand</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Price</TableHead>
                             <TableHead className="hidden md:table-cell">Inventory</TableHead>
-                             <TableHead className="hidden md:table-cell">Varieties</TableHead>
+                            <TableHead className="hidden md:table-cell">Varieties</TableHead>
                             <TableHead>
                                 <span className="sr-only">Actions</span>
                             </TableHead>
@@ -164,13 +183,13 @@ export default function DashboardPage() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
                         ) : products.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center py-12">
+                                <TableCell colSpan={6} className="text-center py-12">
                                     <p className="font-semibold mb-2">No products found.</p>
                                     <p className="text-muted-foreground mb-4">Get started by adding your first product.</p>
                                     <Button asChild size="sm">
@@ -188,12 +207,16 @@ export default function DashboardPage() {
                                             alt={product.name}
                                             className="aspect-square rounded-md object-cover"
                                             height="40"
-                                            src={product.image || "https://placehold.co/40x40.png"}
+                                            src={product.varieties[0]?.image || "https://placehold.co/40x40.png"}
                                             width="40"
-                                            data-ai-hint={product.dataAiHint || "product image"}
+                                            data-ai-hint={product.varieties[0]?.dataAiHint || "product image"}
                                         />
                                     </TableCell>
-                                    <TableCell className="font-medium">{product.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        <Link href={`/dashboard/products/${product.id}`} className="hover:underline">
+                                            {product.name}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell>
                                         <Badge 
                                             variant={product.status === 'Active' ? 'default' : product.status === 'Low Stock' ? 'secondary' : 'destructive'} 
@@ -202,9 +225,8 @@ export default function DashboardPage() {
                                             {product.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>${product.price.toFixed(2)}</TableCell>
                                     <TableCell className="hidden md:table-cell">{product.inventory}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{product.varieties || 1}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{product.varieties?.length || 0}</TableCell>
                                     <TableCell>
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -214,7 +236,7 @@ export default function DashboardPage() {
                                             </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>{t('item_detail.select_variety')}</DropdownMenuLabel>
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                 <DropdownMenuItem asChild>
                                                     <Link href={`/dashboard/products?edit=${product.id}`}>
                                                         <Edit className="mr-2 h-4 w-4" /> Edit
@@ -225,20 +247,20 @@ export default function DashboardPage() {
                                                     <AlertDialogTrigger asChild>
                                                         <DropdownMenuItem 
                                                             className="text-red-500 focus:text-red-500 focus:bg-red-50"
-                                                            onSelect={(e) => e.preventDefault()} // Prevents dropdown from closing
+                                                            onSelect={(e) => e.preventDefault()}
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                         </DropdownMenuItem>
                                                     </AlertDialogTrigger>
                                                     <AlertDialogContent>
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>{t('categories.are_you_sure')}</AlertDialogTitle>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                             <AlertDialogDescription>
                                                                 This action cannot be undone. This will permanently delete the product "{product.name}".
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter>
-                                                            <AlertDialogCancel>{t('categories.cancel')}</AlertDialogCancel>
+                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                             <AlertDialogAction 
                                                                 className="bg-destructive hover:bg-destructive/90"
                                                                 onClick={() => handleDelete(product.id, product.name)}>
