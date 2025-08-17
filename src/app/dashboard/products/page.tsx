@@ -207,15 +207,16 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
 
         try {
+            const productData = { ...data, userId: user.uid, category: userProfile?.category || data.category };
             if (editId) {
                 const productRef = doc(db, "products", editId);
-                await updateDoc(productRef, data);
+                await updateDoc(productRef, productData);
                  toast({
                     title: "Product Updated",
                     description: `The product "${data.name}" has been successfully saved.`,
                 });
             } else {
-                await addDoc(collection(db, "products"), { ...data, userId: user.uid });
+                await addDoc(collection(db, "products"), productData);
                  toast({
                     title: "Product Created",
                     description: `The product "${data.name}" has been successfully added.`,
@@ -227,7 +228,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             console.error("Error saving product: ", error);
             let description = "Could not save the product. Please try again.";
             if (error.code === 'permission-denied') {
-                description = "You do not have permission to perform this action. Please check your Firestore security rules.";
+                description = "Permission denied. Your role may not be allowed to create products in this category. Please check your security rules.";
             }
             toast({
                 title: "Error",
@@ -350,7 +351,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select product status" />
-                                            </Trigger>
+                                            </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="Active">Active</SelectItem>
@@ -456,3 +457,5 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
