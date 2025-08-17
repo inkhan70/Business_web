@@ -109,7 +109,7 @@ export default function ProductVarietiesPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {product.varieties.map(variety => (
+                {product.varieties && product.varieties.map(variety => (
                     <Card key={variety.id} className="flex flex-col">
                         <CardHeader className="p-0">
                             <Image 
