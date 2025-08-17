@@ -224,7 +224,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     ...data, 
                     id: `prod_${Math.random().toString(36).substr(2, 9)}`,
                     userId: user.uid, 
-                    category: userProfile?.category || data.category 
+                    category: data.category || userProfile?.category,
                 };
                 products.push(newProduct);
                 toast({
@@ -464,3 +464,5 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
