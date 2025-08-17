@@ -2,8 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, deleteDoc, doc, query, orderBy, addDoc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -64,40 +62,35 @@ export default function DashboardPage() {
     const { user } = useAuth();
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchProducts = () => {
             if (!user) {
                 setLoading(false);
                 return;
             };
             setLoading(true);
             try {
-                const productsCollection = collection(db, 'products');
-                const q = query(productsCollection, orderBy('name'));
-                const productSnapshot = await getDocs(q);
+                const storedProductsRaw = localStorage.getItem('products');
+                let allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
                 
-                if (productSnapshot.empty) {
-                    // Seed the database if it's empty
-                    for (const prod of sampleProducts) {
-                        await addDoc(productsCollection, { ...prod, userId: user.uid });
-                    }
-                    // Refetch after seeding
-                    const newSnapshot = await getDocs(q);
-                    const productList = newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-                    setProducts(productList);
-                } else {
-                    const productList = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-                    setProducts(productList);
+                if (allProducts.length === 0) {
+                    // Seed local storage if it's empty
+                    const productsToSeed = sampleProducts.map(prod => ({
+                        ...prod,
+                        id: `prod_${Math.random().toString(36).substr(2, 9)}`,
+                        userId: user.uid,
+                    }));
+                    localStorage.setItem('products', JSON.stringify(productsToSeed));
+                    allProducts = productsToSeed;
                 }
+                
+                const userProducts = allProducts.filter((p: Product) => p.userId === user.uid);
+                setProducts(userProducts);
 
             } catch (error: any) {
-                console.error("Error fetching products:", error);
-                let description = "Could not fetch products from the database.";
-                if (error.code === 'permission-denied' || error.code === 'unauthenticated') {
-                    description = "You do not have permission to view products. Please check your Firestore security rules."
-                }
+                console.error("Error fetching products from localStorage:", error);
                 toast({
                     title: "Error",
-                    description: description,
+                    description: "Could not fetch products from local storage.",
                     variant: "destructive",
                 });
             } finally {
@@ -110,21 +103,21 @@ export default function DashboardPage() {
 
     const handleDelete = async (productId: string, productName: string) => {
         try {
-            await deleteDoc(doc(db, "products", productId));
+            const storedProductsRaw = localStorage.getItem('products');
+            let allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+            const updatedProducts = allProducts.filter((p: Product) => p.id !== productId);
+            localStorage.setItem('products', JSON.stringify(updatedProducts));
+            
             setProducts(products.filter(p => p.id !== productId));
             toast({
                 title: "Product Deleted",
                 description: `"${productName}" has been removed.`,
             });
         } catch (error: any) {
-            console.error("Error deleting product: ", error);
-            let description = "Could not delete the product.";
-            if (error.code === 'permission-denied') {
-                description = "You do not have permission to delete this product. Please check your Firestore security rules.";
-            }
+            console.error("Error deleting product from localStorage: ", error);
             toast({
                 title: "Error",
-                description: description,
+                description: "Could not delete the product.",
                 variant: "destructive",
             });
         }

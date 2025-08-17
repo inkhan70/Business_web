@@ -3,8 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +23,17 @@ interface Category {
     order: number;
 }
 
+const defaultCategories: Category[] = [
+    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
+    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
+    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
+    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
+    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
+    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
+    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
+    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
+];
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
@@ -32,25 +41,23 @@ export default function CategoriesPage() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchCategories = () => {
         setLoading(true);
         try {
-            const categoriesCollection = collection(db, 'categories');
-            const q = query(categoriesCollection, orderBy('order'));
-            const categorySnapshot = await getDocs(q);
-
-            const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-            setCategories(categoriesList);
-
-        } catch(error: any) {
-            console.error("Error fetching categories:", error);
-            let description = t('toast.error_db_connect_desc');
-            if (error.code === 'permission-denied') {
-                description = "You do not have permission to view categories. Please check your Firestore security rules. The database might also be empty and requires an admin to seed it.";
+            const storedCategoriesRaw = localStorage.getItem('categories');
+            if (storedCategoriesRaw) {
+                const storedCategories = JSON.parse(storedCategoriesRaw);
+                setCategories(storedCategories.sort((a:Category, b:Category) => a.order - b.order));
+            } else {
+                // If nothing in localStorage, seed it with default data
+                localStorage.setItem('categories', JSON.stringify(defaultCategories));
+                setCategories(defaultCategories.sort((a,b) => a.order - b.order));
             }
+        } catch(error: any) {
+            console.error("Error loading categories from localStorage:", error);
             toast({
-                title: t('toast.error_db_connect'),
-                description: description,
+                title: "Error Loading Data",
+                description: "Could not load category data from your browser's storage.",
                 variant: "destructive",
             });
         } finally {
@@ -59,7 +66,7 @@ export default function CategoriesPage() {
     };
 
     fetchCategories();
-  }, [toast, t]);
+  }, [toast]);
 
   return (
     <>

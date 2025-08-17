@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -30,9 +29,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { ArrowLeft, Upload, Loader2, Trash2, Library } from 'lucide-react';
-import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, addDoc, updateDoc, collection } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
+import { storage } from '@/lib/firebase';
+import { ref, listAll, getDownloadURL } from "firebase/storage";
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -40,6 +38,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, UserProfile } from '@/contexts/AuthContext';
 
 const productFormSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(2, "Product name must be at least 2 characters."),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "Price must be a positive number."),
@@ -95,23 +94,25 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }, [userProfile, form]);
 
     useEffect(() => {
-        const fetchProduct = async () => {
+        const fetchProduct = () => {
             if (editId) {
-                const docRef = doc(db, "products", editId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const productData = docSnap.data() as ProductFormValues;
-                    form.reset(productData);
-                    if (productData.image) {
-                        setImagePreview(productData.image);
+                const storedProductsRaw = localStorage.getItem('products');
+                if (storedProductsRaw) {
+                    const products = JSON.parse(storedProductsRaw);
+                    const productData = products.find((p: ProductFormValues) => p.id === editId);
+                    if (productData) {
+                        form.reset(productData);
+                        if (productData.image) {
+                            setImagePreview(productData.image);
+                        }
+                    } else {
+                         toast({
+                            title: "Error",
+                            description: "Product not found in local storage.",
+                            variant: "destructive",
+                        });
+                        router.push('/dashboard');
                     }
-                } else {
-                    toast({
-                        title: "Error",
-                        description: "Product not found.",
-                        variant: "destructive",
-                    });
-                    router.push('/dashboard');
                 }
             }
         };
@@ -169,7 +170,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             reader.onloadend = () => {
                 const dataUrl = reader.result as string;
                 setImagePreview(dataUrl);
-                form.setValue("image", dataUrl);
+                form.setValue("image", dataUrl, { shouldValidate: true });
                 setIsUploading(false);
                 toast({
                     title: "Image Ready",
@@ -206,32 +207,39 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
 
         try {
-            const productData = { ...data, userId: user.uid, category: userProfile?.category || data.category };
+            const storedProductsRaw = localStorage.getItem('products');
+            let products = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+
             if (editId) {
-                const productRef = doc(db, "products", editId);
-                await updateDoc(productRef, productData);
-                 toast({
-                    title: "Product Updated",
-                    description: `The product "${data.name}" has been successfully saved.`,
-                });
+                const productIndex = products.findIndex((p: ProductFormValues) => p.id === editId);
+                if (productIndex > -1) {
+                    products[productIndex] = { ...products[productIndex], ...data };
+                    toast({
+                        title: "Product Updated",
+                        description: `The product "${data.name}" has been successfully saved.`,
+                    });
+                }
             } else {
-                await addDoc(collection(db, "products"), productData);
-                 toast({
+                const newProduct = { 
+                    ...data, 
+                    id: `prod_${Math.random().toString(36).substr(2, 9)}`,
+                    userId: user.uid, 
+                    category: userProfile?.category || data.category 
+                };
+                products.push(newProduct);
+                toast({
                     title: "Product Created",
                     description: `The product "${data.name}" has been successfully added.`,
                 });
             }
+            localStorage.setItem('products', JSON.stringify(products));
             router.push('/dashboard');
             router.refresh();
         } catch (error: any) {
-            console.error("Error saving product: ", error);
-            let description = "Could not save the product. Please try again.";
-            if (error.code === 'permission-denied') {
-                description = "Permission denied. Your role may not be allowed to create products in this category. Please check your security rules.";
-            }
+            console.error("Error saving product to localStorage: ", error);
             toast({
                 title: "Error",
-                description: description,
+                description: "Could not save the product. Please try again.",
                 variant: "destructive",
             });
         }
@@ -378,7 +386,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                             </div>
                                         ) : (
                                             <>
-                                                <Image src={imagePreview} alt="Product preview" fill className="object-cover rounded-md" />
+                                                <Image src={imagePreview} alt="Product preview" layout="fill" className="object-cover rounded-md" />
                                                  <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={removeImage}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -456,7 +464,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    
-
-    

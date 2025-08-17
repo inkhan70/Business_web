@@ -3,8 +3,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 
 export interface UserProfile {
@@ -17,6 +16,7 @@ export interface UserProfile {
     city: string;
     state: string;
     createdAt: Date;
+    isAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -40,14 +40,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // Fetch user profile from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
+        // Fetch user profile from localStorage
+        const storedUsersRaw = localStorage.getItem('users');
+        if (storedUsersRaw) {
+          const storedUsers = JSON.parse(storedUsersRaw);
+          const profile = storedUsers.find((p: UserProfile) => p.uid === user.uid);
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            console.log("No such user profile in localStorage!");
+            setUserProfile(null);
+          }
         } else {
-          console.log("No such user profile!");
-          setUserProfile(null);
+            setUserProfile(null);
         }
       } else {
         setUserProfile(null);
@@ -80,5 +85,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    

@@ -24,8 +24,6 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, UserProfile } from "@/contexts/AuthContext";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Location } from "@/components/Location";
@@ -69,21 +67,36 @@ export default function SettingsPage() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (!user) {
+        if (!user || !userProfile) {
             toast({ title: "Not Authenticated", description: "You must be logged in to update your profile.", variant: "destructive" });
             return;
         }
 
         setIsLoading(true);
         try {
-            const userDocRef = doc(db, 'users', user.uid);
-            await updateDoc(userDocRef, data);
-            toast({
-                title: "Profile Updated",
-                description: "Your business information has been successfully updated.",
-            });
+            const storedUsersRaw = localStorage.getItem('users');
+            let users = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+            const userIndex = users.findIndex((p: UserProfile) => p.uid === user.uid);
+
+            if (userIndex > -1) {
+                users[userIndex] = { ...users[userIndex], ...data };
+                localStorage.setItem('users', JSON.stringify(users));
+                 toast({
+                    title: "Profile Updated",
+                    description: "Your business information has been successfully updated in local storage.",
+                });
+                // Optional: Force a reload of the auth context to reflect changes everywhere
+                 window.location.reload();
+            } else {
+                 toast({
+                    title: "Update Failed",
+                    description: "Could not find your profile in local storage.",
+                    variant: "destructive",
+                });
+            }
+           
         } catch (error) {
-            console.error("Error updating profile: ", error);
+            console.error("Error updating profile in localStorage: ", error);
             toast({
                 title: "Update Failed",
                 description: "There was a problem saving your changes. Please try again.",

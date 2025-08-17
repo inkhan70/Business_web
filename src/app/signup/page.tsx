@@ -6,9 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
-import { doc, setDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -55,24 +54,28 @@ export default function SignUpPage() {
     const [categories, setCategories] = useState<Category[]>([]);
 
     useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const categoriesCollection = collection(db, 'categories');
-                const q = query(categoriesCollection, orderBy('name'));
-                const categorySnapshot = await getDocs(q);
-                const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name as string }));
-                setCategories(categoriesList);
-            } catch (error) {
-                console.error("Error fetching categories for signup form:", error);
-                toast({
-                    title: "Could not load categories",
-                    description: "There was a problem fetching the list of business categories.",
-                    variant: "destructive"
-                });
+        const fetchCategories = () => {
+            const storedCategoriesRaw = localStorage.getItem('categories');
+            if (storedCategoriesRaw) {
+                setCategories(JSON.parse(storedCategoriesRaw));
+            } else {
+                 // Fallback if no categories are in local storage
+                const defaultCategories = [
+                    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
+                    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
+                    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
+                    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
+                    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
+                    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
+                    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
+                    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
+                ];
+                localStorage.setItem('categories', JSON.stringify(defaultCategories));
+                setCategories(defaultCategories);
             }
         };
         fetchCategories();
-    }, [toast]);
+    }, []);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -92,12 +95,13 @@ export default function SignUpPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
-            // Add business name to user's profile
             await updateProfile(user, { displayName: values.businessName });
 
-            // Save business info to Firestore
-            const userDocRef = doc(db, 'users', user.uid);
-            await setDoc(userDocRef, {
+            // Save business info to localStorage
+            const storedUsersRaw = localStorage.getItem('users');
+            const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+            
+            const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
                 businessName: values.businessName,
@@ -106,8 +110,11 @@ export default function SignUpPage() {
                 address: values.address,
                 city: values.city,
                 state: values.state,
-                createdAt: new Date(),
-            });
+                createdAt: new Date().toISOString(),
+            };
+
+            users.push(newUserProfile);
+            localStorage.setItem('users', JSON.stringify(users));
 
             await sendEmailVerification(user);
 
