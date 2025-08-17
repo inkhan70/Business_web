@@ -4,33 +4,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, PlusCircle, Trash2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
@@ -63,13 +39,9 @@ interface Category {
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategoryName, setNewCategoryName] = useState("");
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
-
-  // In a real app, this would be derived from the user's auth state/role
-  const isAdmin = true; 
 
   // Fetch categories from Firestore
   useEffect(() => {
@@ -79,8 +51,11 @@ export default function CategoriesPage() {
             const q = query(categoriesCollection, orderBy('order'));
             const categorySnapshot = await getDocs(q);
 
-            if (categorySnapshot.empty && isAdmin) {
-                // If no categories, seed the database with initial data ONLY if user is admin
+            if (categorySnapshot.empty) {
+                // If no categories, seed the database with initial data.
+                // This is a one-time operation for an empty database.
+                // Your security rules should prevent this from being run by non-admins.
+                // For now, we assume this is a trusted environment setup.
                 for (const cat of initialCategories) {
                     await addDoc(categoriesCollection, cat);
                 }
@@ -92,11 +67,15 @@ export default function CategoriesPage() {
                 const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
                 setCategories(categoriesList);
             }
-        } catch(error) {
+        } catch(error: any) {
             console.error("Error fetching categories:", error);
+            let description = t('toast.error_db_connect_desc');
+            if (error.code === 'permission-denied') {
+                description = "You do not have permission to view categories. Please check your Firestore security rules.";
+            }
             toast({
                 title: t('toast.error_db_connect'),
-                description: t('toast.error_db_connect_desc'),
+                description: description,
                 variant: "destructive",
             });
         } finally {
@@ -105,59 +84,7 @@ export default function CategoriesPage() {
     };
 
     fetchCategories();
-  }, [toast, t, isAdmin]);
-
-  const handleAddCategory = async () => {
-    if (newCategoryName.trim()) {
-      try {
-        const newCategory = {
-          name: newCategoryName,
-          icon: "MoreHorizontal", // Default icon
-          href: `/roles?category=${newCategoryName.toLowerCase().replace(/\s+/g, '-')}`,
-          order: categories.length > 0 ? Math.max(...categories.map(c => c.order)) + 1 : 1,
-        };
-        const docRef = await addDoc(collection(db, "categories"), newCategory);
-        setCategories([...categories, { ...newCategory, id: docRef.id }]);
-        setNewCategoryName("");
-        toast({
-          title: t('toast.category_added'),
-          description: `${t('toast.category_added_desc')} "${newCategoryName}"`,
-        });
-        document.getElementById('close-add-dialog')?.click();
-      } catch (error) {
-         toast({
-            title: t('toast.error_adding_category'),
-            description: t('toast.error_adding_category_desc'),
-            variant: "destructive"
-        })
-        console.error("Error adding document: ", error);
-      }
-    } else {
-        toast({
-            title: t('toast.error_empty_name'),
-            description: t('toast.error_empty_name_desc'),
-            variant: "destructive"
-        })
-    }
-  };
-
-  const handleRemoveCategory = async (categoryId: string, categoryName: string) => {
-    try {
-        await deleteDoc(doc(db, "categories", categoryId));
-        setCategories(categories.filter(c => c.id !== categoryId));
-        toast({
-            title: t('toast.category_removed'),
-            description: `${t('toast.category_removed_desc')} "${categoryName}"`,
-        });
-    } catch (error) {
-        toast({
-            title: t('toast.error_removing_category'),
-            description: t('toast.error_removing_category_desc'),
-            variant: "destructive"
-        })
-        console.error("Error removing document: ", error);
-    }
-  }
+  }, [toast, t]);
 
   return (
     <>
@@ -175,54 +102,10 @@ export default function CategoriesPage() {
 
       <ProductSearch />
       
-      {isAdmin && (
-        <div className="flex justify-end space-x-2 mb-8 mt-8">
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        {t('categories.add_category')}
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('categories.add_new_category')}</DialogTitle>
-                        <DialogDescription>
-                            {t('categories.new_category_description')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                                {t('categories.name_label')}
-                            </Label>
-                            <Input
-                                id="name"
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                className="col-span-3"
-                                placeholder={t('categories.name_placeholder')}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary" id="close-add-dialog">
-                                {t('categories.cancel')}
-                            </Button>
-                        </DialogClose>
-                        <Button type="button" onClick={handleAddCategory}>{t('categories.add_button')}</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
-      )}
-      
-
         {loading ? (
-            <p className="text-center">{t('categories.loading')}</p>
+            <p className="text-center mt-12">{t('categories.loading')}</p>
         ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-12">
                 {categories.map((category) => {
                     const IconComponent = iconMap[category.icon] || MoreHorizontal;
                     return (
@@ -235,34 +118,6 @@ export default function CategoriesPage() {
                                 </CardContent>
                                 </Card>
                             </Link>
-                            {isAdmin && (
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>{t('categories.are_you_sure')}</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            {t('categories.delete_description')}
-                                            <span className="font-bold"> {category.name} </span> 
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>{t('categories.cancel')}</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleRemoveCategory(category.id, category.name)}>
-                                            {t('categories.continue')}
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            )}
                         </div>
                     )
                 })}
@@ -272,5 +127,3 @@ export default function CategoriesPage() {
     </>
   );
 }
-
-    
