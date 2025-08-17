@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -182,7 +183,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             if (editId) {
                 const productIndex = products.findIndex((p: ProductFormValues) => p.id === editId);
                 if (productIndex > -1) {
-                    products[productIndex] = { ...products[productIndex], ...data };
+                    products[productIndex] = { ...products[productIndex], ...data, category: userProfile?.category || data.category };
                     toast({
                         title: "Product Updated",
                         description: `The product "${data.name}" has been successfully saved.`,
@@ -193,7 +194,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     ...data, 
                     id: `prod_${Math.random().toString(36).substr(2, 9)}`,
                     userId: user.uid, 
-                    category: data.category || userProfile?.category,
+                    category: userProfile?.category,
                 };
                 products.push(newProduct);
                 toast({
@@ -366,8 +367,11 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                         </CardContent>
                                                     </Card>
                                                     <Label htmlFor={`image-upload-${index}`} className='w-full'>
-                                                        <Button type="button" variant="outline" size="sm" className="w-full" asChild>
-                                                            <span><Upload className="mr-2 h-4 w-4" /> Upload</span>
+                                                         <Button type="button" variant="outline" size="sm" className="w-full" asChild>
+                                                            <span>
+                                                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                                                {isUploading ? "Uploading..." : "Upload New Image"}
+                                                            </span>
                                                         </Button>
                                                         <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
                                                     </Label>
@@ -430,3 +434,5 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
