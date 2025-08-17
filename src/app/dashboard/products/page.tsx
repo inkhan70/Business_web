@@ -152,7 +152,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
     }, [isLibraryOpen, toast]);
     
-    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.size > 10 * 1024 * 1024) { // 10MB limit
@@ -163,30 +163,28 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 });
                 return;
             }
+            
             setIsUploading(true);
-            try {
-                const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-                await uploadBytes(storageRef, file);
-                const imageUrl = await getDownloadURL(storageRef);
-                
-                setImagePreview(imageUrl);
-                form.setValue("image", imageUrl);
-                
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                setImagePreview(dataUrl);
+                form.setValue("image", dataUrl);
+                setIsUploading(false);
                 toast({
-                    title: "Image Uploaded",
-                    description: "Your image is ready to be saved with the product.",
+                    title: "Image Ready",
+                    description: "Image preview is ready to be saved with the product.",
                 });
-            } catch (error) {
-                 toast({
-                    title: "Upload Failed",
-                    description: "There was an issue uploading your image.",
+            };
+            reader.onerror = () => {
+                setIsUploading(false);
+                toast({
+                    title: "Read Error",
+                    description: "Could not read the selected image file.",
                     variant: "destructive"
                 });
-            } finally {
-                setIsUploading(false);
-                const fileInput = document.getElementById('image-upload') as HTMLInputElement;
-                if(fileInput) fileInput.value = "";
             }
+            reader.readAsDataURL(file);
         }
     };
     
@@ -393,7 +391,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                          <Button type="button" variant="outline" className="w-full" asChild>
                                             <span>
                                                 {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                                {isUploading ? "Uploading..." : "Upload New Image"}
+                                                {isUploading ? "Reading..." : "Upload New Image"}
                                             </span>
                                         </Button>
                                         <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" disabled={isUploading || isSubmitting}/>
@@ -458,5 +456,7 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
 
     
