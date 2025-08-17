@@ -57,19 +57,22 @@ function BusinessesContent() {
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
 
-  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   
   useEffect(() => {
-    // Immediately display businesses
+    // Immediately display businesses from placeholder data
     const initialBusinesses = businessData[role] || businessData.shopkeepers;
-    setBusinesses(initialBusinesses);
+    setAllBusinesses(initialBusinesses);
+    setFilteredBusinesses(initialBusinesses);
 
     // Then, try to get location and re-sort
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setBusinesses(currentBusinesses => 
+          setAllBusinesses(currentBusinesses => 
             [...currentBusinesses] // Create a new array to trigger re-render
               .map(biz => ({
                 ...biz,
@@ -88,6 +91,14 @@ function BusinessesContent() {
     }
   }, [role]);
 
+  useEffect(() => {
+    const results = allBusinesses.filter(biz =>
+        biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        biz.address.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredBusinesses(results);
+  }, [searchTerm, allBusinesses]);
+
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
@@ -101,14 +112,16 @@ function BusinessesContent() {
          <div className="relative mt-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-            type="search"
-            placeholder={t('businesses.search_placeholder')}
-            className="pl-9 w-full md:w-1/2 lg:w-1/3"
+              type="search"
+              placeholder={t('businesses.search_placeholder')}
+              className="pl-9 w-full md:w-1/2 lg:w-1/3"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {businesses.map((biz) => (
+        {filteredBusinesses.map((biz) => (
           <Card key={biz.id} className="flex flex-col">
             <CardHeader className="p-0">
               <Image src={biz.image} alt={biz.name} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint} />
