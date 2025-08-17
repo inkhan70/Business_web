@@ -64,6 +64,16 @@ interface ImageAsset {
     alt: string;
 }
 
+interface ProductForLibrary {
+    id: string;
+    name: string;
+    category: string;
+    varieties: {
+        image?: string;
+        name: string;
+    }[];
+}
+
 function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -82,7 +92,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             description: "",
             status: "Active",
             inventory: 0,
-            category: userProfile?.category || "",
+            category: "",
             varieties: [{ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' }],
         },
         mode: "onChange",
@@ -123,6 +133,28 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         };
         fetchProduct();
     }, [editId, form, router, toast]);
+
+    useEffect(() => {
+        // Load image library for the user's category
+        if (userProfile) {
+            const storedProductsRaw = localStorage.getItem('products');
+            const allProducts: ProductForLibrary[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+            const categoryProducts = allProducts.filter(p => p.category === userProfile.category);
+            const uniqueImages = new Map<string, ImageAsset>();
+            categoryProducts.forEach(product => {
+                product.varieties?.forEach(variety => {
+                    if (variety.image && !uniqueImages.has(variety.image)) {
+                        uniqueImages.set(variety.image, {
+                            id: variety.image,
+                            src: variety.image,
+                            alt: variety.name || product.name,
+                        });
+                    }
+                });
+            });
+            setImageLibrary(Array.from(uniqueImages.values()));
+        }
+    }, [userProfile]);
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
@@ -171,7 +203,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }
 
     async function onSubmit(data: ProductFormValues) {
-        if (!user) {
+        if (!user || !userProfile) {
             toast({ title: "Not Authenticated", description: "You must be logged in.", variant: "destructive" });
             return;
         }
@@ -194,7 +226,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     ...data, 
                     id: `prod_${Math.random().toString(36).substr(2, 9)}`,
                     userId: user.uid, 
-                    category: userProfile?.category,
+                    category: userProfile.category,
                 };
                 products.push(newProduct);
                 toast({
@@ -247,7 +279,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                     <FormItem>
                                     <FormLabel>Category</FormLabel>
                                     <FormControl>
-                                        <Input readOnly disabled value={userProfile?.category || 'N/A'} />
+                                        <Input readOnly disabled {...field} value={userProfile?.category || 'N/A'} />
                                     </FormControl>
                                      <FormDescription>
                                         This is your primary business category set during sign-up.
@@ -366,15 +398,39 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                             )}
                                                         </CardContent>
                                                     </Card>
-                                                    <Label htmlFor={`image-upload-${index}`} className='w-full'>
-                                                         <Button type="button" variant="outline" size="sm" className="w-full" asChild>
-                                                            <span>
-                                                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                                                {isUploading ? "Uploading..." : "Upload New Image"}
-                                                            </span>
-                                                        </Button>
-                                                        <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
-                                                    </Label>
+                                                    <div className='grid grid-cols-2 gap-2 w-full'>
+                                                        <Label htmlFor={`image-upload-${index}`} className='w-full'>
+                                                            <Button type="button" variant="outline" size="sm" className="w-full" asChild>
+                                                                <span>
+                                                                    <Upload className="mr-2 h-4 w-4" /> Upload
+                                                                </span>
+                                                            </Button>
+                                                            <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
+                                                        </Label>
+                                                          <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
+                                                            <DialogTrigger asChild>
+                                                                <Button type="button" variant="outline" size="sm" className="w-full">
+                                                                    <Library className="mr-2 h-4 w-4" /> Library
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-4xl">
+                                                                <DialogHeader>
+                                                                <DialogTitle>Browse Image Library ({userProfile?.category})</DialogTitle>
+                                                                </DialogHeader>
+                                                                <ScrollArea className="h-[60vh]">
+                                                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+                                                                        {imageLibrary.length > 0 ? imageLibrary.map(image => (
+                                                                            <Card key={image.id} className="cursor-pointer hover:border-primary" onClick={() => selectImageFromLibrary(image)}>
+                                                                                <CardContent className="p-0">
+                                                                                    <Image src={image.src} alt={image.alt} width={200} height={200} className="aspect-square object-cover rounded-md" />
+                                                                                </CardContent>
+                                                                            </Card>
+                                                                        )) : <p>No images found for your category.</p>}
+                                                                    </div>
+                                                                </ScrollArea>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </CardContent>

@@ -8,101 +8,82 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { PlusCircle, Download, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { storage } from '@/lib/firebase';
-import { ref, listAll, getDownloadURL, deleteObject } from 'firebase/storage';
+import { useAuth, UserProfile } from "@/contexts/AuthContext";
 
 interface ImageAsset {
-    id: string;
+    id: string; // Using data URL as ID for simplicity
     src: string;
     alt: string;
+    category?: string;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    category: string;
+    varieties: {
+        image?: string;
+        name: string;
+    }[];
 }
 
 export default function ProductImagesPage() {
     const { toast } = useToast();
+    const { userProfile } = useAuth();
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userCategory, setUserCategory] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchImages = async () => {
-            setLoading(true);
-            try {
-                const capturesRef = ref(storage, 'captures');
-                const productsRef = ref(storage, 'products');
+        if (!userProfile) {
+            setLoading(false);
+            return;
+        }
 
-                const [capturesList, productsList] = await Promise.all([
-                    listAll(capturesRef),
-                    listAll(productsRef)
-                ]);
-
-                const allItems = [...capturesList.items, ...productsList.items];
-
-                const imagePromises = allItems.map(async (itemRef) => {
-                    const url = await getDownloadURL(itemRef);
-                    return {
-                        id: itemRef.name,
-                        src: url,
-                        alt: itemRef.name,
-                    };
-                });
-                
-                const images = await Promise.all(imagePromises);
-                setImageLibrary(images.reverse()); // Show newest first
-            } catch (error: any) {
-                console.error("Error fetching images: ", error);
-                let description = "Could not load images from storage.";
-                if (error.code === 'storage/unauthorized') {
-                    description = "You do not have permission to view images. Please check your storage security rules.";
-                } else if (error.code === 'storage/retry-limit-exceeded') {
-                    description = "Connection timed out. Please check your internet connection and try again. This can also be caused by incorrect Storage security rules.";
-                }
-                toast({
-                    title: "Error fetching images",
-                    description: description,
-                    variant: "destructive",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchImages();
-    }, [toast]);
-
-
-    const handleDelete = async (image: ImageAsset) => {
-        const confirmed = window.confirm(`Are you sure you want to delete the image "${image.alt}"?`);
-        if (!confirmed) return;
+        setLoading(true);
+        setUserCategory(userProfile.category);
 
         try {
-            // Determine folder by looking at the URL pattern, or add metadata upon upload
-            const folder = image.src.includes('captures') ? 'captures' : 'products';
-            const imageRef = ref(storage, `${folder}/${image.id}`);
-            
-            await deleteObject(imageRef);
+            const storedProductsRaw = localStorage.getItem('products');
+            const allProducts: Product[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
 
-            setImageLibrary(prev => prev.filter(img => img.id !== image.id));
-            toast({
-                title: "Image Deleted",
-                description: `Successfully removed "${image.alt}" from your library.`,
+            // Filter products that match the current user's category
+            const categoryProducts = allProducts.filter(p => p.category === userProfile.category);
+            
+            const uniqueImages = new Map<string, ImageAsset>();
+
+            categoryProducts.forEach(product => {
+                product.varieties?.forEach(variety => {
+                    if (variety.image && !uniqueImages.has(variety.image)) {
+                        uniqueImages.set(variety.image, {
+                            id: variety.image, // Use the data URL itself as a unique ID
+                            src: variety.image,
+                            alt: variety.name || product.name,
+                            category: product.category,
+                        });
+                    }
+                });
             });
-        } catch (error: any) {
-             console.error("Error deleting image: ", error);
-             let description = "Could not delete the image from storage.";
-             if (error.code === 'storage/unauthorized') {
-                description = "You do not have permission to delete this image. Please check your storage security rules.";
-             }
-             toast({
-                title: "Error deleting image",
-                description: description,
+
+            setImageLibrary(Array.from(uniqueImages.values()).reverse()); // Newest likely to be last, so reverse
+
+        } catch (error) {
+            console.error("Error fetching images from localStorage:", error);
+            toast({
+                title: "Error loading images",
+                description: "Could not load images from local storage.",
                 variant: "destructive",
             });
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [toast, userProfile]);
+
     
     const handleDownload = (src: string) => {
         const link = document.createElement('a');
         link.href = src;
-        link.download = 'image';
+        link.download = 'image.png';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -113,8 +94,12 @@ export default function ProductImagesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold font-headline">Product Image Library</h1>
-          <p className="text-muted-foreground">Manage images for your products and business listings.</p>
+          <h1 className="text-2xl font-bold font-headline">Image Library</h1>
+          {userCategory ? (
+             <p className="text-muted-foreground">Showing shared images for the <span className="font-semibold text-primary">{userCategory}</span> category.</p>
+          ) : (
+            <p className="text-muted-foreground">Manage images for your products and business listings.</p>
+          )}
         </div>
         <Button asChild>
             <Link href="/dashboard/products">
@@ -145,9 +130,6 @@ export default function ProductImagesPage() {
                             <Button variant="outline" size="sm" onClick={() => handleDownload(image.src)}>
                                 <Download className="mr-2 h-4 w-4" /> Download
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDelete(image)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
                         </div>
                         </CardFooter>
                     </Card>
@@ -156,11 +138,11 @@ export default function ProductImagesPage() {
                     <Card className="col-span-full bg-secondary/50 border-dashed">
                         <CardContent className="p-12 flex flex-col items-center justify-center text-center">
                             <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4"/>
-                            <h3 className="text-xl font-semibold">No Images Available</h3>
-                            <p className="text-muted-foreground mt-2">Your image library is empty. Upload images via the product form or capture them on the camera page.</p>
+                            <h3 className="text-xl font-semibold">No Images Available for Your Category</h3>
+                            <p className="text-muted-foreground mt-2">Your shared image library is empty. Upload images via the product form to share them with others in your category.</p>
                              <Button asChild className="mt-4">
-                                <Link href="/dashboard/camera">
-                                <PlusCircle className="mr-2 h-4 w-4" /> Go to Camera Page
+                                <Link href="/dashboard/products">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add a Product
                                 </Link>
                             </Button>
                         </CardContent>
