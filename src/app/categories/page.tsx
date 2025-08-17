@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -12,18 +12,6 @@ import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductSearch } from '@/components/ProductSearch';
-
-const initialCategories = [
-  { name: 'Food', icon: 'UtensilsCrossed', href: '/roles?category=food', order: 1 },
-  { name: 'Drinks', icon: 'GlassWater', href: '/roles?category=drinks', order: 2 },
-  { name: 'Electronics', icon: 'Laptop', href: '/roles?category=electronics', order: 3 },
-  { name: 'Medicine', icon: 'Pill', href: '/roles?category=medicine', order: 4 },
-  { name: 'Shoes', icon: 'Footprints', href: '/roles?category=shoes', order: 5 },
-  { name: 'Fabrics', icon: 'Scissors', href: '/roles?category=fabrics', order: 6 },
-  { name: 'Jewelry', icon: 'Gem', href: '/roles?category=jewelry', order: 7 },
-  { name: 'Hardware', icon: 'Building', href: '/roles?category=hardware', order: 8 },
-  { name: 'Other', icon: 'MoreHorizontal', href: '/roles?category=other', order: 9 },
-];
 
 const iconMap: { [key: string]: React.ElementType } = {
     UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal
@@ -43,35 +31,22 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
 
-  // Fetch categories from Firestore
   useEffect(() => {
     const fetchCategories = async () => {
+        setLoading(true);
         try {
             const categoriesCollection = collection(db, 'categories');
             const q = query(categoriesCollection, orderBy('order'));
             const categorySnapshot = await getDocs(q);
 
-            if (categorySnapshot.empty) {
-                // If no categories, seed the database with initial data.
-                // This is a one-time operation for an empty database.
-                // Your security rules should prevent this from being run by non-admins.
-                // For now, we assume this is a trusted environment setup.
-                for (const cat of initialCategories) {
-                    await addDoc(categoriesCollection, cat);
-                }
-                // Refetch after seeding
-                const newSnapshot = await getDocs(q);
-                const categoriesList = newSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-                setCategories(categoriesList);
-            } else {
-                const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
-                setCategories(categoriesList);
-            }
+            const categoriesList = categorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+            setCategories(categoriesList);
+
         } catch(error: any) {
             console.error("Error fetching categories:", error);
             let description = t('toast.error_db_connect_desc');
             if (error.code === 'permission-denied') {
-                description = "You do not have permission to view categories. Please check your Firestore security rules.";
+                description = "You do not have permission to view categories. Please check your Firestore security rules. The database might also be empty and requires an admin to seed it.";
             }
             toast({
                 title: t('toast.error_db_connect'),
@@ -104,6 +79,11 @@ export default function CategoriesPage() {
       
         {loading ? (
             <p className="text-center mt-12">{t('categories.loading')}</p>
+        ) : categories.length === 0 ? (
+             <div className="text-center text-muted-foreground py-12">
+                <p className="font-semibold">No categories found.</p>
+                <p>It looks like the category list is empty. An administrator needs to add categories.</p>
+            </div>
         ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-12">
                 {categories.map((category) => {
