@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -391,15 +392,15 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                     <Label htmlFor='image-upload' className='w-full'>
                                          <Button type="button" variant="outline" className="w-full" asChild>
                                             <span>
-                                                <Upload className="mr-2 h-4 w-4" />
-                                                Upload New Image
+                                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                                {isUploading ? "Uploading..." : "Upload New Image"}
                                             </span>
                                         </Button>
                                         <Input id="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" disabled={isUploading || isSubmitting}/>
                                     </Label>
                                      <Dialog open={isLibraryOpen} onOpenChange={setIsLibraryOpen}>
                                         <DialogTrigger asChild>
-                                            <Button type="button" variant="outline" className="w-full">
+                                            <Button type="button" variant="outline" className="w-full" disabled={isUploading || isSubmitting}>
                                                 <Library className="mr-2 h-4 w-4" />
                                                 Select from Library
                                             </Button>
