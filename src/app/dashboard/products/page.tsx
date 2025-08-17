@@ -47,7 +47,7 @@ const productFormSchema = z.object({
   category: z.string().min(1, "Category is required."),
   image: z.string().optional(),
   dataAiHint: z.string().optional(),
-  userId: z.string().optional(), // Add userId to the schema
+  userId: z.string().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -350,7 +350,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                             <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select product status" />
-                                            </SelectTrigger>
+                                            </Trigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="Active">Active</SelectItem>
