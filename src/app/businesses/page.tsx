@@ -57,12 +57,12 @@ function BusinessesContent() {
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
   
   const [initialBusinesses, setInitialBusinesses] = useState<Business[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
-  const [searchResults, setSearchResults] = useState<Business[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasSearched, setHasSearched] = useState(!!searchParams.get('q'));
 
   // Effect for fetching and sorting initial business list by category and location
   useEffect(() => {
@@ -108,24 +108,23 @@ function BusinessesContent() {
 
   // Effect for performing search when initial data or search term changes
   useEffect(() => {
-    if (searchTerm.trim()) {
-      setIsSearching(true);
-      setHasSearched(true);
-      // Simulate API delay
-      const searchTimeout = setTimeout(() => {
+    setIsSearching(true);
+    // Simulate API delay
+    const searchTimeout = setTimeout(() => {
+      if (searchTerm.trim()) {
         const results = initialBusinesses.filter(biz =>
           biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           biz.address.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        setSearchResults(results);
-        setIsSearching(false);
-      }, 300);
-      return () => clearTimeout(searchTimeout);
-    } else {
-      setSearchResults([]);
-      setHasSearched(false);
+        setFilteredBusinesses(results);
+        setHasSearched(true);
+      } else {
+        setFilteredBusinesses(initialBusinesses);
+        setHasSearched(false);
+      }
       setIsSearching(false);
-    }
+    }, 300);
+    return () => clearTimeout(searchTimeout);
   }, [searchTerm, initialBusinesses]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,12 +133,12 @@ function BusinessesContent() {
   
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Search is now handled by the useEffect hook above
+    // Search is handled by the useEffect hook
   };
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
-  const businessesToDisplay = hasSearched ? searchResults : initialBusinesses;
+  const businessesToDisplay = hasSearched ? filteredBusinesses : initialBusinesses;
 
   if (loading) {
     return (
@@ -149,31 +148,18 @@ function BusinessesContent() {
         </div>
     )
   }
+  
+  const renderContent = () => {
+    if (isSearching) {
+        return (
+            <div className="text-center py-16 bg-muted/50 rounded-lg">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+            </div>
+        );
+    }
 
-  return (
-    <div className="container mx-auto px-4 py-12">
-        <form onSubmit={handleSearch} className="relative mb-8 w-full max-w-lg mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t('businesses.search_placeholder')}
-              className="pl-10 pr-20 text-base py-6"
-              value={searchTerm}
-              onChange={handleInputChange}
-            />
-            <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2" disabled={isSearching}>
-                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : t('product_search.search_button')}
-            </Button>
-        </form>
-
-      <div className="text-left mb-8">
-        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          {categoryTitle} {t('businesses.in_city')}
-        </h1>
-      </div>
-
-       {businessesToDisplay.length > 0 ? (
+    if (businessesToDisplay.length > 0) {
+        return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {businessesToDisplay.map((biz) => (
               <Card key={biz.id} className="flex flex-col">
@@ -202,24 +188,54 @@ function BusinessesContent() {
               </Card>
             ))}
           </div>
-       ) : (
-        <div className="text-center py-16 bg-muted/50 rounded-lg">
-            {hasSearched && !isSearching ? (
-                 <div className="no-results">
-                  {initialBusinesses.length > 0 
-                    ? <p>No matches found for "{searchTerm}".</p>
-                    : <p>No related data in storage for this category.</p>}
-                </div>
-            ) : isSearching ? (
-                <div className="flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin mr-3" />
-                    Searching...
-                </div>
-            ) : (
-                <p>There are no businesses available for the selected role and category.</p>
-            )}
-        </div>
-       )}
+        )
+    }
+
+    if (hasSearched) {
+        return (
+            <div className="text-center py-16 bg-muted/50 rounded-lg">
+                <h3 className="text-xl font-semibold">No Results Found</h3>
+                <p className="text-muted-foreground mt-2">Your search for "{searchTerm}" did not match any businesses.</p>
+            </div>
+        )
+    }
+
+    if (initialBusinesses.length === 0) {
+         return (
+            <div className="text-center py-16 bg-muted/50 rounded-lg">
+                <h3 className="text-xl font-semibold">No Businesses Available</h3>
+                <p className="text-muted-foreground mt-2">There are no businesses available for the selected role and category.</p>
+            </div>
+        )
+    }
+    
+    return null;
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-12">
+        <form onSubmit={handleSearch} className="relative mb-8 w-full max-w-lg mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder={t('businesses.search_placeholder')}
+              className="pl-10 pr-20 text-base py-6"
+              value={searchTerm}
+              onChange={handleInputChange}
+            />
+            <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2" disabled={isSearching}>
+                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : t('product_search.search_button')}
+            </Button>
+        </form>
+
+      <div className="text-left mb-8">
+        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
+        <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
+          {categoryTitle} {t('businesses.in_city')}
+        </h1>
+      </div>
+
+       {renderContent()}
 
       <Pagination className="mt-12">
         <PaginationContent>
@@ -251,3 +267,5 @@ export default function BusinessesPage() {
         </Suspense>
     )
 }
+
+    
