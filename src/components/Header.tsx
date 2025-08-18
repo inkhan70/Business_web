@@ -21,21 +21,12 @@ export function Header() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-
+  
   const handleSignOut = async () => {
       await signOut(auth);
       router.push('/');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/businesses?q=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
-    }
-  };
-  
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -50,21 +41,7 @@ export function Header() {
           </nav>
         </div>
         
-        <div className="flex flex-1 items-center justify-center md:justify-end space-x-2">
-           <div className="w-full flex-1 md:w-auto md:flex-none">
-             <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder={t('header.search_placeholder')}
-                    className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </form>
-           </div>
+        <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="hidden md:flex items-center space-x-2">
             <Cart />
             <DropdownMenu>
@@ -101,7 +78,7 @@ export function Header() {
           </nav>
         </div>
         
-        <div className="md:hidden flex items-center">
+        <div className="md:hidden flex items-center ml-auto">
             <Cart />
             <Sheet>
                 <SheetTrigger asChild>

@@ -12,18 +12,10 @@ import { ArrowRight, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ProductSearch } from '@/components/ProductSearch';
 
 export default function Home() {
   const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
-  const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/businesses?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   return (
     <>
@@ -41,7 +33,9 @@ export default function Home() {
                 {t('home.description')}
               </p>
               
-              <p className="max-w-xl text-sm text-muted-foreground mb-8">
+              <ProductSearch />
+
+              <p className="max-w-xl text-sm text-muted-foreground my-8">
                 {t('home.sub_description_1')}{' '}
                 <Link href="/signup" className="text-primary underline hover:opacity-80">
                   {t('home.sign_up')}
