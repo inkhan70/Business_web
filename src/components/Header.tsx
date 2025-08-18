@@ -2,9 +2,8 @@
 "use client";
 
 import Link from 'next/link';
-import { Search, Globe, Menu, LogOut, ShoppingCart } from 'lucide-react';
+import { Globe, Menu, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,13 +13,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { useCart } from '@/contexts/CartContext';
 import { Cart } from './Cart';
 
 export function Header() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const { user } = useAuth();
-  const { cart } = useCart();
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -42,17 +39,7 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder={t('header.search_placeholder')}
-                className="pl-9 w-full md:w-80"
-              />
-            </div>
-          </div>
+        <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="hidden md:flex items-center space-x-2">
             <Cart />
             <DropdownMenu>
