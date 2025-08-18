@@ -112,6 +112,7 @@ function BusinessesContent() {
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+  const hasSearched = searchTerm.length > 0;
 
   if(loading) {
     return (
@@ -174,9 +175,15 @@ function BusinessesContent() {
        ) : (
         <div className="text-center py-16">
           <p className="text-xl font-semibold">No businesses found</p>
-          <p className="text-muted-foreground mt-2">
-             {businesses.length === 0 ? "Storage not found or no businesses available for this category." : `Your search for "${searchTerm}" did not match any businesses.`}
-          </p>
+          {hasSearched ? (
+              <p className="text-muted-foreground mt-2">
+                  Your search for "{searchTerm}" did not match any businesses in this category.
+              </p>
+          ) : (
+              <p className="text-muted-foreground mt-2">
+                  There are no businesses available for the selected role and category.
+              </p>
+          )}
         </div>
        )}
       <Pagination className="mt-12">
