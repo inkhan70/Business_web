@@ -55,24 +55,26 @@ function BusinessesContent() {
   const { t } = useLanguage();
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
-  const initialSearchTerm = searchParams.get('q') || '';
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
-  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  
+  const [initialBusinesses, setInitialBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [searchResults, setSearchResults] = useState<Business[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
+  // Effect for fetching and sorting initial business list by category and location
   useEffect(() => {
+    setLoading(true);
     try {
-      // 1. Get all businesses for the selected ROLE
       const businessesForRole = businessData[role] || [];
       
-      // 2. Filter those businesses by the selected CATEGORY
       let businessesForCategory = businessesForRole;
       if (category !== 'all') {
           businessesForCategory = businessesForRole.filter(biz => biz.category.toLowerCase() === category.toLowerCase());
       }
       
-      // 3. Attempt to get location and re-sort by distance
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -80,72 +82,100 @@ function BusinessesContent() {
             const businessesWithDistance = businessesForCategory.map(biz => ({
               ...biz,
               distance: getDistance(latitude, longitude, biz.lat, biz.lon),
-            }));
+            })).filter(biz => biz.distance <= 100);
+            
             const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-            setBusinesses(sortedByDistance);
+            setInitialBusinesses(sortedByDistance);
+            setLoading(false);
           },
           (error) => {
             console.warn("Geolocation denied, showing default list.", error);
-            setBusinesses(businessesForCategory); // Fallback to category-filtered list
+            setInitialBusinesses(businessesForCategory);
+            setLoading(false);
           }
         );
       } else {
           console.warn("Geolocation not supported, showing default list.");
-          setBusinesses(businessesForCategory); // Fallback to category-filtered list
+          setInitialBusinesses(businessesForCategory);
+          setLoading(false);
       }
     } catch(e) {
         console.error("Storage not found or error loading data", e);
-        setBusinesses([]);
-    } finally {
+        setInitialBusinesses([]);
         setLoading(false);
     }
   }, [role, category]);
 
+  // Effect for performing search when initial data or search term changes
   useEffect(() => {
-    const results = businesses.filter(biz =>
-      (biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      biz.address.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (biz.distance === undefined || biz.distance <= 100) // Also filter by distance <= 100km
-    );
-    setFilteredBusinesses(results);
-  }, [searchTerm, businesses]);
+    if (searchTerm.trim()) {
+      setIsSearching(true);
+      setHasSearched(true);
+      // Simulate API delay
+      const searchTimeout = setTimeout(() => {
+        const results = initialBusinesses.filter(biz =>
+          biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          biz.address.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setSearchResults(results);
+        setIsSearching(false);
+      }, 300);
+      return () => clearTimeout(searchTimeout);
+    } else {
+      setSearchResults([]);
+      setHasSearched(false);
+      setIsSearching(false);
+    }
+  }, [searchTerm, initialBusinesses]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Search is now handled by the useEffect hook above
+  };
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
-  const hasSearched = searchTerm.length > 0;
+  const businessesToDisplay = hasSearched ? searchResults : initialBusinesses;
 
-  if(loading) {
+  if (loading) {
     return (
         <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="ml-4">Loading businesses...</p>
         </div>
     )
   }
 
   return (
     <div className="container mx-auto px-4 py-12">
-        <div className="relative mb-8 w-full max-w-lg mx-auto">
+        <form onSubmit={handleSearch} className="relative mb-8 w-full max-w-lg mx-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
               placeholder={t('businesses.search_placeholder')}
               className="pl-10 pr-20 text-base py-6"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleInputChange}
             />
-            <Button className="absolute right-2 top-1/2 -translate-y-1/2">
-                {t('product_search.search_button')}
+            <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2" disabled={isSearching}>
+                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : t('product_search.search_button')}
             </Button>
-        </div>
+        </form>
+
       <div className="text-left mb-8">
         <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
           {categoryTitle} {t('businesses.in_city')}
         </h1>
       </div>
-       {filteredBusinesses.length > 0 ? (
+
+       {businessesToDisplay.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredBusinesses.map((biz) => (
+            {businessesToDisplay.map((biz) => (
               <Card key={biz.id} className="flex flex-col">
                 <CardHeader className="p-0">
                   <Image src={biz.image} alt={biz.name} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint} />
@@ -173,19 +203,24 @@ function BusinessesContent() {
             ))}
           </div>
        ) : (
-        <div className="text-center py-16">
-          <p className="text-xl font-semibold">No businesses found</p>
-          {hasSearched ? (
-              <p className="text-muted-foreground mt-2">
-                  Your search for "{searchTerm}" did not match any businesses in this category.
-              </p>
-          ) : (
-              <p className="text-muted-foreground mt-2">
-                  There are no businesses available for the selected role and category.
-              </p>
-          )}
+        <div className="text-center py-16 bg-muted/50 rounded-lg">
+            {hasSearched && !isSearching ? (
+                 <div className="no-results">
+                  {initialBusinesses.length > 0 
+                    ? <p>No matches found for "{searchTerm}".</p>
+                    : <p>No related data in storage for this category.</p>}
+                </div>
+            ) : isSearching ? (
+                <div className="flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                    Searching...
+                </div>
+            ) : (
+                <p>There are no businesses available for the selected role and category.</p>
+            )}
         </div>
        )}
+
       <Pagination className="mt-12">
         <PaginationContent>
           <PaginationItem>
