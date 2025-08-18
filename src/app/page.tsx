@@ -24,7 +24,10 @@ export default function Home() {
       <div className="flex flex-col">
         <section className="relative container mx-auto px-4 py-20 md:py-32">
           <WallpaperManager />
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+
+          <ProductSearch />
+
+          <div className="grid md:grid-cols-2 gap-12 items-center mt-12">
             <div className="flex flex-col items-start text-left">
               <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter text-primary">
                 {t('home.title')}
@@ -33,8 +36,6 @@ export default function Home() {
                 {t('home.description')}
               </p>
               
-              <ProductSearch />
-
               <p className="max-w-xl text-sm text-muted-foreground my-8">
                 {t('home.sub_description_1')}{' '}
                 <Link href="/signup" className="text-primary underline hover:opacity-80">

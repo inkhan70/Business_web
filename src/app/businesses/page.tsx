@@ -123,12 +123,7 @@ function BusinessesContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="text-left mb-8">
-        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          {categoryTitle} {t('businesses.in_city')}
-        </h1>
-         <div className="relative mt-6">
+        <div className="relative mb-8">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -138,6 +133,11 @@ function BusinessesContent() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
         </div>
+      <div className="text-left mb-8">
+        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
+        <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
+          {categoryTitle} {t('businesses.in_city')}
+        </h1>
       </div>
        {filteredBusinesses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
