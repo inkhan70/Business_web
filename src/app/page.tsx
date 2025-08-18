@@ -1,17 +1,29 @@
 
 "use client";
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AdBanner } from '@/components/AdBanner';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ArrowRight, Search } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
   const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/businesses?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <>
@@ -25,12 +37,38 @@ export default function Home() {
               <h1 className="text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tighter text-primary">
                 {t('home.title')}
               </h1>
-              <p className="max-w-xl text-lg text-muted-foreground mb-8">
+              <p className="max-w-xl text-lg text-muted-foreground my-8">
                 {t('home.description')}
               </p>
-              <p className="max-w-xl text-lg text-muted-foreground mb-8">
-                {t('home.sub_description_1')} <Link href="/signup" className="text-primary underline hover:opacity-80">{t('home.sign_up')}</Link> {t('home.sub_description_2')}, {t('home.or')} <Link href="/signin" className="text-primary underline hover:opacity-80">{t('home.sign_in')}</Link> {t('home.sub_description_3')}.
+              
+              <form onSubmit={handleSearch} className="w-full max-w-md mb-8">
+                <div className="relative">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                   <Input 
+                      type="search"
+                      placeholder={t('header.search_placeholder')}
+                      className="pl-10 text-base py-6 w-full"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                   />
+                   <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2">
+                    Search
+                   </Button>
+                </div>
+              </form>
+
+              <p className="max-w-xl text-sm text-muted-foreground mb-8">
+                {t('home.sub_description_1')}{' '}
+                <Link href="/signup" className="text-primary underline hover:opacity-80">
+                  {t('home.sign_up')}
+                </Link>{' '}
+                {t('home.sub_description_2')}, {t('home.or')}{' '}
+                <Link href="/signin" className="text-primary underline hover:opacity-80">
+                  {t('home.sign_in')}
+                </Link>{' '}
+                {t('home.sub_description_3')}.
               </p>
+
               <div className="flex flex-wrap items-center gap-4">
                 <Button size="lg" asChild variant="shine">
                   <Link href="/categories">

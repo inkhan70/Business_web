@@ -55,9 +55,10 @@ function BusinessesContent() {
   const { t } = useLanguage();
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
+  const initialSearchTerm = searchParams.get('q') || '';
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -205,5 +206,3 @@ export default function BusinessesPage() {
         </Suspense>
     )
 }
-
-    
