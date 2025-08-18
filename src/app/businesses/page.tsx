@@ -123,15 +123,18 @@ function BusinessesContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-        <div className="relative mb-8">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative mb-8 w-full max-w-lg mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
               placeholder={t('businesses.search_placeholder')}
-              className="pl-9 w-full md:w-1/2 lg:w-1/3"
+              className="pl-10 pr-20 text-base py-6"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            <Button className="absolute right-2 top-1/2 -translate-y-1/2">
+                {t('product_search.search_button')}
+            </Button>
         </div>
       <div className="text-left mb-8">
         <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
