@@ -45,7 +45,7 @@ function SearchResultsContent() {
                 const lowercasedQuery = query.toLowerCase();
                 const filteredResults = allProducts.filter(product => {
                     const inProductName = product.name.toLowerCase().includes(lowercasedQuery);
-                    const inVarietyName = product.varieties.some(variety => variety.name.toLowerCase().includes(lowercasedQuery));
+                    const inVarietyName = product.varieties && product.varieties.some(variety => variety.name.toLowerCase().includes(lowercasedQuery));
                     return inProductName || inVarietyName;
                 });
 
@@ -98,7 +98,7 @@ function SearchResultsContent() {
                            </CardHeader>
                             <CardContent className="flex-grow">
                                 <ul className="text-sm text-muted-foreground space-y-1">
-                                    {product.varieties.map(v => <li key={v.id}>- {v.name}</li>)}
+                                    {product.varieties && product.varieties.map(v => <li key={v.id}>- {v.name}</li>)}
                                 </ul>
                             </CardContent>
                             <CardFooter>
