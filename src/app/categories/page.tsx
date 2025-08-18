@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ProductSearch } from '@/components/ProductSearch';
 
 const iconMap: { [key: string]: React.ElementType } = {
     UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal
@@ -73,7 +72,7 @@ export default function CategoriesPage() {
     <Wallpaper />
     <div className="container mx-auto px-4 py-12 relative">
       <WallpaperManager />
-      <div className="text-center mb-8">
+      <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
           {t('categories.title')}
         </h1>
@@ -82,8 +81,6 @@ export default function CategoriesPage() {
         </p>
       </div>
 
-      <ProductSearch />
-      
         {loading ? (
             <p className="text-center mt-12">{t('categories.loading')}</p>
         ) : categories.length === 0 ? (

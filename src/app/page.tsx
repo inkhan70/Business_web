@@ -41,22 +41,6 @@ export default function Home() {
                 {t('home.description')}
               </p>
               
-              <form onSubmit={handleSearch} className="w-full max-w-md mb-8">
-                <div className="relative">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                   <Input 
-                      type="search"
-                      placeholder={t('header.search_placeholder')}
-                      className="pl-10 text-base py-6 w-full"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                   />
-                   <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2">
-                    Search
-                   </Button>
-                </div>
-              </form>
-
               <p className="max-w-xl text-sm text-muted-foreground mb-8">
                 {t('home.sub_description_1')}{' '}
                 <Link href="/signup" className="text-primary underline hover:opacity-80">

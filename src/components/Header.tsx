@@ -1,9 +1,12 @@
 
 "use client";
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Globe, Menu, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Globe, Menu, LogOut, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,17 +15,25 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
 import { Cart } from './Cart';
 
 export function Header() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const { user } = useAuth();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSignOut = async () => {
       await signOut(auth);
       router.push('/');
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/businesses?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
   };
   
   return (
@@ -38,8 +49,22 @@ export function Header() {
             {user && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
           </nav>
         </div>
-
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        
+        <div className="flex flex-1 items-center justify-center md:justify-end space-x-2">
+           <div className="w-full flex-1 md:w-auto md:flex-none">
+             <form onSubmit={handleSearch}>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder={t('header.search_placeholder')}
+                    className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </form>
+           </div>
           <nav className="hidden md:flex items-center space-x-2">
             <Cart />
             <DropdownMenu>
