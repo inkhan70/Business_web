@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, SlidersHorizontal } from "lucide-react";
@@ -15,21 +16,34 @@ import { format } from 'date-fns';
 
 export function ProductSearch() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
   const [date, setDate] = useState<Date>();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder={t('product_search.placeholder')}
-          className="pl-10 text-base py-6"
-        />
-        <Button className="absolute right-2 top-1/2 -translate-y-1/2">
-          {t('product_search.search_button')}
-        </Button>
-      </div>
+      <form onSubmit={handleSearch}>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder={t('product_search.placeholder')}
+            className="pl-10 text-base py-6"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2">
+            {t('product_search.search_button')}
+          </Button>
+        </div>
+      </form>
       
       <Accordion type="single" collapsible>
         <AccordionItem value="advanced-search" className="border-b-0">

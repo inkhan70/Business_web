@@ -1,14 +1,12 @@
 
+
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { AdBanner } from '@/components/AdBanner';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
