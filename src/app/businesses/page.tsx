@@ -56,13 +56,13 @@ function BusinessesContent() {
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
   
-  const [initialBusinesses, setInitialBusinesses] = useState<Business[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
+  const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(!!searchParams.get('q'));
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Effect for fetching and sorting initial business list by category and location
   useEffect(() => {
@@ -85,60 +85,66 @@ function BusinessesContent() {
             })).filter(biz => biz.distance <= 100);
             
             const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-            setInitialBusinesses(sortedByDistance);
+            setBusinesses(sortedByDistance);
+            setFilteredBusinesses(sortedByDistance);
             setLoading(false);
           },
           (error) => {
             console.warn("Geolocation denied, showing default list.", error);
-            setInitialBusinesses(businessesForCategory);
+            setBusinesses(businessesForCategory);
+            setFilteredBusinesses(businessesForCategory);
             setLoading(false);
           }
         );
       } else {
           console.warn("Geolocation not supported, showing default list.");
-          setInitialBusinesses(businessesForCategory);
+          setBusinesses(businessesForCategory);
+          setFilteredBusinesses(businessesForCategory);
           setLoading(false);
       }
     } catch(e) {
         console.error("Storage not found or error loading data", e);
-        setInitialBusinesses([]);
+        setBusinesses([]);
+        setFilteredBusinesses([]);
         setLoading(false);
     }
   }, [role, category]);
 
-  // Effect for performing search when initial data or search term changes
-  useEffect(() => {
-    setIsSearching(true);
-    // Simulate API delay
-    const searchTimeout = setTimeout(() => {
-      if (searchTerm.trim()) {
-        const results = initialBusinesses.filter(biz =>
-          biz.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          biz.address.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        setFilteredBusinesses(results);
-        setHasSearched(true);
-      } else {
-        setFilteredBusinesses(initialBusinesses);
-        setHasSearched(false);
-      }
-      setIsSearching(false);
-    }, 300);
-    return () => clearTimeout(searchTimeout);
-  }, [searchTerm, initialBusinesses]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-  
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Search is handled by the useEffect hook
+    setIsSearching(true);
+    setHasSearched(true);
+    const term = searchTerm.toLowerCase();
+
+    // Simulate API delay
+    const searchTimeout = setTimeout(() => {
+        if (term.trim()) {
+            const results = businesses.filter(biz =>
+              biz.name.toLowerCase().includes(term) ||
+              biz.address.toLowerCase().includes(term)
+            );
+            setFilteredBusinesses(results);
+        } else {
+            setFilteredBusinesses(businesses);
+        }
+        setIsSearching(false);
+    }, 300);
+
+    return () => clearTimeout(searchTimeout);
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newSearchTerm = e.target.value;
+      setSearchTerm(newSearchTerm);
+      if(newSearchTerm.trim() === '') {
+          setFilteredBusinesses(businesses);
+          setHasSearched(false);
+      }
   };
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
-  const businessesToDisplay = hasSearched ? filteredBusinesses : initialBusinesses;
+  const businessesToDisplay = searchTerm.trim() ? filteredBusinesses : businesses;
 
   if (loading) {
     return (
@@ -157,7 +163,7 @@ function BusinessesContent() {
             </div>
         );
     }
-
+    
     if (businessesToDisplay.length > 0) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -191,7 +197,7 @@ function BusinessesContent() {
         )
     }
 
-    if (hasSearched) {
+    if (hasSearched && businessesToDisplay.length === 0) {
         return (
             <div className="text-center py-16 bg-muted/50 rounded-lg">
                 <h3 className="text-xl font-semibold">No Results Found</h3>
@@ -199,8 +205,8 @@ function BusinessesContent() {
             </div>
         )
     }
-
-    if (initialBusinesses.length === 0) {
+    
+     if (businesses.length === 0) {
          return (
             <div className="text-center py-16 bg-muted/50 rounded-lg">
                 <h3 className="text-xl font-semibold">No Businesses Available</h3>
