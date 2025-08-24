@@ -144,7 +144,7 @@ function BusinessesContent() {
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
-  const businessesToDisplay = searchTerm.trim() ? filteredBusinesses : businesses;
+  const businessesToDisplay = searchTerm.trim() && hasSearched ? filteredBusinesses : businesses;
 
   if (loading) {
     return (
@@ -235,7 +235,7 @@ function BusinessesContent() {
         </form>
 
       <div className="text-left mb-8">
-        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
+        <p className="text-lg text-muted-foreground">{t('roles.showing_role_for')} {roleTitle} for</p>
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
           {categoryTitle} {t('businesses.in_city')}
         </h1>
