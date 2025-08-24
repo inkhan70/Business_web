@@ -153,5 +153,7 @@
   "product_search.type": "Type",
   "product_search.type_placeholder": "e.g., Organic, Handmade",
   "product_search.size": "Size",
-  "product_search.size_placeholder": "e.g., Small, Large"
+  "product_search.size_placeholder": "e.g., Small, Large",
+  "product_search.volume": "Volume",
+  "product_search.volume_placeholder": "e.g., 250ml, 1L"
 }

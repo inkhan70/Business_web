@@ -144,5 +144,7 @@
   "product_search.type": "النوع",
   "product_search.type_placeholder": "مثال: عضوي، مصنوع يدويًا",
   "product_search.size": "الحجم",
-  "product_search.size_placeholder": "مثال: صغير، كبير"
+  "product_search.size_placeholder": "مثال: صغير، كبير",
+  "product_search.volume": "الحجم",
+  "product_search.volume_placeholder": "مثال: 250 مل، 1 لتر"
 }

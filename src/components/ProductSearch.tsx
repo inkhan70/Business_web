@@ -75,6 +75,12 @@ export function ProductSearch({ placeholder }: ProductSearchProps) {
                 <Input id="weight" placeholder={t('product_search.weight_placeholder')} />
               </div>
 
+              {/* Volume */}
+              <div className="space-y-2">
+                <Label htmlFor="volume">{t('product_search.volume')}</Label>
+                <Input id="volume" placeholder={t('product_search.volume_placeholder')} />
+              </div>
+
               {/* Color */}
               <div className="space-y-2">
                 <Label htmlFor="color">{t('product_search.color')}</Label>

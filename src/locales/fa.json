@@ -144,5 +144,7 @@
   "product_search.type": "نوع",
   "product_search.type_placeholder": "مثال: ارگانیک، دست ساز",
   "product_search.size": "اندازه",
-  "product_search.size_placeholder": "مثال: کوچک، بزرگ"
+  "product_search.size_placeholder": "مثال: کوچک، بزرگ",
+  "product_search.volume": "حجم",
+  "product_search.volume_placeholder": "مثال: 250 میلی لیتر، 1 لیتر"
 }

@@ -144,5 +144,7 @@
   "product_search.type": "قسم",
   "product_search.type_placeholder": "مثال کے طور پر، نامیاتی، ہاتھ سے تیار",
   "product_search.size": "سائز",
-  "product_search.size_placeholder": "مثال کے طور پر، چھوٹا، بڑا"
+  "product_search.size_placeholder": "مثال کے طور پر، چھوٹا، بڑا",
+  "product_search.volume": "حجم",
+  "product_search.volume_placeholder": "مثال کے طور پر، 250 ملی لیٹر، 1 لیٹر"
 }
