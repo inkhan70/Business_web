@@ -35,14 +35,39 @@ interface Category {
 const formSchema = z.object({
   email: z.string().email({ message: "A valid email is required." }).min(1, { message: "Email is required." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  businessName: z.string().min(2, { message: "Business name is required." }),
-  role: z.enum(["company", "wholesaler", "distributor", "shopkeeper"], {
-    required_error: "You need to select a business role.",
+  role: z.enum(["company", "wholesaler", "distributor", "shopkeeper", "buyer"], {
+    required_error: "You need to select a role.",
   }),
-  category: z.string({ required_error: "You need to select a business category." }),
+  // Business fields are now optional
+  businessName: z.string().optional(),
+  category: z.string().optional(),
+  // Personal name for buyers
+  fullName: z.string().optional(),
   address: z.string().min(10, { message: "Full address is required." }),
   city: z.string().min(2, { message: "City is required." }),
   state: z.string().min(2, { message: "State is required." }),
+}).superRefine((data, ctx) => {
+    if (data.role !== 'buyer' && !data.businessName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Business name is required.",
+            path: ["businessName"],
+        });
+    }
+    if (data.role !== 'buyer' && !data.category) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Business category is required.",
+            path: ["category"],
+        });
+    }
+    if (data.role === 'buyer' && !data.fullName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Full name is required.",
+            path: ["fullName"],
+        });
+    }
 });
 
 export default function SignUpPage() {
@@ -52,6 +77,21 @@ export default function SignUpPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+            businessName: "",
+            fullName: "",
+            address: "",
+            city: "",
+            state: "",
+        },
+    });
+
+    const selectedRole = form.watch("role");
 
     useEffect(() => {
         const fetchCategories = () => {
@@ -59,16 +99,11 @@ export default function SignUpPage() {
             if (storedCategoriesRaw) {
                 setCategories(JSON.parse(storedCategoriesRaw));
             } else {
-                 // Fallback if no categories are in local storage
                 const defaultCategories = [
-                    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
-                    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
-                    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
-                    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
-                    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
-                    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
-                    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
-                    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
+                    { id: 'cat1', name: 'Food' }, { id: 'cat2', name: 'Drinks' },
+                    { id: 'cat3', name: 'Electronics' }, { id: 'cat4', name: 'Health' },
+                    { id: 'cat5', name: 'Shoes' }, { id: 'cat6', name: 'Beauty' },
+                    { id: 'cat7', name: 'Jewelry' }, { id: 'cat8', name: 'Real Estate' },
                 ];
                 localStorage.setItem('categories', JSON.stringify(defaultCategories));
                 setCategories(defaultCategories);
@@ -77,40 +112,31 @@ export default function SignUpPage() {
         fetchCategories();
     }, []);
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            email: "",
-            password: "",
-            businessName: "",
-            address: "",
-            city: "",
-            state: "",
-        },
-    });
-
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
-            await updateProfile(user, { displayName: values.businessName });
+            const displayName = values.role === 'buyer' ? values.fullName : values.businessName;
+            await updateProfile(user, { displayName: displayName });
 
-            // Save business info to localStorage
             const storedUsersRaw = localStorage.getItem('users');
             const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
             
             const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
-                businessName: values.businessName,
+                businessName: values.businessName || null,
+                fullName: values.fullName || null,
                 role: values.role,
-                category: values.category,
+                category: values.category || null,
                 address: values.address,
                 city: values.city,
                 state: values.state,
                 createdAt: new Date().toISOString(),
+                purchaseHistory: [],
+                ghostCoins: 0
             };
 
             users.push(newUserProfile);
@@ -129,8 +155,6 @@ export default function SignUpPage() {
             let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email address is already in use by another account. Please sign in instead.";
-            } else if (error.code === 'auth/configuration-not-found') {
-                description = "Authentication is not configured correctly. Please enable Email/Password sign-in provider in the Firebase console.";
             } else if (error.code === 'auth/invalid-email') {
                 description = "The email address you entered is not valid. Please check and try again.";
             }
@@ -157,6 +181,31 @@ export default function SignUpPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>{t('signup.role')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('signup.role_placeholder')} />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="buyer">Buyer / Customer</SelectItem>
+                                <SelectItem value="company">{t('signup.role_company')}</SelectItem>
+                                <SelectItem value="wholesaler">{t('signup.role_wholesaler')}</SelectItem>
+                                <SelectItem value="distributor">{t('signup.role_distributor')}</SelectItem>
+                                <SelectItem value="shopkeeper">{t('signup.role_shopkeeper')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -194,70 +243,60 @@ export default function SignUpPage() {
                   )}
                 />
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                 <FormField
+
+              {selectedRole === 'buyer' ? (
+                <FormField
                   control={form.control}
-                  name="businessName"
+                  name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('signup.business_name')}</FormLabel>
+                      <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <Input placeholder={t('signup.business_name_placeholder')} {...field} />
+                        <Input placeholder="e.g., John Doe" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
+              ) : (
+                <div className="grid md:grid-cols-2 gap-6">
+                   <FormField
                     control={form.control}
-                    name="role"
+                    name="businessName"
                     render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('signup.role')}</FormLabel>
+                      <FormItem>
+                        <FormLabel>{t('signup.business_name')}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('signup.business_name_placeholder')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business Category</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
+                          <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={t('signup.role_placeholder')} />
+                              <SelectValue placeholder="Select your primary business category" />
                             </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="company">{t('signup.role_company')}</SelectItem>
-                                <SelectItem value="wholesaler">{t('signup.role_wholesaler')}</SelectItem>
-                                <SelectItem value="distributor">{t('signup.role_distributor')}</SelectItem>
-                                <SelectItem value="shopkeeper">{t('signup.role_shopkeeper')}</SelectItem>
-                            </SelectContent>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map(cat => (
+                              <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                            ))}
+                          </SelectContent>
                         </Select>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                />
-              </div>
-               <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Business Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your primary business category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.length === 0 ? (
-                            <SelectItem value="loading" disabled>Loading categories...</SelectItem>
-                          ) : (
-                            categories.map(cat => (
-                              <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  />
+                </div>
+              )}
               
                 <Location />
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -277,3 +316,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+    
