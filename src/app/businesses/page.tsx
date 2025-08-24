@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { MapPin, ArrowRight, Search, Loader2 } from "lucide-react";
+import { MapPin, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ProductSearch } from "@/components/ProductSearch";
 
 // --- Helper Functions ---
 // Haversine formula to calculate distance between two lat/lon points
@@ -57,12 +57,7 @@ function BusinessesContent() {
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
   
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
 
   // Effect for fetching and sorting initial business list by category and location
   useEffect(() => {
@@ -86,65 +81,29 @@ function BusinessesContent() {
             
             const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
             setBusinesses(sortedByDistance);
-            setFilteredBusinesses(sortedByDistance);
             setLoading(false);
           },
           (error) => {
             console.warn("Geolocation denied, showing default list.", error);
             setBusinesses(businessesForCategory);
-            setFilteredBusinesses(businessesForCategory);
             setLoading(false);
           }
         );
       } else {
           console.warn("Geolocation not supported, showing default list.");
           setBusinesses(businessesForCategory);
-          setFilteredBusinesses(businessesForCategory);
           setLoading(false);
       }
     } catch(e) {
         console.error("Storage not found or error loading data", e);
         setBusinesses([]);
-        setFilteredBusinesses([]);
         setLoading(false);
     }
   }, [role, category]);
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSearching(true);
-    setHasSearched(true);
-    const term = searchTerm.toLowerCase();
-
-    // Simulate API delay
-    const searchTimeout = setTimeout(() => {
-        if (term.trim()) {
-            const results = businesses.filter(biz =>
-              biz.name.toLowerCase().includes(term) ||
-              biz.address.toLowerCase().includes(term)
-            );
-            setFilteredBusinesses(results);
-        } else {
-            setFilteredBusinesses(businesses);
-        }
-        setIsSearching(false);
-    }, 300);
-
-    return () => clearTimeout(searchTimeout);
-  };
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newSearchTerm = e.target.value;
-      setSearchTerm(newSearchTerm);
-      if(newSearchTerm.trim() === '') {
-          setFilteredBusinesses(businesses);
-          setHasSearched(false);
-      }
-  };
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
-  const businessesToDisplay = searchTerm.trim() && hasSearched ? filteredBusinesses : businesses;
 
   if (loading) {
     return (
@@ -156,18 +115,10 @@ function BusinessesContent() {
   }
   
   const renderContent = () => {
-    if (isSearching) {
-        return (
-            <div className="text-center py-16 bg-muted/50 rounded-lg">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-            </div>
-        );
-    }
-    
-    if (businessesToDisplay.length > 0) {
+    if (businesses.length > 0) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {businessesToDisplay.map((biz) => (
+            {businesses.map((biz) => (
               <Card key={biz.id} className="flex flex-col">
                 <CardHeader className="p-0">
                   <Image src={biz.image} alt={biz.name} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint} />
@@ -196,15 +147,6 @@ function BusinessesContent() {
           </div>
         )
     }
-
-    if (hasSearched && businessesToDisplay.length === 0) {
-        return (
-            <div className="text-center py-16 bg-muted/50 rounded-lg">
-                <h3 className="text-xl font-semibold">No Results Found</h3>
-                <p className="text-muted-foreground mt-2">Your search for "{searchTerm}" did not match any businesses.</p>
-            </div>
-        )
-    }
     
      if (businesses.length === 0) {
          return (
@@ -220,19 +162,9 @@ function BusinessesContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-        <form onSubmit={handleSearch} className="relative mb-8 w-full max-w-lg mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t('businesses.search_placeholder')}
-              className="pl-10 pr-20 text-base py-6"
-              value={searchTerm}
-              onChange={handleInputChange}
-            />
-            <Button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2" disabled={isSearching}>
-                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : t('product_search.search_button')}
-            </Button>
-        </form>
+        <div className="mb-8">
+            <ProductSearch placeholder="here you can search target city search for business type, and search for your product type" />
+        </div>
 
       <div className="text-left mb-8">
         <p className="text-lg text-muted-foreground">{t('roles.showing_role_for')} {roleTitle} for</p>

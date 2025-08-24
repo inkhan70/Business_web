@@ -14,7 +14,11 @@ import { Calendar } from './ui/calendar';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
-export function ProductSearch() {
+interface ProductSearchProps {
+    placeholder?: string;
+}
+
+export function ProductSearch({ placeholder }: ProductSearchProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +38,7 @@ export function ProductSearch() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             type="search"
-            placeholder={t('product_search.placeholder')}
+            placeholder={placeholder || t('product_search.placeholder')}
             className="pl-10 text-base py-6"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
