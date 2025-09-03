@@ -53,7 +53,7 @@
 
   "businesses.showing_role_for": "Showing",
   "businesses.in_city": "in Metropolis",
-  "businesses.search_placeholder": "find a business",
+  "businesses.search_placeholder": "here you can search target city search for business type, and search for your product type",
   "businesses.distance_away": "away",
   "businesses.view_products": "View Products",
   "businesses.pagination_previous": "Previous",
@@ -155,5 +155,14 @@
   "product_search.size": "Size",
   "product_search.size_placeholder": "e.g., Small, Large",
   "product_search.volume": "Volume",
-  "product_search.volume_placeholder": "e.g., 250ml, 1L"
+  "product_search.volume_placeholder": "e.g., 250ml, 1L",
+
+  "Food": "Food",
+  "Drinks": "Drinks",
+  "Electronics": "Electronics",
+  "Health": "Health",
+  "Shoes": "Shoes",
+  "Beauty": "Beauty",
+  "Jewelry": "Jewelry",
+  "Real Estate": "Real Estate"
 }

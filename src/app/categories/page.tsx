@@ -67,6 +67,11 @@ export default function CategoriesPage() {
     fetchCategories();
   }, [toast]);
 
+  const getCategoryLink = (category: Category) => {
+    if (category.href) return category.href;
+    return `/roles?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`;
+  }
+
   return (
     <>
     <Wallpaper />
@@ -94,11 +99,11 @@ export default function CategoriesPage() {
                     const IconComponent = iconMap[category.icon] || MoreHorizontal;
                     return (
                         <div key={category.id} className="relative group">
-                            <Link href={category.href} >
+                            <Link href={getCategoryLink(category)} >
                                 <Card className="text-center hover:shadow-xl hover:-translate-y-1 transition-transform duration-300 ease-in-out h-full">
                                 <CardContent className="p-6 flex flex-col items-center justify-center">
                                     <IconComponent className="h-12 w-12 mb-4 text-primary group-hover:text-accent transition-colors" />
-                                    <h3 className="text-lg font-bold font-headline">{category.name}</h3>
+                                    <h3 className="text-lg font-bold font-headline">{t(category.name)}</h3>
                                 </CardContent>
                                 </Card>
                             </Link>

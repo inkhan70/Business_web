@@ -138,7 +138,7 @@
   "product_search.weight": "وزن",
   "product_search.weight_placeholder": "مثال کے طور پر، 500 گرام، 1 کلوگرام",
   "product_search.color": "رنگ",
-  "product_search.color_placeholder": "مثال کے طور پر، سرخ، نیلا",
+  "product_search.color_placeholder": "مثال کے طور पर، سرخ، نیلا",
   "product_search.release_date": "ریلیز کی تاریخ",
   "product_search.date_placeholder": "ایک تاریخ منتخب کریں",
   "product_search.type": "قسم",
@@ -146,5 +146,14 @@
   "product_search.size": "سائز",
   "product_search.size_placeholder": "مثال کے طور پر، چھوٹا، بڑا",
   "product_search.volume": "حجم",
-  "product_search.volume_placeholder": "مثال کے طور پر، 250 ملی لیٹر، 1 لیٹر"
+  "product_search.volume_placeholder": "مثال کے طور پر، 250 ملی لیٹر، 1 لیٹر",
+
+  "Food": "کھانا",
+  "Drinks": "مشروبات",
+  "Electronics": "الیکٹرانکس",
+  "Health": "صحت",
+  "Shoes": "جوتے",
+  "Beauty": "خوبصورتی",
+  "Jewelry": "زیورات",
+  "Real Estate": "ریل اسٹیٹ"
 }

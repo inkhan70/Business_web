@@ -146,5 +146,14 @@
   "product_search.size": "اندازه",
   "product_search.size_placeholder": "مثال: کوچک، بزرگ",
   "product_search.volume": "حجم",
-  "product_search.volume_placeholder": "مثال: 250 میلی لیتر، 1 لیتر"
+  "product_search.volume_placeholder": "مثال: 250 میلی لیتر، 1 لیتر",
+
+  "Food": "غذا",
+  "Drinks": "نوشیدنی",
+  "Electronics": "الکترونیک",
+  "Health": "سلامتی",
+  "Shoes": "کفش",
+  "Beauty": "زیبایی",
+  "Jewelry": "جواهرات",
+  "Real Estate": "املاک و مستغلات"
 }
