@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { AdBanner } from '@/components/AdBanner';
@@ -11,6 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductSearch } from '@/components/ProductSearch';
+import images from '@/app/lib/placeholder-images.json';
 
 export default function Home() {
   const { t } = useLanguage();
@@ -61,7 +61,7 @@ export default function Home() {
             </div>
             <div className="hidden md:block">
               <Image 
-                src="https://placehold.co/600x400.png"
+                src={images.home.hero}
                 alt="City illustration with shops and people"
                 width={600}
                 height={400}
@@ -75,5 +75,3 @@ export default function Home() {
     </>
   );
 }
-
-    

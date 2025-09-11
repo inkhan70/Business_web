@@ -13,15 +13,16 @@ import { Minus, Plus, ShoppingCart } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import images from '@/app/lib/placeholder-images.json';
 
 
 const product = {
   id: 'item2',
   name: "Artisan Sourdough Bread",
   varieties: [
-    { id: 'var1', name: 'Classic White Sourdough', price: 5.50, manufacturer: 'Golden Grains Bakery', image: 'https://placehold.co/500x500.png', dataAiHint: 'white bread' },
-    { id: 'var2', name: 'Whole Wheat Sourdough', price: 6.00, manufacturer: 'Hearty Harvest Breads', image: 'https://placehold.co/500x500.png', dataAiHint: 'brown bread' },
-    { id: 'var3', name: 'Rosemary & Olive Oil Sourdough', price: 6.50, manufacturer: 'Golden Grains Bakery', image: 'https://placehold.co/500x500.png', dataAiHint: 'herb bread' },
+    { id: 'var1', name: 'Classic White Sourdough', price: 5.50, manufacturer: 'Golden Grains Bakery', image: images.varieties.white_bread, dataAiHint: 'white bread' },
+    { id: 'var2', name: 'Whole Wheat Sourdough', price: 6.00, manufacturer: 'Hearty Harvest Breads', image: images.varieties.brown_bread, dataAiHint: 'brown bread' },
+    { id: 'var3', name: 'Rosemary & Olive Oil Sourdough', price: 6.50, manufacturer: 'Golden Grains Bakery', image: images.varieties.herb_bread, dataAiHint: 'herb bread' },
   ]
 };
 

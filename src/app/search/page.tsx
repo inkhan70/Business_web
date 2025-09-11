@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Loader2, SearchX } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import images from '@/app/lib/placeholder-images.json';
 
 interface Variety {
     id: string;
@@ -89,7 +90,7 @@ function SearchResultsContent() {
                                     alt={product.name}
                                     className="aspect-video w-full rounded-md object-cover"
                                     height="180"
-                                    src={product.varieties?.[0]?.image || "https://placehold.co/320x180.png"}
+                                    src={product.varieties?.[0]?.image || images.search.result}
                                     width="320"
                                     data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"}
                                 />

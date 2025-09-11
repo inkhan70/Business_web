@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, MapPin } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
+import images from '@/app/lib/placeholder-images.json';
 
 const distributor = { 
   id: 'dist1', 
@@ -15,12 +16,12 @@ const distributor = {
 };
 
 const products = [
-  { id: 'item1', name: 'Organic Fuji Apples', price: '$2.99/lb', image: 'https://placehold.co/300x300.png', dataAiHint: 'apple fruit' },
-  { id: 'item2', name: 'Artisan Sourdough Bread', price: '$5.50/loaf', image: 'https://placehold.co/300x300.png', dataAiHint: 'bread loaf' },
-  { id: 'item3', name: 'Cage-Free Brown Eggs', price: '$6.00/dozen', image: 'https://placehold.co/300x300.png', dataAiHint: 'egg carton' },
-  { id: 'item4', name: 'Unsweetened Almond Milk', price: '$4.25/half gal', image: 'https://placehold.co/300x300.png', dataAiHint: 'milk carton' },
-  { id: 'item5', name: 'Greek Yogurt', price: '$3.75/tub', image: 'https://placehold.co/300x300.png', dataAiHint: 'yogurt container' },
-  { id: 'item6', name: 'Hass Avocados', price: '$1.50/each', image: 'https://placehold.co/300x300.png', dataAiHint: 'avocado fruit' },
+  { id: 'item1', name: 'Organic Fuji Apples', price: '$2.99/lb', image: images.products.apple, dataAiHint: 'apple fruit' },
+  { id: 'item2', name: 'Artisan Sourdough Bread', price: '$5.50/loaf', image: images.products.bread, dataAiHint: 'bread loaf' },
+  { id: 'item3', name: 'Cage-Free Brown Eggs', price: '$6.00/dozen', image: images.products.egg_carton, dataAiHint: 'egg carton' },
+  { id: 'item4', name: 'Unsweetened Almond Milk', price: '$4.25/half gal', image: images.products.milk_carton, dataAiHint: 'milk carton' },
+  { id: 'item5', name: 'Greek Yogurt', price: '$3.75/tub', image: images.products.yogurt, dataAiHint: 'yogurt container' },
+  { id: 'item6', name: 'Hass Avocados', price: '$1.50/each', image: images.products.avocado, dataAiHint: 'avocado fruit' },
 ];
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {

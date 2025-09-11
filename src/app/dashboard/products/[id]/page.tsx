@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Edit, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import images from '@/app/lib/placeholder-images.json';
 
 interface Variety {
     id: string;
@@ -113,7 +114,7 @@ export default function ProductVarietiesPage() {
                     <Card key={variety.id} className="flex flex-col">
                         <CardHeader className="p-0">
                             <Image 
-                                src={variety.image || 'https://placehold.co/300x200.png'} 
+                                src={variety.image || images.product_form.preview} 
                                 alt={variety.name}
                                 width={300}
                                 height={200}

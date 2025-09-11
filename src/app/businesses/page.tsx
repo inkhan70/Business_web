@@ -6,11 +6,12 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { MapPin, ArrowRight, Loader2 } from "lucide-react";
+import { MapPin, ArrowRight, Loader2, Search } from "lucide-react";
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ProductSearch } from "@/components/ProductSearch";
+import { Input } from "@/components/ui/input";
+import images from '@/app/lib/placeholder-images.json';
 
 // --- Helper Functions ---
 // Haversine formula to calculate distance between two lat/lon points
@@ -30,19 +31,19 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => 
 
 // Placeholder data - added lat/lon and category for distance/category calculation
 const businessData = {
-    producers: [...Array(2)].map((_, i) => ({ id: `prod${i+1}`, name: `Organic Farm ${i+1}`, category: 'Food', address: `${10+i} Green Valley, Metropolis`, lat: 34.1 + i * 0.05, lon: -118.3 - i*0.05, image: 'https://placehold.co/350x200.png', dataAiHint: 'farm field' })),
-    wholesalers: [...Array(2)].map((_, i) => ({ id: `whole${i+1}`, name: `Bulk Goods Co ${i+1}`, category: 'Food', address: `${20+i} Warehouse Rd, Metropolis`, lat: 34.05 + i * 0.02, lon: -118.25 - i*0.02, image: 'https://placehold.co/350x200.png', dataAiHint: 'warehouse interior' })),
+    producers: [...Array(2)].map((_, i) => ({ id: `prod${i+1}`, name: `Organic Farm ${i+1}`, category: 'Food', address: `${10+i} Green Valley, Metropolis`, lat: 34.1 + i * 0.05, lon: -118.3 - i*0.05, image: images.businesses.farm, dataAiHint: 'farm field' })),
+    wholesalers: [...Array(2)].map((_, i) => ({ id: `whole${i+1}`, name: `Bulk Goods Co ${i+1}`, category: 'Food', address: `${20+i} Warehouse Rd, Metropolis`, lat: 34.05 + i * 0.02, lon: -118.25 - i*0.02, image: images.businesses.warehouse, dataAiHint: 'warehouse interior' })),
     distributors: [
-      { id: 'dist1', name: 'Metro Food Distributors', category: 'Food', address: '123 Market St, Metropolis', lat: 34.0522, lon: -118.2437, image: 'https://placehold.co/350x200.png', dataAiHint: 'warehouse interior' },
-      { id: 'dist2', name: 'Gourmet Provisions Inc.', category: 'Food', address: '456 Grand Ave, Metropolis', lat: 34.0407, lon: -118.2448, image: 'https://placehold.co/350x200.png', dataAiHint: 'food packaging' },
-      { id: 'dist3', name: 'Citywide Beverage Supply', category: 'Drinks', address: '101 Industrial Park, Metropolis', lat: 33.9922, lon: -118.2137, image: 'https://placehold.co/350x200.png', dataAiHint: 'beverage bottles' },
+      { id: 'dist1', name: 'Metro Food Distributors', category: 'Food', address: '123 Market St, Metropolis', lat: 34.0522, lon: -118.2437, image: images.businesses.warehouse, dataAiHint: 'warehouse interior' },
+      { id: 'dist2', name: 'Gourmet Provisions Inc.', category: 'Food', address: '456 Grand Ave, Metropolis', lat: 34.0407, lon: -118.2448, image: images.businesses.food_packaging, dataAiHint: 'food packaging' },
+      { id: 'dist3', name: 'Citywide Beverage Supply', category: 'Drinks', address: '101 Industrial Park, Metropolis', lat: 33.9922, lon: -118.2137, image: images.businesses.beverage_bottles, dataAiHint: 'beverage bottles' },
     ],
     shopkeepers: [
-      { id: 'shop1', name: 'The Corner Store', category: 'Food', address: '1 Main St, Metropolis', lat: 34.0549, lon: -118.2426, image: 'https://placehold.co/350x200.png', dataAiHint: 'corner store' },
-      { id: 'shop2', name: 'Green Grocer', category: 'Food', address: '22 Park Ave, Metropolis', lat: 34.0600, lon: -118.2500, image: 'https://placehold.co/350x200.png', dataAiHint: 'vegetable stand' },
-      { id: 'shop3', name: 'City Electronics', category: 'Electronics', address: '404 Tech Square, Metropolis', lat: 34.07, lon: -118.23, image: 'https://placehold.co/350x200.png', dataAiHint: 'electronics store' },
-      { id: 'shop4', name: 'The Shoe Box', category: 'Shoes', address: '55 Fashion St, Metropolis', lat: 34.045, lon: -118.255, image: 'https://placehold.co/350x200.png', dataAiHint: 'shoe store' },
-      { id: 'shop5', name: 'Quick-E Mart', category: 'Food', address: '711 Store Ave, Metropolis', lat: 34.03, lon: -118.26, image: 'https://placehold.co/350x200.png', dataAiHint: 'supermarket aisle' },
+      { id: 'shop1', name: 'The Corner Store', category: 'Food', address: '1 Main St, Metropolis', lat: 34.0549, lon: -118.2426, image: images.businesses.corner_store, dataAiHint: 'corner store' },
+      { id: 'shop2', name: 'Green Grocer', category: 'Food', address: '22 Park Ave, Metropolis', lat: 34.0600, lon: -118.2500, image: images.businesses.vegetable_stand, dataAiHint: 'vegetable stand' },
+      { id: 'shop3', name: 'City Electronics', category: 'Electronics', address: '404 Tech Square, Metropolis', lat: 34.07, lon: -118.23, image: images.businesses.electronics_store, dataAiHint: 'electronics store' },
+      { id: 'shop4', name: 'The Shoe Box', category: 'Shoes', address: '55 Fashion St, Metropolis', lat: 34.045, lon: -118.255, image: images.businesses.shoe_store, dataAiHint: 'shoe store' },
+      { id: 'shop5', name: 'Quick-E Mart', category: 'Food', address: '711 Store Ave, Metropolis', lat: 34.03, lon: -118.26, image: images.businesses.supermarket_aisle, dataAiHint: 'supermarket aisle' },
     ]
 };
 
@@ -56,10 +57,12 @@ function BusinessesContent() {
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
   
-  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [initialBusinesses, setInitialBusinesses] = useState<Business[]>([]);
+  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Effect for fetching and sorting initial business list by category and location
   useEffect(() => {
     setLoading(true);
     try {
@@ -80,27 +83,49 @@ function BusinessesContent() {
             })).filter(biz => biz.distance <= 100);
             
             const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-            setBusinesses(sortedByDistance);
+            setInitialBusinesses(sortedByDistance);
+            setFilteredBusinesses(sortedByDistance);
             setLoading(false);
           },
           (error) => {
             console.warn("Geolocation denied, showing default list.", error);
-            setBusinesses(businessesForCategory);
+            setInitialBusinesses(businessesForCategory);
+            setFilteredBusinesses(businessesForCategory);
             setLoading(false);
           }
         );
       } else {
           console.warn("Geolocation not supported, showing default list.");
-          setBusinesses(businessesForCategory);
+          setInitialBusinesses(businessesForCategory);
+          setFilteredBusinesses(businessesForCategory);
           setLoading(false);
       }
     } catch(e) {
         console.error("Storage not found or error loading data", e);
-        setBusinesses([]);
+        setInitialBusinesses([]);
+        setFilteredBusinesses([]);
         setLoading(false);
     }
   }, [role, category]);
 
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setHasSearched(true);
+    const lowercasedQuery = searchQuery.toLowerCase();
+    const results = initialBusinesses.filter(biz => 
+        biz.name.toLowerCase().includes(lowercasedQuery)
+    );
+    setFilteredBusinesses(results);
+  };
+  
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newQuery = e.target.value;
+      setSearchQuery(newQuery);
+      if (newQuery === '') {
+          setFilteredBusinesses(initialBusinesses);
+          setHasSearched(false);
+      }
+  }
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
@@ -109,16 +134,16 @@ function BusinessesContent() {
     return (
         <div className="flex justify-center items-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="ml-4">Loading businesses...</p>
+            <p className="ml-4">{t('businesses.loading')}</p>
         </div>
     )
   }
   
   const renderContent = () => {
-    if (businesses.length > 0) {
+    if (filteredBusinesses.length > 0) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {businesses.map((biz) => (
+            {filteredBusinesses.map((biz) => (
               <Card key={biz.id} className="flex flex-col">
                 <CardHeader className="p-0">
                   <Image src={biz.image} alt={biz.name} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint} />
@@ -148,7 +173,16 @@ function BusinessesContent() {
         )
     }
     
-     if (businesses.length === 0) {
+    if (hasSearched && filteredBusinesses.length === 0) {
+        return (
+            <div className="text-center py-16 bg-muted/50 rounded-lg">
+                <h3 className="text-xl font-semibold">No Matches Found</h3>
+                <p className="text-muted-foreground mt-2">Your search for "{searchQuery}" did not return any businesses.</p>
+            </div>
+        )
+    }
+    
+     if (initialBusinesses.length === 0) {
          return (
             <div className="text-center py-16 bg-muted/50 rounded-lg">
                 <h3 className="text-xl font-semibold">No Businesses Available</h3>
@@ -162,9 +196,21 @@ function BusinessesContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-        <div className="mb-8">
-            <ProductSearch placeholder="here you can search target city search for business type, and search for your product type" />
-        </div>
+      <div className="mb-8">
+        <form onSubmit={handleSearch} className="w-full max-w-lg mx-auto">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder={t('businesses.search_placeholder')}
+                className="pl-9"
+                value={searchQuery}
+                onChange={handleQueryChange}
+                />
+                 <Button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-4">Search</Button>
+            </div>
+        </form>
+      </div>
 
       <div className="text-left mb-8">
         <p className="text-lg text-muted-foreground">{t('roles.showing_role_for')} {roleTitle} for</p>
@@ -205,5 +251,3 @@ export default function BusinessesPage() {
         </Suspense>
     )
 }
-
-    

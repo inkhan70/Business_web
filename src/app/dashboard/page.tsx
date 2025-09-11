@@ -31,6 +31,7 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
+import images from '@/app/lib/placeholder-images.json';
 
 interface Variety {
     id: string;
@@ -57,8 +58,8 @@ const sampleProducts: Omit<Product, 'id' | 'userId'>[] = [
         inventory: 150, 
         category: 'Food',
         varieties: [
-            { id: 'v1', name: 'Single Apple', price: 0.50, dataAiHint: 'apple fruit' },
-            { id: 'v2', name: 'Bag of Apples (5 lb)', price: 2.99, dataAiHint: 'apples bag' },
+            { id: 'v1', name: 'Single Apple', price: 0.50, image: images.products.apple, dataAiHint: 'apple fruit' },
+            { id: 'v2', name: 'Bag of Apples (5 lb)', price: 2.99, image: images.products.apple, dataAiHint: 'apples bag' },
         ]
     },
     { 
@@ -67,8 +68,8 @@ const sampleProducts: Omit<Product, 'id' | 'userId'>[] = [
         inventory: 80, 
         category: 'Food', 
         varieties: [
-            { id: 'v3', name: 'Classic White Loaf', price: 5.50, dataAiHint: 'bread loaf' },
-            { id: 'v4', name: 'Whole Wheat Loaf', price: 6.00, dataAiHint: 'brown bread' },
+            { id: 'v3', name: 'Classic White Loaf', price: 5.50, image: images.products.bread, dataAiHint: 'bread loaf' },
+            { id: 'v4', name: 'Whole Wheat Loaf', price: 6.00, image: images.products.bread, dataAiHint: 'brown bread' },
         ]
     },
 ];
@@ -207,7 +208,7 @@ export default function DashboardPage() {
                                             alt={product.name}
                                             className="aspect-square rounded-md object-cover"
                                             height="40"
-                                            src={product.varieties?.[0]?.image || "https://placehold.co/40x40.png"}
+                                            src={product.varieties?.[0]?.image || images.products.dashboard_product}
                                             width="40"
                                             data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"}
                                         />

@@ -20,6 +20,7 @@ import { Separator } from "./ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ItemDelivery } from "./ItemDelivery";
 import type { Address } from "./ItemDelivery";
+import images from '@/app/lib/placeholder-images.json';
 
 export function Cart() {
   const { cart, cartCount, updateQuantity, removeFromCart, subtotal } = useCart();
@@ -60,7 +61,7 @@ export function Cart() {
                 {cart.map((item) => (
                   <div key={item.varietyId} className="flex items-start gap-4">
                     <Image
-                      src={item.image || "https://placehold.co/100x100.png"}
+                      src={item.image || images.varieties.variety_thumb}
                       alt={item.varietyName}
                       width={80}
                       height={80}
