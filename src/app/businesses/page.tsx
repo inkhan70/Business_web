@@ -6,11 +6,11 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { MapPin, ArrowRight, Loader2, Search } from "lucide-react";
+import { MapPin, ArrowRight, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Input } from "@/components/ui/input";
+import { ProductSearch } from "@/components/ProductSearch";
 import images from '@/app/lib/placeholder-images.json';
 
 // --- Helper Functions ---
@@ -57,12 +57,10 @@ function BusinessesContent() {
   const category = searchParams.get('category') || 'all';
   const role = (searchParams.get('role') || 'shopkeepers') as BusinessRole;
   
-  const [initialBusinesses, setInitialBusinesses] = useState<Business[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
 
+  // Effect for initial data loading
   useEffect(() => {
     setLoading(true);
     try {
@@ -73,59 +71,37 @@ function BusinessesContent() {
           businessesForCategory = businessesForRole.filter(biz => biz.category.toLowerCase() === category.toLowerCase());
       }
       
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            const businessesWithDistance = businessesForCategory.map(biz => ({
-              ...biz,
-              distance: getDistance(latitude, longitude, biz.lat, biz.lon),
-            })).filter(biz => biz.distance <= 100);
-            
-            const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-            setInitialBusinesses(sortedByDistance);
-            setFilteredBusinesses(sortedByDistance);
-            setLoading(false);
-          },
-          (error) => {
-            console.warn("Geolocation denied, showing default list.", error);
-            setInitialBusinesses(businessesForCategory);
-            setFilteredBusinesses(businessesForCategory);
-            setLoading(false);
-          }
-        );
-      } else {
-          console.warn("Geolocation not supported, showing default list.");
-          setInitialBusinesses(businessesForCategory);
-          setFilteredBusinesses(businessesForCategory);
-          setLoading(false);
-      }
+      setBusinesses(businessesForCategory);
     } catch(e) {
         console.error("Storage not found or error loading data", e);
-        setInitialBusinesses([]);
-        setFilteredBusinesses([]);
+        setBusinesses([]);
+    } finally {
         setLoading(false);
     }
   }, [role, category]);
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setHasSearched(true);
-    const lowercasedQuery = searchQuery.toLowerCase();
-    const results = initialBusinesses.filter(biz => 
-        biz.name.toLowerCase().includes(lowercasedQuery)
-    );
-    setFilteredBusinesses(results);
-  };
-  
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newQuery = e.target.value;
-      setSearchQuery(newQuery);
-      if (newQuery === '') {
-          setFilteredBusinesses(initialBusinesses);
-          setHasSearched(false);
-      }
-  }
+  // Effect for geolocation and sorting
+  useEffect(() => {
+    if (businesses.length > 0 && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const businessesWithDistance = businesses.map(biz => ({
+            ...biz,
+            distance: getDistance(latitude, longitude, biz.lat, biz.lon),
+          })).filter(biz => biz.distance <= 100);
+          
+          const sortedByDistance = businessesWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+          setBusinesses(sortedByDistance);
+        },
+        (error) => {
+          console.warn("Geolocation denied, showing default list.", error);
+          // No need to do anything, the list is already set
+        }
+      );
+    }
+  }, [businesses.length]); // Reruns when businesses are loaded
+
 
   const roleTitle = t(`roles.${role}`);
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
@@ -140,10 +116,10 @@ function BusinessesContent() {
   }
   
   const renderContent = () => {
-    if (filteredBusinesses.length > 0) {
+    if (businesses.length > 0) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredBusinesses.map((biz) => (
+            {businesses.map((biz) => (
               <Card key={biz.id} className="flex flex-col">
                 <CardHeader className="p-0">
                   <Image src={biz.image} alt={biz.name} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint} />
@@ -173,16 +149,7 @@ function BusinessesContent() {
         )
     }
     
-    if (hasSearched && filteredBusinesses.length === 0) {
-        return (
-            <div className="text-center py-16 bg-muted/50 rounded-lg">
-                <h3 className="text-xl font-semibold">No Matches Found</h3>
-                <p className="text-muted-foreground mt-2">Your search for "{searchQuery}" did not return any businesses.</p>
-            </div>
-        )
-    }
-    
-     if (initialBusinesses.length === 0) {
+     if (businesses.length === 0) {
          return (
             <div className="text-center py-16 bg-muted/50 rounded-lg">
                 <h3 className="text-xl font-semibold">No Businesses Available</h3>
@@ -196,21 +163,9 @@ function BusinessesContent() {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <form onSubmit={handleSearch} className="w-full max-w-lg mx-auto">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                type="search"
-                placeholder={t('businesses.search_placeholder')}
-                className="pl-9"
-                value={searchQuery}
-                onChange={handleQueryChange}
-                />
-                 <Button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 px-4">Search</Button>
-            </div>
-        </form>
-      </div>
+        <div className="mb-8">
+            <ProductSearch placeholder={t('businesses.search_placeholder')} />
+        </div>
 
       <div className="text-left mb-8">
         <p className="text-lg text-muted-foreground">{t('roles.showing_role_for')} {roleTitle} for</p>
