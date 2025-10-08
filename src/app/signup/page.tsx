@@ -124,6 +124,9 @@ export default function SignUpPage() {
             const storedUsersRaw = localStorage.getItem('users');
             const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
             
+            // The first user to sign up becomes an admin
+            const isAdmin = users.length === 0;
+
             const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
@@ -136,7 +139,8 @@ export default function SignUpPage() {
                 state: values.state,
                 createdAt: new Date().toISOString(),
                 purchaseHistory: [],
-                ghostCoins: 0
+                ghostCoins: 0,
+                isAdmin: isAdmin,
             };
 
             users.push(newUserProfile);
@@ -145,8 +149,8 @@ export default function SignUpPage() {
             await sendEmailVerification(user);
 
             toast({
-              title: t('toast.signup_success'),
-              description: t('toast.signup_success_desc_verification'),
+              title: isAdmin ? "Admin Account Created!" : t('toast.signup_success'),
+              description: isAdmin ? "You are the first user, so you are the admin. Please verify your email." : t('toast.signup_success_desc_verification'),
             });
 
             router.push("/signin");
@@ -316,5 +320,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-
-    

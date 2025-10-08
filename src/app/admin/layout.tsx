@@ -2,11 +2,15 @@
 "use client"
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Settings, Users, Image as ImageIcon, Store, LogOut, Languages } from "lucide-react";
+import { LayoutDashboard, Settings, Users, Image as ImageIcon, Store, LogOut, Languages, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 const sidebarNavItems = [
     {
@@ -44,6 +48,29 @@ const sidebarNavItems = [
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { user, userProfile, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !userProfile?.isAdmin) {
+                router.replace('/');
+            }
+        }
+    }, [user, userProfile, loading, router]);
+    
+    const handleSignOut = async () => {
+        await signOut(auth);
+        router.push('/');
+    };
+
+    if (loading || !userProfile || !userProfile.isAdmin) {
+        return (
+            <div className="container mx-auto my-8 flex justify-center items-center min-h-[60vh]">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto my-8">
@@ -54,8 +81,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                            A
                        </div>
                        <div>
-                           <p className="font-semibold">Admin User</p>
-                           <p className="text-xs text-muted-foreground">Superuser</p>
+                           <p className="font-semibold">{userProfile.businessName || userProfile.fullName || 'Admin User'}</p>
+                           <p className="text-xs text-muted-foreground">Administrator</p>
                        </div>
                    </div>
                     <nav className="flex flex-col space-y-1 flex-grow">
@@ -77,7 +104,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                         ))}
                     </nav>
                      <div className="mt-auto">
-                        <Button variant="ghost" className="w-full justify-start">
+                        <Button variant="ghost" className="w-full justify-start" onClick={handleSignOut}>
                             <LogOut className="mr-2 h-4 w-4" /> Logout
                         </Button>
                     </div>
