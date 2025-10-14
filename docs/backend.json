@@ -1,0 +1,181 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user of the application, who can be a buyer or a business owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique ID of the user, from Firebase Authentication."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user.",
+          "enum": ["buyer", "company", "wholesaler", "distributor", "shopkeeper"]
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the user, applicable if the role is 'buyer'."
+        },
+        "businessName": {
+          "type": "string",
+          "description": "The name of the business, applicable to business roles."
+        },
+        "category": {
+          "type": "string",
+          "description": "The primary business category, applicable to business roles."
+        },
+        "address": {
+          "type": "string",
+          "description": "The user's or business's full street address."
+        },
+        "city": {
+          "type": "string",
+          "description": "The city where the user or business is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state or province."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time when the user profile was created."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Flag to indicate if the user is an administrator."
+        },
+        "purchaseHistory": {
+          "type": "array",
+          "description": "A list of product purchase records for buyers.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": {
+                "type": "string"
+              },
+              "purchaseId": {
+                "type": "string",
+                "description": "The 14-digit unique identification number for the purchase."
+              },
+              "date": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "ghostCoins": {
+          "type": "number",
+          "description": "The number of Ghost Coins earned by the buyer."
+        }
+      },
+      "required": ["uid", "email", "role", "address", "city", "state", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Represents a product line or brand offered by a business.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique ID of the product."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the business owner who listed the product."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product line or brand."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category the product belongs to, inherited from the user's profile."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Active", "Archived", "Low Stock", "Out of Stock"]
+        },
+        "inventory": {
+          "type": "number",
+          "description": "The total inventory count for the product line."
+        },
+        "varieties": {
+          "type": "array",
+          "description": "A list of different varieties for this product.",
+          "items": {
+            "$ref": "#/entities/ProductVariety"
+          }
+        }
+      },
+      "required": ["id", "userId", "name", "category", "status", "inventory", "varieties"]
+    },
+    "ProductVariety": {
+      "title": "Product Variety",
+      "description": "Represents a specific variation of a product, like size, color, or flavor.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A unique ID for the variety."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the specific variety (e.g., 'Large', 'Red')."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of this variety."
+        },
+        "image": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL to the image of the variety, stored in Firebase Storage."
+        }
+      },
+      "required": ["id", "name", "price"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Represents a business or product category.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string",
+          "description": "The name of the lucide-react icon to display."
+        },
+        "href": {
+          "type": "string",
+          "description": "The link for the category page."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of the category."
+        }
+      },
+      "required": ["id", "name", "icon", "href", "order"]
+    }
+  },
+  "auth": {
+    "providers": ["email_password"]
+  },
+  "firestore": {}
+}
