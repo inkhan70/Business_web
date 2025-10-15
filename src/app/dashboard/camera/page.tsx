@@ -157,7 +157,7 @@ export default function CameraPage() {
                     <div className="aspect-video bg-black rounded-md overflow-hidden relative">
                          <video ref={videoRef} className={`w-full h-full object-cover ${capturedImage ? 'hidden' : ''}`} autoPlay muted playsInline />
                          {capturedImage && (
-                             <Image src={capturedImage} alt="Captured preview" layout="fill" objectFit="contain" />
+                             <Image src={capturedImage} alt="Captured preview" fill objectFit="contain" />
                          )}
                          {hasCameraPermission === false && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4">
