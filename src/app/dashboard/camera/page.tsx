@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { storage } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CameraPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -21,6 +22,7 @@ export default function CameraPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -83,18 +85,36 @@ export default function CameraPage() {
   };
   
   const handleSaveImage = async () => {
-    if (!capturedImage) return;
+    if (!capturedImage) {
+        toast({ title: 'No Image Captured', description: 'Please capture an image first.', variant: 'destructive' });
+        return;
+    }
+    if (!user) {
+        toast({ title: 'Authentication Error', description: 'You must be logged in to save images.', variant: 'destructive' });
+        return;
+    }
 
     setIsUploading(true);
     try {
-      const storageRef = ref(storage, `captures/${Date.now()}.png`);
-      await uploadString(storageRef, capturedImage, 'data_url');
+      // Use a path that includes the user's ID to match security rules
+      const storageRef = ref(storage, `images/${user.uid}/${Date.now()}.png`);
+      const uploadTask = await uploadString(storageRef, capturedImage, 'data_url');
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+
+      // Now, instead of just saving to the library, we can associate this image with a product.
+      // For now, we will just show a success message and redirect.
+      // In a real implementation, you would likely pass this downloadURL back to a product form.
       
       toast({
         title: 'Image Saved',
-        description: 'Your captured image has been saved to the library.',
+        description: 'Your captured image has been saved to Firebase Storage.',
       });
-      router.push('/dashboard/images');
+
+      // The camera page's job is done. We can't add it to a product from here.
+      // Redirecting to the images library is not ideal as local storage isn't updated.
+      // We will redirect to the dashboard. The user can then add the image from storage when creating a product.
+      router.push('/dashboard');
+
     } catch (error: any) {
       console.error("Error saving image:", error);
       let description = "There was a problem saving your image. Please try again.";
