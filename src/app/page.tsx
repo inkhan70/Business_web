@@ -31,7 +31,7 @@ export default function Home() {
                 {t('home.title')}
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground my-8">
-                {t('home.description')}
+                Digital World is a business community where you can find thousands of businesses across the globe related to your needs. Here you can find the best quality products with low prices and custom search. If you are a producer, distributor, wholesaler, shopkeeper, or supply raw materials for producers, then this is the best place for you to bring your business online with our community of thousands of customers who buy your products rapidly.
               </p>
               
               <p className="max-w-xl text-sm text-muted-foreground my-8">
