@@ -4,11 +4,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal } from 'lucide-react';
+import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const iconMap: { [key: string]: React.ElementType } = {
     UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal
@@ -38,6 +40,7 @@ export default function CategoriesPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
+  const { userProfile } = useAuth();
 
   useEffect(() => {
     const fetchCategories = () => {
@@ -84,6 +87,16 @@ export default function CategoriesPage() {
         <p className="max-w-xl mx-auto text-lg text-muted-foreground mt-4">
           {t('categories.description')}
         </p>
+        {userProfile?.isAdmin && (
+            <div className="mt-6">
+                <Button asChild>
+                    <Link href="/admin/categories">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Manage Categories
+                    </Link>
+                </Button>
+            </div>
+        )}
       </div>
 
         {loading ? (
