@@ -161,13 +161,15 @@ export default function SignUpPage() {
                 description = "This email address is already in use by another account. Please sign in instead.";
             } else if (error.code === 'auth/invalid-email') {
                 description = "The email address you entered is not valid. Please check and try again.";
+            } else if (error.code === 'auth/weak-password') {
+                description = 'The password is too weak. Please choose a stronger password.';
             }
             toast({
                 title: "Sign-up Failed",
                 description: description,
                 variant: "destructive",
             });
-            console.error(error);
+            console.error("Sign-up error:", error);
         } finally {
             setIsLoading(false);
         }
