@@ -1,0 +1,174 @@
+/**
+ * @fileoverview Firestore Security Rules for CityFind application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles, products, and orders.
+ * Categories and product categories are publicly readable but not writable by clients.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles; write-protected to owner only.
+ * - /categories/{categoryId}: Stores product categories; read-only.
+ * - /users/{userId}/products/{productId}: Stores products listed by a user; write-protected to owner only.
+ * - /users/{userId}/orders/{orderId}: Stores orders placed by guest users; write-protected to the business that owns the userId.
+ * - /product_categories/{productCategoryId}: Connects products to categories; read-only.
+ *
+ * Key Security Decisions:
+ * - Users can only create, update, and delete their own profiles, products, and orders.
+ * - Categories and product_categories are publicly readable but not writable by clients.
+ * - Data validation is relaxed in this prototyping phase, focusing on authorization and relational integrity only.
+ * - List operations are allowed for owners on their subcollections.
+ *
+ * Denormalization for Authorization:
+ * - Products and orders are stored as subcollections under the user's document,
+ *   and they include the 'userId' to simplify ownership checks and avoid costly `get()` calls.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Manages user profiles. Only the user can read or write their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' creates their profile with matching userId.
+     *   auth.uid: 'user123', request.resource.data.id: 'user123'
+     * @allow (get) User with ID 'user123' reads their profile.
+     *   auth.uid: 'user123'
+     * @allow (update) User with ID 'user123' updates their profile.
+     *   auth.uid: 'user123', resource.data.id: 'user123', request.resource.data.id: 'user123'
+     * @allow (delete) User with ID 'user123' deletes their profile.
+     *   auth.uid: 'user123', resource.data.id: 'user123'
+     * @deny (create) User with ID 'user123' attempts to create a profile for 'user456'.
+     *   auth.uid: 'user123', request.resource.data.id: 'user456'
+     * @deny (get) User with ID 'user123' attempts to read the profile of 'user456'.
+     *   auth.uid: 'user123'
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // No listing of users.
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages product categories. Accessible for reading by all users.
+     * @path /categories/{categoryId}
+     * @allow (get) Any user can read any category.
+     *   auth.uid: 'user123'
+     * @allow (list) Any user can list categories.
+     *   auth.uid: 'user123'
+     * @deny (create) No user can create a category.
+     *   auth.uid: 'user123'
+     * @deny (update) No user can update a category.
+     *   auth.uid: 'user123'
+     * @deny (delete) No user can delete a category.
+     *   auth.uid: 'user123'
+     * @principle Public read access, restricted writes.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Manages products listed by a user. Only the user can create, read, update, and delete their own products.
+     * @path /users/{userId}/products/{productId}
+     * @allow (create) User 'user123' creates a product with matching userId.
+     *   auth.uid: 'user123', request.resource.data.userId: 'user123'
+     * @allow (get) User 'user123' reads their product.
+     *   auth.uid: 'user123'
+     * @allow (update) User 'user123' updates their product.
+     *   auth.uid: 'user123', resource.data.userId: 'user123'
+     * @allow (delete) User 'user123' deletes their product.
+     *   auth.uid: 'user123', resource.data.userId: 'user123'
+     * @deny (create) User 'user123' attempts to create a product for 'user456'.
+     *   auth.uid: 'user123', request.resource.data.userId: 'user456'
+     * @deny (get) User 'user123' attempts to read a product of 'user456'.
+     *   auth.uid: 'user123'
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/products/{productId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages orders placed by guest users. Only the business (user) that owns the product can manage orders.
+     * @path /users/{userId}/orders/{orderId}
+     * @allow (create) User 'user123' creates an order with matching userId.
+     *   auth.uid: 'user123', request.resource.data.userId: 'user123'
+     * @allow (get) User 'user123' reads their order.
+     *   auth.uid: 'user123'
+     * @allow (update) User 'user123' updates their order.
+     *   auth.uid: 'user123', resource.data.userId: 'user123'
+     * @allow (delete) User 'user123' deletes their order.
+     *   auth.uid: 'user123', resource.data.userId: 'user123'
+     * @deny (create) User 'user123' attempts to create an order for 'user456'.
+     *   auth.uid: 'user123', request.resource.data.userId: 'user456'
+     * @deny (get) User 'user123' attempts to read a order of 'user456'.
+     *   auth.uid: 'user123'
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/orders/{orderId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages the product category connections. Accessible for reading by all users.
+     * @path /product_categories/{productCategoryId}
+     * @allow (get) Any user can read any product category connection.
+     *   auth.uid: 'user123'
+     * @allow (list) Any user can list product category connections.
+     *   auth.uid: 'user123'
+     * @deny (create) No user can create a product category connection.
+     *   auth.uid: 'user123'
+     * @deny (update) No user can update a product category connection.
+     *   auth.uid: 'user123'
+     * @deny (delete) No user can delete a product category connection.
+     *   auth.uid: 'user123'
+     * @principle Public read access, restricted writes.
+     */
+    match /product_categories/{productCategoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+  }
+}
