@@ -4,58 +4,74 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the CityFind application.",
+      "description": "Represents a user of the CityFind application. Can be a business owner or a buyer.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "The unique user ID from Firebase Authentication."
         },
-        "emailOrPhone": {
+        "email": {
           "type": "string",
-          "description": "User's email address or phone number for login."
-        },
-        "password": {
-          "type": "string",
-          "description": "Hashed password for user authentication. Note: actual password should never be stored directly.",
-          "format": "password"
-        },
-        "businessName": {
-          "type": "string",
-          "description": "Name of the user's business."
+          "format": "email",
+          "description": "User's email address for login."
         },
         "role": {
           "type": "string",
-          "description": "User's role (e.g., company, wholesaler, distributor, shopkeeper)."
-        },
-        "city": {
-          "type": "string",
-          "description": "City where the user's business is located."
-        },
-        "location": {
-          "type": "string",
-          "description": "Specific location of the user's business."
+          "description": "The user's role in the application.",
+          "enum": ["company", "wholesaler", "distributor", "shopkeeper", "buyer"]
         },
         "address": {
           "type": "string",
-          "description": "Full address of the user's business."
+          "description": "Full address of the user or business."
+        },
+        "city": {
+          "type": "string",
+          "description": "City where the user or business is located."
+        },
+        "state": {
+          "type": "string",
+          "description": "State or province."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user account was created."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Flag indicating if the user has administrator privileges."
+        },
+        "businessName": {
+          "type": "string",
+          "description": "Name of the user's business. Required for business roles."
+        },
+        "category": {
+          "type": "string",
+          "description": "Primary business category. Required for business roles."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the user. Required for the 'buyer' role."
+        },
+        "purchaseHistory": {
+          "type": "array",
+          "description": "A list of unique 14-digit identification numbers for products purchased by a buyer.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ghostCoins": {
+          "type": "number",
+          "description": "The number of reward coins a buyer has earned."
         }
       },
-      "required": [
-        "id",
-        "emailOrPhone",
-        "password",
-        "businessName",
-        "role",
-        "city",
-        "location",
-        "address"
-      ]
+      "required": ["uid", "email", "role", "address", "city", "state", "createdAt"]
     },
     "Product": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a product listed by a business.",
+      "description": "Represents a product line or brand listed by a business.",
       "properties": {
         "id": {
           "type": "string",
@@ -63,58 +79,52 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Product)"
+          "description": "Reference to the User who owns this product."
         },
         "name": {
           "type": "string",
-          "description": "Name of the product."
+          "description": "Name of the product line or brand."
         },
         "description": {
           "type": "string",
-          "description": "Detailed description of the product."
+          "description": "Detailed description of the product line."
         },
-        "price": {
+        "category": {
+            "type": "string",
+            "description": "The business category this product belongs to."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the product.",
+          "enum": ["Active", "Archived", "Low Stock", "Out of Stock"]
+        },
+        "inventory": {
           "type": "number",
-          "description": "Price of the product."
+          "description": "Total inventory count for all varieties of this product."
         },
-        "colour": {
-          "type": "string",
-          "description": "Color of the product."
-        },
-        "weight": {
-          "type": "number",
-          "description": "Weight of the product."
-        },
-        "size": {
-          "type": "string",
-          "description": "Size of the product."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the product's image.",
-          "format": "uri"
-        },
-        "variants": {
+        "varieties": {
           "type": "array",
-          "description": "List of product variants",
+          "description": "List of specific product varieties.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "image": { "type": "string", "format": "uri" },
+              "dataAiHint": {"type": "string"}
+            },
+            "required": ["id", "name", "price"]
           }
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "description",
-        "price"
-      ]
+      "required": ["id", "userId", "name", "status", "inventory", "varieties"]
     },
     "Category": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Category",
       "type": "object",
-      "description": "Represents a product category.",
+      "description": "Represents a business/product category.",
       "properties": {
         "id": {
           "type": "string",
@@ -123,88 +133,22 @@
         "name": {
           "type": "string",
           "description": "Name of the category (e.g., Food, Drinks, Electronics)."
+        },
+        "icon": {
+            "type": "string",
+            "description": "The name of the lucide-react icon for the category."
+        },
+        "order": {
+            "type": "number",
+            "description": "The display order of the category."
         }
       },
-      "required": [
-        "id",
-        "name"
-      ]
-    },
-    "ProductCategory": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProductCategory",
-      "type": "object",
-      "description": "Connects a product to a category.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ProductCategory entity."
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to Product. (Relationship: Product N:N Category)"
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to Category. (Relationship: Category N:N Product)"
-        }
-      },
-      "required": [
-        "id",
-        "productId",
-        "categoryId"
-      ]
-    },
-    "Order": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Order",
-      "type": "object",
-      "description": "Represents an order placed by a guest user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Order entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Order)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to Product. (Relationship: Product 1:N Order)"
-        },
-        "guestAddress": {
-          "type": "string",
-          "description": "Delivery address provided by the guest user."
-        },
-        "transportationCost": {
-          "type": "number",
-          "description": "Transportation cost for the order."
-        },
-        "paymentMethod": {
-          "type": "string",
-          "description": "Payment method used by the guest user (e.g., app payment system, manual)."
-        },
-        "orderDate": {
-          "type": "string",
-          "description": "The date and time the order was placed",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "productId",
-        "guestAddress",
-        "transportationCost",
-        "paymentMethod"
-      ]
+      "required": ["id", "name", "icon", "order"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -214,13 +158,13 @@
         "definition": {
           "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/User"
           },
-          "description": "Stores user profiles. Path-based ownership for private user data.",
+          "description": "Stores all user profiles, including businesses and buyers.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The unique identifier for the user, matching their Firebase Auth UID."
             }
           ]
         }
@@ -230,9 +174,9 @@
         "definition": {
           "entityName": "Category",
           "schema": {
-            "$ref": "#/backend/entities/Category"
+            "$ref": "#/entities/Category"
           },
-          "description": "Stores product categories.",
+          "description": "Stores the list of available business categories. Typically managed by an admin.",
           "params": [
             {
               "name": "categoryId",
@@ -246,13 +190,13 @@
         "definition": {
           "entityName": "Product",
           "schema": {
-            "$ref": "#/backend/entities/Product"
+            "$ref": "#/entities/Product"
           },
-          "description": "Stores products listed by a user. Includes denormalized 'userId' for authorization independence.",
+          "description": "Stores products listed by a specific business user. Path provides ownership context.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user."
+              "description": "The UID of the business user who owns this product."
             },
             {
               "name": "productId",
@@ -260,44 +204,8 @@
             }
           ]
         }
-      },
-      {
-        "path": "/users/{userId}/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores orders placed by guest users to a specific business. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "orderId",
-              "description": "The unique identifier for the order."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/product_categories/{productCategoryId}",
-        "definition": {
-          "entityName": "ProductCategory",
-          "schema": {
-            "$ref": "#/backend/entities/ProductCategory"
-          },
-          "description": "Connects a product to a category.",
-          "params": [
-            {
-              "name": "productCategoryId",
-              "description": "The unique identifier for the product category connection."
-            }
-          ]
-        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the CityFind application's core features, focusing on user and product data, category browsing, and proximity-based searches. The structure prioritizes Authorization Independence by denormalizing user roles and business information where needed.  Specifically, the `products` subcollection includes the `userId` from the parent `user` document, eliminating the need for `get()` calls in security rules when associating a product to its owner and enabling simple validation of ownership. The structure facilitates QAPs (Rules are not Filters) through structural segregation. User-owned data (products, orders) are placed in subcollections under the user document. This design facilitates efficient and secure list operations based on user roles and ownership.  The proximity search feature will require server-side indexing to efficiently query based on geographic location. The `users` collection directly stores user data.  The `categories` collection holds category information.  The `users/{userId}/products` collection stores product information related to specific users.  The `users/{userId}/orders` collection stores order information related to specific users. The `product_categories` collection represents the many-to-many relationship between products and categories. For testing, you could use the Firestore emulator to simulate a local Firestore database."
+    "reasoning": "This Firestore structure is designed for clear data ownership and efficient queries. User-specific data like profiles and products are stored in a way that naturally aligns with security rules (e.g., a user can only write to their own /users/{userId} document). Storing products in a subcollection under the user who created them makes it easy to list all products for a specific business. The top-level 'categories' collection is for globally accessible data. This design is scalable and secure."
   }
 }
