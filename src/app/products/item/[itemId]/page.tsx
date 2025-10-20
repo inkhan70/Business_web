@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Minus, Plus, ShoppingCart } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Share2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +48,22 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
         description: `${quantity} x ${selectedVariety.name} has been added.`
     });
   }
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      toast({
+        title: "Link Copied!",
+        description: "Product link has been copied to your clipboard.",
+      });
+    }, (err) => {
+      console.error('Could not copy text: ', err);
+      toast({
+        title: "Failed to Copy",
+        description: "Could not copy the link. Please try again.",
+        variant: "destructive",
+      })
+    });
+  };
 
 
   return (
@@ -97,9 +113,14 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
 
               <Separator className="my-6" />
               
-              <Button className="w-full" size="lg" onClick={handleAddToCart}>
-                <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.add_to_cart')}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button className="w-full" size="lg" onClick={handleAddToCart}>
+                    <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.add_to_cart')}
+                </Button>
+                <Button variant="outline" size="lg" onClick={handleShare}>
+                    <Share2 className="mr-2 h-5 w-5" /> Share
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
