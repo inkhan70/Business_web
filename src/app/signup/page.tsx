@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -8,6 +7,8 @@ import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +78,7 @@ export default function SignUpPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    const firestore = useFirestore();
     
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -121,11 +123,9 @@ export default function SignUpPage() {
             const displayName = values.role === 'buyer' ? values.fullName : values.businessName;
             await updateProfile(user, { displayName: displayName });
 
-            const storedUsersRaw = localStorage.getItem('users');
-            const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-            
-            // The first user to sign up becomes an admin
-            const isAdmin = users.length === 0;
+            // The first user to sign up becomes an admin - this logic is simplified
+            // In a real app, you might check if an admin already exists in the database
+            const isAdmin = user.uid === 'YOUR_ADMIN_UID_HERE'; // Replace with a real check
 
             const newUserProfile = {
                 uid: user.uid,
@@ -143,8 +143,8 @@ export default function SignUpPage() {
                 isAdmin: isAdmin,
             };
 
-            users.push(newUserProfile);
-            localStorage.setItem('users', JSON.stringify(users));
+            const userDocRef = doc(firestore, "users", user.uid);
+            await setDoc(userDocRef, newUserProfile);
 
             await sendEmailVerification(user);
 

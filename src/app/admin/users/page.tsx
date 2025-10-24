@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -32,6 +31,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useCollection } from "@/firebase";
+import { collection, deleteDoc, doc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 interface User {
     uid: string;
@@ -44,50 +46,25 @@ interface User {
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
+    const usersCollection = collection(firestore, "users");
+    const { data: users, isLoading: loading, error } = useCollection<User>(usersCollection);
 
-    useEffect(() => {
-        const fetchUsers = () => {
-            setLoading(true);
-            try {
-                const storedUsersRaw = localStorage.getItem('users');
-                if (storedUsersRaw) {
-                    const allUsers: User[] = JSON.parse(storedUsersRaw);
-                    // Sort users by creation date, newest first
-                    allUsers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                    setUsers(allUsers);
-                }
-            } catch (error) {
-                console.error("Error fetching users from localStorage:", error);
-                toast({
-                    title: "Error Loading Users",
-                    description: "Could not load user data from browser storage.",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUsers();
-    }, [toast]);
-
-    const handleDeleteUser = (uid: string, name: string) => {
+    const handleDeleteUser = async (uid: string, name: string) => {
         try {
-            const updatedUsers = users.filter(user => user.uid !== uid);
-            localStorage.setItem("users", JSON.stringify(updatedUsers));
-            setUsers(updatedUsers);
+            const userDoc = doc(firestore, 'users', uid);
+            await deleteDoc(userDoc);
             toast({
                 title: "User Deleted",
-                description: `The account for "${name}" has been removed.`,
+                description: `The account for "${name}" has been removed from the database.`,
             });
         } catch (error) {
              toast({
                 title: "Error Deleting User",
-                description: "Could not remove the user from storage.",
+                description: "Could not remove the user from the database.",
                 variant: "destructive",
             });
+            console.error("Error deleting user: ", error);
         }
     };
     
@@ -101,7 +78,7 @@ export default function AdminUsersPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold font-headline">User Management</h1>
         <p className="text-muted-foreground">
-          View, manage, and remove user accounts.
+          View, manage, and remove user accounts from the database.
         </p>
       </div>
 
@@ -128,7 +105,13 @@ export default function AdminUsersPage() {
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                             </TableCell>
                         </TableRow>
-                    ) : users.length > 0 ? (
+                    ) : error ? (
+                         <TableRow>
+                            <TableCell colSpan={5} className="py-12 text-center text-red-500">
+                                <p>Error loading users: {error.message}</p>
+                            </TableCell>
+                        </TableRow>
+                    ) : users && users.length > 0 ? (
                         users.map(user => (
                             <TableRow key={user.uid}>
                                 <TableCell className="font-medium">{user.businessName || user.fullName || "N/A"}</TableCell>
@@ -148,7 +131,7 @@ export default function AdminUsersPage() {
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This will permanently delete the account for <strong>{user.businessName || user.fullName}</strong>. This action cannot be undone.
+                                                This will permanently delete the account for <strong>{user.businessName || user.fullName}</strong> from the database. This action cannot be undone.
                                             </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -168,7 +151,7 @@ export default function AdminUsersPage() {
                         <TableRow>
                             <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                                 <Users className="mx-auto h-10 w-10 mb-2"/>
-                                No users found.
+                                No users found in the database.
                             </TableCell>
                         </TableRow>
                     )}

@@ -1,9 +1,10 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import { doc } from "firebase/firestore";
 import { auth } from '@/lib/firebase';
+import { useDoc, useFirestore } from '@/firebase';
 
 export interface UserProfile {
     uid: string;
@@ -32,38 +33,25 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const firestore = useFirestore();
+
+  const userDocRef = user ? doc(firestore, "users", user.uid) : null;
+  const { data: userProfile, isLoading: profileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      if (user) {
-        // Fetch user profile from localStorage
-        const storedUsersRaw = localStorage.getItem('users');
-        if (storedUsersRaw) {
-          const storedUsers = JSON.parse(storedUsersRaw);
-          const profile = storedUsers.find((p: UserProfile) => p.uid === user.uid);
-          if (profile) {
-            setUserProfile(profile);
-          } else {
-            console.log("No such user profile in localStorage!");
-            setUserProfile(null);
-          }
-        } else {
-            setUserProfile(null);
-        }
-      } else {
-        setUserProfile(null);
-      }
-      setLoading(false);
+      setAuthLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
+  const loading = authLoading || (user ? profileLoading : false);
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading }}>
+    <AuthContext.Provider value={{ user, userProfile: userProfile || null, loading }}>
       {children}
     </AuthContext.Provider>
   );
