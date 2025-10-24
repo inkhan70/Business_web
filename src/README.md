@@ -1,7 +1,7 @@
 
-# Digital World: Your Local Business Connection
+# business_web: Your Local Business Connection
 
-Welcome to Digital World, a platform designed to connect local producers, wholesalers, distributors, and shopkeepers with their customers and each other. Our goal is to empower local commerce by providing businesses with the tools they need to establish an online presence and for customers to easily find and purchase local goods.
+Welcome to business_web, a platform designed to connect local producers, wholesalers, distributors, and shopkeepers with their customers and each other. Our goal is to empower local commerce by providing businesses with the tools they need to establish an online presence and for customers to easily find and purchase local goods.
 
 ## Core Features
 

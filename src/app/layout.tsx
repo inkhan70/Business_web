@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Providers } from '@/components/Providers';
 
 export const metadata: Metadata = {
-  title: 'Digital World',
+  title: 'business_web',
   description: 'Find and connect with local businesses and distributors in your city.',
 };
 

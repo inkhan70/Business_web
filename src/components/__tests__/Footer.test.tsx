@@ -6,7 +6,7 @@ describe('Footer', () => {
     render(<Footer />);
     
     const year = new Date().getFullYear();
-    const copyrightText = screen.getByText(`© ${year} Digital World. All rights reserved.`);
+    const copyrightText = screen.getByText(`© ${year} business_web. All rights reserved.`);
     
     expect(copyrightText).toBeInTheDocument();
   });
