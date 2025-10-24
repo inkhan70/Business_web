@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, PlusCircle, Camera, Trash2, Edit, Loader2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, Edit, Loader2 } from "lucide-react";
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -153,11 +153,6 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground">here you can add or delete products pictures and information for your business</p>
             </div>
             <div className="flex space-x-2">
-                <Button variant="outline" asChild>
-                    <Link href="/dashboard/camera">
-                        <Camera className="mr-2 h-4 w-4" /> Live Camera
-                    </Link>
-                </Button>
                 <Button asChild>
                     <Link href="/dashboard/products">
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Product

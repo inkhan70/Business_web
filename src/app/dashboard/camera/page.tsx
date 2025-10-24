@@ -2,29 +2,37 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, VideoOff, Camera, Upload, RotateCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, VideoOff, Camera, Upload, RotateCw, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { storage } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function CameraPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from');
+  const varietyIndex = searchParams.get('varietyIndex');
 
   useEffect(() => {
+    // This page is only for use from the product form now
+    if (from !== 'product-form' || varietyIndex === null) {
+        toast({
+            title: "Invalid Access",
+            description: "Please access the camera via the 'Add/Edit Product' page.",
+            variant: "destructive"
+        });
+        router.push('/dashboard/products');
+        return;
+    }
+
     const getCameraPermission = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error("Media Devices API not available.");
@@ -63,7 +71,7 @@ export default function CameraPage() {
             stream.getTracks().forEach(track => track.stop());
         }
     };
-  }, [toast]);
+  }, [toast, router, from, varietyIndex]);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -84,52 +92,32 @@ export default function CameraPage() {
     setCapturedImage(null);
   };
   
-  const handleSaveImage = async () => {
+  const handleUseImage = () => {
     if (!capturedImage) {
         toast({ title: 'No Image Captured', description: 'Please capture an image first.', variant: 'destructive' });
         return;
     }
-    if (!user) {
-        toast({ title: 'Authentication Error', description: 'You must be logged in to save images.', variant: 'destructive' });
-        return;
-    }
-
-    setIsUploading(true);
+    
     try {
-      // Use a path that includes the user's ID to match security rules
-      const storageRef = ref(storage, `images/${user.uid}/${Date.now()}.png`);
-      const uploadTask = await uploadString(storageRef, capturedImage, 'data_url');
-      const downloadURL = await getDownloadURL(uploadTask.ref);
+      // Store the image data in sessionStorage to pass it back to the form
+      sessionStorage.setItem('capturedImageData', capturedImage);
+      sessionStorage.setItem('capturedImageTargetIndex', varietyIndex!);
 
-      // Now, instead of just saving to the library, we can associate this image with a product.
-      // For now, we will just show a success message and redirect.
-      // In a real implementation, you would likely pass this downloadURL back to a product form.
-      
       toast({
-        title: 'Image Saved',
-        description: 'Your captured image has been saved to Firebase Storage.',
+        title: 'Image Selected',
+        description: 'You will now be returned to the product form.',
       });
 
-      // The camera page's job is done. We can't add it to a product from here.
-      // Redirecting to the images library is not ideal as local storage isn't updated.
-      // We will redirect to the dashboard. The user can then add the image from storage when creating a product.
-      router.push('/dashboard');
+      // Go back to the previous page (the product form)
+      router.back();
 
-    } catch (error: any) {
-      console.error("Error saving image:", error);
-      let description = "There was a problem saving your image. Please try again.";
-      if (error.code === 'storage/unauthorized') {
-        description = "You do not have permission to upload images. Please check your storage security rules.";
-      } else if (error.code === 'storage/retry-limit-exceeded') {
-        description = "Upload timed out. Please check your internet connection and try again. This can also be caused by incorrect Storage security rules.";
-      }
+    } catch (error) {
+      console.error("Error saving to sessionStorage:", error);
       toast({
-        title: 'Upload Failed',
-        description: description,
+        title: 'Failed to Select Image',
+        description: "There was a problem preparing the image. Please try again.",
         variant: 'destructive',
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -137,14 +125,12 @@ export default function CameraPage() {
   return (
     <div className="space-y-6">
         <div className="flex items-center space-x-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href="/dashboard">
-                    <ArrowLeft className="h-4 w-4" />
-                </Link>
+            <Button variant="outline" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
                 <h1 className="text-2xl font-bold font-headline">Live Camera</h1>
-                <p className="text-muted-foreground">Use your device's camera to capture product images.</p>
+                <p className="text-muted-foreground">Capture an image for your product variety.</p>
             </div>
         </div>
 
@@ -157,7 +143,7 @@ export default function CameraPage() {
                     <div className="aspect-video bg-black rounded-md overflow-hidden relative">
                          <video ref={videoRef} className={`w-full h-full object-cover ${capturedImage ? 'hidden' : ''}`} autoPlay muted playsInline />
                          {capturedImage && (
-                             <Image src={capturedImage} alt="Captured preview" fill objectFit="contain" />
+                             <Image src={capturedImage} alt="Captured preview" layout="fill" objectFit="contain" />
                          )}
                          {hasCameraPermission === false && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white p-4">
@@ -183,13 +169,13 @@ export default function CameraPage() {
                                 </Button>
                             ) : (
                                 <>
-                                    <Button size="lg" variant="outline" onClick={handleRetake} disabled={isUploading}>
+                                    <Button size="lg" variant="outline" onClick={handleRetake}>
                                         <RotateCw className="mr-2 h-4 w-4" />
                                         Retake
                                     </Button>
-                                    <Button size="lg" onClick={handleSaveImage} disabled={isUploading}>
-                                        {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                        {isUploading ? 'Saving...' : 'Save Image'}
+                                    <Button size="lg" onClick={handleUseImage}>
+                                        <Check className="mr-2 h-4 w-4" />
+                                        Use This Image
                                     </Button>
                                 </>
                             )}

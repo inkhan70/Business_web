@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, Camera, LogOut } from "lucide-react";
+import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
@@ -27,11 +27,6 @@ const sidebarNavItems = [
         title: "Images",
         href: "/dashboard/images",
         icon: ImageIconLucide,
-    },
-    {
-        title: "Camera",
-        href: "/dashboard/camera",
-        icon: Camera,
     },
     {
         title: "Orders",

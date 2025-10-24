@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle, Camera } from 'lucide-react';
 import { useAuth, UserProfile } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -112,6 +112,24 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }, [userProfile, getValues, setValue]);
 
     useEffect(() => {
+        // Check for image data from camera page on mount
+        const capturedImage = sessionStorage.getItem('capturedImageData');
+        const targetIndex = sessionStorage.getItem('capturedImageTargetIndex');
+
+        if (capturedImage && targetIndex !== null) {
+            const index = parseInt(targetIndex, 10);
+            setValue(`varieties.${index}.image`, capturedImage, { shouldValidate: true });
+            
+            // Clean up sessionStorage
+            sessionStorage.removeItem('capturedImageData');
+            sessionStorage.removeItem('capturedImageTargetIndex');
+
+            toast({
+                title: 'Image Applied',
+                description: 'The image captured from your camera has been added to the variety.'
+            });
+        }
+
         const fetchProduct = () => {
             if (editId) {
                 const storedProductsRaw = localStorage.getItem('products');
@@ -132,7 +150,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             }
         };
         fetchProduct();
-    }, [editId, form, router, toast]);
+    }, [editId, form, router, toast, setValue]);
 
     useEffect(() => {
         // Load image library for the user's category
@@ -398,19 +416,24 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                             )}
                                                         </CardContent>
                                                     </Card>
-                                                    <div className='grid grid-cols-2 gap-2 w-full'>
+                                                    <div className='grid grid-cols-3 gap-2 w-full'>
                                                         <Label htmlFor={`image-upload-${index}`} className='w-full'>
                                                             <Button type="button" variant="outline" size="sm" className="w-full" asChild>
                                                                 <span>
-                                                                    <Upload className="mr-2 h-4 w-4" /> Upload
+                                                                    <Upload className="h-4 w-4" />
                                                                 </span>
                                                             </Button>
                                                             <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
                                                         </Label>
+                                                        <Button type="button" variant="outline" size="sm" className="w-full" asChild>
+                                                            <Link href={`/dashboard/camera?from=product-form&varietyIndex=${index}`}>
+                                                                <Camera className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
                                                           <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
                                                             <DialogTrigger asChild>
                                                                 <Button type="button" variant="outline" size="sm" className="w-full">
-                                                                    <Library className="mr-2 h-4 w-4" /> Library
+                                                                    <Library className="h-4 w-4" />
                                                                 </Button>
                                                             </DialogTrigger>
                                                             <DialogContent className="max-w-4xl">
@@ -490,5 +513,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    
