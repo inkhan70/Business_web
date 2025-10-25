@@ -1,16 +1,15 @@
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Match any file path under the 'images' folder
+    // Match any file path that starts with 'images/'
     match /images/{userId}/{allPaths=**} {
-      // Allow read access to anyone (e.g., for viewing product images)
+      // Allow read access to anyone (e.g., to display images in the app)
       allow read;
 
-      // Allow write access (create, update, delete) only if:
-      // 1. The user is authenticated.
-      // 2. The `userId` in the path matches the authenticated user's ID.
-      // 3. The uploaded file is an image.
-      // 4. The image size is less than 5MB.
+      // Allow write (create, update, delete) access only if the user is authenticated,
+      // the userId in the path matches the authenticated user's ID,
+      // the uploaded file is an image, and the file size is less than 5MB.
       allow write: if request.auth != null 
                     && request.auth.uid == userId
                     && request.resource.contentType.matches('image/.*')

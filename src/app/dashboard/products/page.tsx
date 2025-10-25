@@ -36,6 +36,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import images from '@/app/lib/placeholder-images.json';
+import { storage } from '@/lib/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -195,10 +197,10 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit to match storage rules
                 toast({
                     title: "Image Too Large",
-                    description: "Please select an image smaller than 10MB.",
+                    description: "Please select an image smaller than 5MB.",
                     variant: "destructive"
                 });
                 return;
@@ -208,11 +210,12 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const dataUrl = reader.result as string;
+                // We just set the data URL for preview. The actual upload happens on submit.
                 setValue(`varieties.${fieldIndex}.image`, dataUrl, { shouldValidate: true });
                 setIsUploading(false);
                 toast({
-                    title: "Image Ready",
-                    description: "Image preview is ready to be saved with the product.",
+                    title: "Image Preview Ready",
+                    description: "Image will be uploaded when you save the product.",
                 });
             };
             reader.onerror = () => {
@@ -238,21 +241,44 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
     }
 
+    const uploadImage = async (dataUrl: string, userId: string): Promise<string> => {
+        if (dataUrl.startsWith('http')) {
+            // This is already an uploaded image URL, no need to re-upload
+            return dataUrl;
+        }
+        
+        const storageRef = ref(storage, `images/${userId}/${Date.now()}.png`);
+        const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+    }
+
     async function onSubmit(data: ProductFormValues) {
         if (!user || !userProfile) {
             toast({ title: "Not Authenticated", description: "You must be logged in.", variant: "destructive" });
             return;
         }
 
+        setIsUploading(true);
         try {
-            const storedProductsRaw = localStorage.getItem('products');
-            let products = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+            // Process and upload images for varieties that have new base64 data
+            const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
+                if (variety.image && variety.image.startsWith('data:image')) {
+                    const uploadedUrl = await uploadImage(variety.image, user.uid);
+                    return { ...variety, image: uploadedUrl };
+                }
+                return variety;
+            }));
 
             const productData = {
                 ...data,
+                varieties: updatedVarieties,
                 userId: user.uid,
-                category: data.category // Ensure the submitted data has the category from the form
+                category: data.category
             };
+
+            const storedProductsRaw = localStorage.getItem('products');
+            let products = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
 
             if (editId) {
                 const productIndex = products.findIndex((p: ProductFormValues) => p.id === editId);
@@ -278,12 +304,14 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             router.push('/dashboard');
             router.refresh();
         } catch (error: any) {
-            console.error("Error saving product to localStorage: ", error);
+            console.error("Error saving product: ", error);
             toast({
-                title: "Error",
-                description: "Could not save the product. Please try again.",
+                title: "Error Saving Product",
+                description: error.message || "Could not save the product. Please check your connection and security rules.",
                 variant: "destructive",
             });
+        } finally {
+            setIsUploading(false);
         }
     }
     
@@ -522,8 +550,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
 
                         <div className="flex justify-end space-x-2 pt-8">
                              <Button type="submit" disabled={isUploading || isSubmitting}>
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {editId ? 'Save Changes' : 'Create Product'}
+                                {(isUploading || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isUploading ? 'Uploading...' : isSubmitting ? 'Saving...' : editId ? 'Save Changes' : 'Create Product'}
                              </Button>
                         </div>
                     </form>
@@ -554,5 +582,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    
