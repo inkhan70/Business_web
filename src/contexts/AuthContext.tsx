@@ -1,14 +1,16 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import { doc } from "firebase/firestore";
-import { useUser, useFirestore, useAuth } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
 export interface UserProfile {
     uid: string;
     email: string;
     businessName: string;
+    fullName?: string;
     role: string;
     category: string;
     address: string;
@@ -34,37 +36,22 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isUserLoading } = useUser();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const firestore = useFirestore();
+  
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, "users", user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
-    if (user && firestore) {
-      setProfileLoading(true);
-      const userDocRef = doc(firestore, "users", user.uid);
-      
-      // Using a local onSnapshot listener for the profile
-      const unsubscribe = require('firebase/firestore').onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
-        } else {
-          setUserProfile(null);
-        }
-        setProfileLoading(false);
-      }, (error) => {
-        console.error("Error fetching user profile:", error);
-        setUserProfile(null);
-        setProfileLoading(false);
-      });
-
-      return () => unsubscribe();
-    } else {
-      setUserProfile(null);
-      setProfileLoading(false);
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError);
     }
-  }, [user, firestore]);
+  }, [profileError]);
   
-  const loading = isUserLoading || profileLoading;
+  const loading = isUserLoading || (user && isProfileLoading);
 
   return (
     <AuthContext.Provider value={{ user, userProfile, loading }}>
