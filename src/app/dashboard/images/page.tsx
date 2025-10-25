@@ -5,10 +5,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { PlusCircle, Download, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { PlusCircle, Download, AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { useAuth, UserProfile } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ImageAsset {
     id: string; // Using data URL as ID for simplicity
@@ -42,6 +42,11 @@ export default function ProductImagesPage() {
 
         setLoading(true);
         setUserCategory(userProfile.category);
+
+        if (!userProfile.category) {
+            setLoading(false);
+            return;
+        }
 
         try {
             const storedProductsRaw = localStorage.getItem('products');
@@ -111,6 +116,28 @@ export default function ProductImagesPage() {
              <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
              </div>
+        ) : !userCategory ? (
+             <Card className="col-span-full bg-secondary/50 border-dashed">
+                <CardContent className="p-12 flex flex-col items-center justify-center text-center">
+                    <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4"/>
+                    <h3 className="text-xl font-semibold">No Category Set for Your Profile</h3>
+                    <p className="text-muted-foreground mt-2 max-w-md">
+                        To view or contribute to a shared image library, your account needs a primary business category. You can set a category for new products by editing or creating one.
+                    </p>
+                    <div className="flex gap-4 mt-6">
+                         <Button asChild>
+                            <Link href="/dashboard/products">
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add a Product
+                            </Link>
+                        </Button>
+                         <Button asChild variant="secondary">
+                            <Link href="/dashboard/settings">
+                                Go to Settings
+                            </Link>
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {imageLibrary.length > 0 ? (
@@ -153,3 +180,5 @@ export default function ProductImagesPage() {
     </div>
   );
 }
+
+    

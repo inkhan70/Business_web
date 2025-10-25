@@ -35,6 +35,7 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import images from '@/app/lib/placeholder-images.json';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -74,6 +75,12 @@ interface ProductForLibrary {
     }[];
 }
 
+interface AppCategory {
+    id: string;
+    name: string;
+}
+
+
 function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -84,6 +91,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const [isUploading, setIsUploading] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
+    const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
+
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
@@ -98,7 +107,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         mode: "onChange",
     });
 
-    const { control, formState: { isSubmitting }, getValues, setValue } = form;
+    const { control, formState: { isSubmitting }, getValues, setValue, watch } = form;
+    const currentCategory = watch('category');
 
     const { fields, append, remove } = useFieldArray({
         control,
@@ -106,6 +116,11 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     });
     
     useEffect(() => {
+        const storedCategoriesRaw = localStorage.getItem('categories');
+        if (storedCategoriesRaw) {
+            setAppCategories(JSON.parse(storedCategoriesRaw));
+        }
+
         if (userProfile?.category && !getValues('category')) {
             setValue('category', userProfile.category);
         }
@@ -153,11 +168,12 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }, [editId, form, router, toast, setValue]);
 
     useEffect(() => {
-        // Load image library for the user's category
-        if (userProfile) {
+        // Load image library for the selected category
+        const selectedCategory = getValues('category');
+        if (selectedCategory) {
             const storedProductsRaw = localStorage.getItem('products');
             const allProducts: ProductForLibrary[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-            const categoryProducts = allProducts.filter(p => p.category === userProfile.category);
+            const categoryProducts = allProducts.filter(p => p.category === selectedCategory);
             const uniqueImages = new Map<string, ImageAsset>();
             categoryProducts.forEach(product => {
                 product.varieties?.forEach(variety => {
@@ -171,8 +187,10 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 });
             });
             setImageLibrary(Array.from(uniqueImages.values()));
+        } else {
+            setImageLibrary([]);
         }
-    }, [userProfile]);
+    }, [currentCategory, getValues]);
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
@@ -230,10 +248,16 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
             const storedProductsRaw = localStorage.getItem('products');
             let products = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
 
+            const productData = {
+                ...data,
+                userId: user.uid,
+                category: data.category // Ensure the submitted data has the category from the form
+            };
+
             if (editId) {
                 const productIndex = products.findIndex((p: ProductFormValues) => p.id === editId);
                 if (productIndex > -1) {
-                    products[productIndex] = { ...products[productIndex], ...data, category: userProfile?.category || data.category };
+                    products[productIndex] = productData;
                     toast({
                         title: "Product Updated",
                         description: `The product "${data.name}" has been successfully saved.`,
@@ -241,10 +265,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 }
             } else {
                 const newProduct = { 
-                    ...data, 
+                    ...productData, 
                     id: `prod_${Math.random().toString(36).substr(2, 9)}`,
-                    userId: user.uid, 
-                    category: userProfile.category,
                 };
                 products.push(newProduct);
                 toast({
@@ -265,6 +287,8 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         }
     }
     
+    const isCategoryFixed = !!userProfile?.category;
+
     return (
          <Card>
             <CardHeader>
@@ -296,12 +320,29 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Category</FormLabel>
-                                    <FormControl>
-                                        <Input readOnly disabled {...field} value={userProfile?.category || 'N/A'} />
-                                    </FormControl>
-                                     <FormDescription>
-                                        This is your primary business category set during sign-up.
-                                    </FormDescription>
+                                    {isCategoryFixed ? (
+                                        <>
+                                            <FormControl>
+                                                <Input readOnly disabled {...field} />
+                                            </FormControl>
+                                            <FormDescription>
+                                                This is your primary business category set during sign-up.
+                                            </FormDescription>
+                                        </>
+                                    ) : (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a category for this product" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {appCategories.map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                     <FormMessage />
                                     </FormItem>
                                 )}
@@ -432,13 +473,13 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                         </Button>
                                                           <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
                                                             <DialogTrigger asChild>
-                                                                <Button type="button" variant="outline" size="sm" className="w-full">
+                                                                <Button type="button" variant="outline" size="sm" className="w-full" disabled={!currentCategory}>
                                                                     <Library className="h-4 w-4" />
                                                                 </Button>
                                                             </DialogTrigger>
                                                             <DialogContent className="max-w-4xl">
                                                                 <DialogHeader>
-                                                                <DialogTitle>Browse Image Library ({userProfile?.category})</DialogTitle>
+                                                                <DialogTitle>Browse Image Library ({currentCategory || "No Category Selected"})</DialogTitle>
                                                                 </DialogHeader>
                                                                 <ScrollArea className="h-[60vh]">
                                                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
@@ -448,7 +489,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                                                     <Image src={image.src} alt={image.alt} width={200} height={200} className="aspect-square object-cover rounded-md" />
                                                                                 </CardContent>
                                                                             </Card>
-                                                                        )) : <p>No images found for your category.</p>}
+                                                                        )) : <p>No images found for this category. Select a category to see shared images.</p>}
                                                                     </div>
                                                                 </ScrollArea>
                                                             </DialogContent>
@@ -513,3 +554,5 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
