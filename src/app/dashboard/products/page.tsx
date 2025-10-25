@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, Suspense, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
@@ -84,12 +84,11 @@ interface AppCategory {
     name: string;
 }
 
-
-function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
+export default function ProductFormPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, userProfile } = useAuth();
     const editId = searchParams.get('edit');
     const firestore = useFirestore();
 
@@ -246,7 +245,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
 
     async function onSubmit(data: ProductFormValues) {
         if (!user || !userProfile) {
-            toast({ title: "Not Authenticated", description: "You must be logged in.", variant: "destructive" });
+            toast({ title: "Not Authenticated", description: "You must be logged in to save a product.", variant: "destructive" });
             return;
         }
 
@@ -315,252 +314,6 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }
 
     return (
-         <Card>
-            <CardHeader>
-              <CardTitle className="font-headline text-2xl">{editId ? 'Edit Product' : 'Add a New Product'}</CardTitle>
-              <CardDescription>
-                {editId ? 'Update the details for your existing product.' : 'Fill out the form to add a new item to your inventory.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                         <div className="grid md:grid-cols-2 gap-8">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Product Name / Brand</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g., Artisan Sourdough Bread" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="category"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Category</FormLabel>
-                                    {isCategoryFixed ? (
-                                        <>
-                                            <FormControl>
-                                                <Input readOnly disabled {...field} />
-                                            </FormControl>
-                                            <FormDescription>
-                                                This is your primary business category.
-                                            </FormDescription>
-                                        </>
-                                    ) : (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a category for this product" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {appCategories.map(cat => (
-                                                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem className="md:col-span-2">
-                                    <FormLabel>Description</FormLabel>
-                                    <FormControl>
-                                        <Textarea
-                                            placeholder="Provide a detailed description of the product brand..."
-                                            className="resize-none"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                                 <FormField
-                                    control={form.control}
-                                    name="inventory"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Total Inventory</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="0" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                 <FormField
-                                    control={form.control}
-                                    name="status"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Status</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                                            <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select product status" />
-                                            </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="Active">Active</SelectItem>
-                                                <SelectItem value="Archived">Archived</SelectItem>
-                                                <SelectItem value="Low Stock">Low Stock</SelectItem>
-                                                <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                            <h3 className="text-lg font-medium mb-4">Product Varieties</h3>
-                            <div className="space-y-6">
-                                {fields.map((field, index) => (
-                                    <Card key={field.id} className="p-4 bg-muted/50 relative">
-                                        <CardContent className="p-0">
-                                            <div className="grid md:grid-cols-3 gap-6">
-                                                <div className="md:col-span-2 space-y-4">
-                                                     <FormField
-                                                        control={form.control}
-                                                        name={`varieties.${index}.name`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Variety Name</FormLabel>
-                                                                <FormControl>
-                                                                    <Input placeholder="e.g., Classic White" {...field} />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    <FormField
-                                                        control={form.control}
-                                                        name={`varieties.${index}.price`}
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>Price ($)</FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Variety Image</Label>
-                                                    <Card className="border-dashed aspect-square">
-                                                        <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
-                                                            {getValues(`varieties.${index}.image`) ? (
-                                                                <>
-                                                                    <Image src={getValues(`varieties.${index}.image`)!} alt="Product preview" layout="fill" className="object-cover rounded-md" />
-                                                                    <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeVarietyImage(index)}>
-                                                                        <Trash2 className="h-3 w-3" />
-                                                                    </Button>
-                                                                </>
-                                                            ) : (
-                                                                 <div className="p-2 text-muted-foreground text-xs">No image</div>
-                                                            )}
-                                                        </CardContent>
-                                                    </Card>
-                                                    <div className='grid grid-cols-3 gap-2 w-full'>
-                                                        <Label htmlFor={`image-upload-${index}`} className='w-full'>
-                                                            <Button type="button" variant="outline" size="sm" className="w-full" asChild>
-                                                                <span>
-                                                                    <Upload className="h-4 w-4" />
-                                                                </span>
-                                                            </Button>
-                                                            <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
-                                                        </Label>
-                                                        <Button type="button" variant="outline" size="sm" className="w-full" asChild>
-                                                            <Link href={`/dashboard/camera?from=product-form&varietyIndex=${index}`}>
-                                                                <Camera className="h-4 w-4" />
-                                                            </Link>
-                                                        </Button>
-                                                          <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
-                                                            <DialogTrigger asChild>
-                                                                <Button type="button" variant="outline" size="sm" className="w-full" disabled={!currentCategory}>
-                                                                    <Library className="h-4 w-4" />
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-4xl">
-                                                                <DialogHeader>
-                                                                <DialogTitle>Browse Image Library ({currentCategory || "No Category Selected"})</DialogTitle>
-                                                                </DialogHeader>
-                                                                <ScrollArea className="h-[60vh]">
-                                                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
-                                                                        {imageLibrary.length > 0 ? imageLibrary.map(image => (
-                                                                            <Card key={image.id} className="cursor-pointer hover:border-primary" onClick={() => selectImageFromLibrary(image)}>
-                                                                                <CardContent className="p-0">
-                                                                                    <Image src={image.src} alt={image.alt} width={200} height={200} className="aspect-square object-cover rounded-md" />
-                                                                                </CardContent>
-                                                                            </Card>
-                                                                        )) : <p>No images found for this category. Select a category to see shared images.</p>}
-                                                                    </div>
-                                                                </ScrollArea>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                        {fields.length > 1 && (
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => remove(index)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </Card>
-                                ))}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => append({ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' })}
-                                >
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Add Another Variety
-                                </Button>
-                                {form.formState.errors.varieties && (
-                                    <p className="text-sm font-medium text-destructive">{form.formState.errors.varieties.message}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-2 pt-8">
-                             <Button type="submit" disabled={isUploading || isSubmitting}>
-                                {(isUploading || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isUploading ? 'Uploading...' : isSubmitting ? 'Saving...' : editId ? 'Save Changes' : 'Create Product'}
-                             </Button>
-                        </div>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-    );
-}
-
-export default function AddEditProductPage() {
-    const { userProfile } = useAuth();
-    return (
         <div className="space-y-6">
             <div className="flex items-center space-x-4">
                 <Button variant="outline" size="icon" asChild>
@@ -573,9 +326,246 @@ export default function AddEditProductPage() {
                      <p className="text-muted-foreground">Manage your product information and all its varieties.</p>
                 </div>
             </div>
-             <Suspense fallback={<div>Loading form...</div>}>
-                <ProductForm userProfile={userProfile} />
-            </Suspense>
+            <Card>
+                <CardHeader>
+                  <CardTitle className="font-headline text-2xl">{editId ? 'Edit Product' : 'Add a New Product'}</CardTitle>
+                  <CardDescription>
+                    {editId ? 'Update the details for your existing product.' : 'Fill out the form to add a new item to your inventory.'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                             <div className="grid md:grid-cols-2 gap-8">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Product Name / Brand</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Artisan Sourdough Bread" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="category"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Category</FormLabel>
+                                        {isCategoryFixed ? (
+                                            <>
+                                                <FormControl>
+                                                    <Input readOnly disabled {...field} />
+                                                </FormControl>
+                                                <FormDescription>
+                                                    This is your primary business category.
+                                                </FormDescription>
+                                            </>
+                                        ) : (
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a category for this product" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {appCategories.map(cat => (
+                                                        <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem className="md:col-span-2">
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Provide a detailed description of the product brand..."
+                                                className="resize-none"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="grid grid-cols-2 gap-4">
+                                     <FormField
+                                        control={form.control}
+                                        name="inventory"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Total Inventory</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="0" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                     <FormField
+                                        control={form.control}
+                                        name="status"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Status</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                                <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select product status" />
+                                                </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Active">Active</SelectItem>
+                                                    <SelectItem value="Archived">Archived</SelectItem>
+                                                    <SelectItem value="Low Stock">Low Stock</SelectItem>
+                                                    <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            <div>
+                                <h3 className="text-lg font-medium mb-4">Product Varieties</h3>
+                                <div className="space-y-6">
+                                    {fields.map((field, index) => (
+                                        <Card key={field.id} className="p-4 bg-muted/50 relative">
+                                            <CardContent className="p-0">
+                                                <div className="grid md:grid-cols-3 gap-6">
+                                                    <div className="md:col-span-2 space-y-4">
+                                                         <FormField
+                                                            control={form.control}
+                                                            name={`varieties.${index}.name`}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Variety Name</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="e.g., Classic White" {...field} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name={`varieties.${index}.price`}
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Price ($)</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Variety Image</Label>
+                                                        <Card className="border-dashed aspect-square">
+                                                            <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
+                                                                {getValues(`varieties.${index}.image`) ? (
+                                                                    <>
+                                                                        <Image src={getValues(`varieties.${index}.image`)!} alt="Product preview" layout="fill" className="object-cover rounded-md" />
+                                                                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeVarietyImage(index)}>
+                                                                            <Trash2 className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </>
+                                                                ) : (
+                                                                     <div className="p-2 text-muted-foreground text-xs">No image</div>
+                                                                )}
+                                                            </CardContent>
+                                                        </Card>
+                                                        <div className='grid grid-cols-3 gap-2 w-full'>
+                                                            <Label htmlFor={`image-upload-${index}`} className='w-full'>
+                                                                <Button type="button" variant="outline" size="sm" className="w-full" asChild>
+                                                                    <span>
+                                                                        <Upload className="h-4 w-4" />
+                                                                    </span>
+                                                                </Button>
+                                                                <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
+                                                            </Label>
+                                                            <Button type="button" variant="outline" size="sm" className="w-full" asChild>
+                                                                <Link href={`/dashboard/camera?from=product-form&varietyIndex=${index}`}>
+                                                                    <Camera className="h-4 w-4" />
+                                                                </Link>
+                                                            </Button>
+                                                              <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
+                                                                <DialogTrigger asChild>
+                                                                    <Button type="button" variant="outline" size="sm" className="w-full" disabled={!currentCategory}>
+                                                                        <Library className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-4xl">
+                                                                    <DialogHeader>
+                                                                    <DialogTitle>Browse Image Library ({currentCategory || "No Category Selected"})</DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <ScrollArea className="h-[60vh]">
+                                                                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+                                                                            {imageLibrary.length > 0 ? imageLibrary.map(image => (
+                                                                                <Card key={image.id} className="cursor-pointer hover:border-primary" onClick={() => selectImageFromLibrary(image)}>
+                                                                                    <CardContent className="p-0">
+                                                                                        <Image src={image.src} alt={image.alt} width={200} height={200} className="aspect-square object-cover rounded-md" />
+                                                                                    </CardContent>
+                                                                                </Card>
+                                                                            )) : <p>No images found for this category. Select a category to see shared images.</p>}
+                                                                        </div>
+                                                                    </ScrollArea>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                            {fields.length > 1 && (
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => remove(index)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </Card>
+                                    ))}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => append({ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' })}
+                                    >
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Add Another Variety
+                                    </Button>
+                                    {form.formState.errors.varieties && (
+                                        <p className="text-sm font-medium text-destructive">{form.formState.errors.varieties.message}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end space-x-2 pt-8">
+                                 <Button type="submit" disabled={isUploading || isSubmitting}>
+                                    {(isUploading || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isUploading ? 'Uploading...' : isSubmitting ? 'Saving...' : editId ? 'Save Changes' : 'Create Product'}
+                                 </Button>
+                            </div>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
         </div>
-    )
+    );
 }
