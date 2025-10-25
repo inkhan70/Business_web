@@ -351,7 +351,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                                 <Input readOnly disabled {...field} />
                                             </FormControl>
                                             <FormDescription>
-                                                This is your primary business category set during sign-up.
+                                                This is your primary business category.
                                             </FormDescription>
                                         </>
                                     ) : (
@@ -579,5 +579,3 @@ export default function AddEditProductPage() {
         </div>
     )
 }
-
-    
