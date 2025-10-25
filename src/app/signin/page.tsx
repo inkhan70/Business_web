@@ -7,13 +7,11 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { auth } from "@/lib/firebase";
 import { 
-    signInWithEmailAndPassword, 
-    signOut, 
-    sendEmailVerification, 
     setPersistence, 
     browserLocalPersistence, 
     browserSessionPersistence 
 } from "firebase/auth";
+import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,7 +30,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { ToastAction } from "@/components/ui/toast";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -61,31 +58,21 @@ export default function SignInPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            // Set session persistence based on "Remember Me"
             const persistence = values.rememberMe ? browserLocalPersistence : browserSessionPersistence;
             await setPersistence(auth, persistence);
+            
+            initiateEmailSignIn(auth, values.email, values.password);
 
-            const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-            const user = userCredential.user;
+            toast({
+                title: t('toast.signin_success'),
+                description: t('toast.signin_success_desc'),
+            });
+            
+            router.push("/dashboard");
 
-            if (user.emailVerified) {
-                toast({
-                    title: t('toast.signin_success'),
-                    description: t('toast.signin_success_desc'),
-                });
-                router.push("/dashboard");
-            } else {
-                 toast({
-                    title: t('toast.email_not_verified_title'),
-                    description: t('toast.email_not_verified_desc_new'),
-                    variant: "destructive",
-                    duration: 10000,
-                 });
-                 await signOut(auth);
-            }
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
-            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 description = "Invalid email or password. Please check your details and try again.";
             } else if (error.code === 'auth/configuration-not-found') {
                 description = "Authentication is not configured correctly. Please enable Email/Password sign-in provider in the Firebase console.";
@@ -96,7 +83,6 @@ export default function SignInPage() {
                 variant: "destructive",
             });
             console.error(error);
-        } finally {
             setIsLoading(false);
         }
     }
