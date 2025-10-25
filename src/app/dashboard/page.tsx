@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, deleteDoc, doc } from 'firebase/firestore';
 
 interface Variety {
@@ -59,7 +59,11 @@ export default function DashboardPage() {
     const { user } = useAuth();
     const firestore = useFirestore();
 
-    const productsCollection = user ? query(collection(firestore, "products"), where("userId", "==", user.uid)) : null;
+    const productsCollection = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, "products"), where("userId", "==", user.uid));
+    }, [user, firestore]);
+    
     const { data: products, isLoading: loading, error } = useCollection<Product>(productsCollection);
 
     const handleDelete = async (productId: string, productName: string) => {
