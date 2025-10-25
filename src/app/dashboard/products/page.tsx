@@ -218,7 +218,7 @@ export default function ProductForm() {
                 setValue(`varieties.${fieldIndex}.image`, dataUrl, { shouldValidate: true });
                 toast({
                     title: "Image Preview Ready",
-                    description: "Image will be uploaded when you save the product.",
+                    description: "Image will be saved when you save the product.",
                 });
             };
             reader.onerror = () => {
@@ -243,15 +243,15 @@ export default function ProductForm() {
         }
     }
 
-    const uploadImage = async (dataUrl: string, userId: string): Promise<string> => {
-        if (!dataUrl || dataUrl.startsWith('https') || dataUrl.startsWith('http')) {
-            return dataUrl;
-        }
+    // const uploadImage = async (dataUrl: string, userId: string): Promise<string> => {
+    //     if (!dataUrl || dataUrl.startsWith('https') || dataUrl.startsWith('http')) {
+    //         return dataUrl;
+    //     }
         
-        const storageRef = ref(storage, `images/${userId}/${Date.now()}.png`);
-        const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-        return await getDownloadURL(snapshot.ref);
-    }
+    //     const storageRef = ref(storage, `images/${userId}/${Date.now()}.png`);
+    //     const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+    //     return await getDownloadURL(snapshot.ref);
+    // }
 
     async function onSubmit(data: ProductFormValues) {
         if (!user || !userProfile) {
@@ -261,13 +261,19 @@ export default function ProductForm() {
 
         setIsUploading(true);
         try {
-            const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
-                if (variety.image && variety.image.startsWith('data:image')) {
-                    const uploadedUrl = await uploadImage(variety.image, user.uid);
-                    return { ...variety, image: uploadedUrl };
-                }
+            // Keep the data URIs directly for localStorage testing
+            const updatedVarieties = data.varieties.map(variety => {
+                // No upload, just use the data URI as is.
                 return variety;
-            }));
+            });
+            
+            // const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
+            //     if (variety.image && variety.image.startsWith('data:image')) {
+            //         const uploadedUrl = await uploadImage(variety.image, user.uid);
+            //         return { ...variety, image: uploadedUrl };
+            //     }
+            //     return variety;
+            // }));
 
             const productData = {
                 ...data,
@@ -571,3 +577,5 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    
