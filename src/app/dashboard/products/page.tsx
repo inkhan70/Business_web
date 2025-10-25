@@ -39,7 +39,7 @@ import images from '@/app/lib/placeholder-images.json';
 import { storage } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, addDoc, collection, updateDoc } from 'firebase/firestore';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -283,6 +283,13 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                     description: `The product "${data.name}" has been successfully added.`,
                 });
             }
+
+            // If user profile doesn't have a category, update it now.
+            if (!userProfile.category) {
+                const userDocRef = doc(firestore, 'users', user.uid);
+                await updateDoc(userDocRef, { category: data.category });
+            }
+
             router.push('/dashboard');
             router.refresh();
         } catch (error: any) {
@@ -572,3 +579,5 @@ export default function AddEditProductPage() {
         </div>
     )
 }
+
+    
