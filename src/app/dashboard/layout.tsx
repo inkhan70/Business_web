@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, LogOut, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuth as useFirebaseAuth } from "@/firebase";
 import { useEffect } from "react";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 
 const sidebarNavItems = [
     {
@@ -51,6 +51,7 @@ const sidebarNavItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { user, userProfile, loading } = useAuth();
+    const firebaseAuth = useFirebaseAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -60,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, [user, loading, router]);
     
     const handleSignOut = async () => {
-        await signOut(auth);
+        await signOut(firebaseAuth);
         router.push('/');
     };
 

@@ -5,13 +5,12 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { auth } from "@/lib/firebase";
 import { 
     setPersistence, 
     browserLocalPersistence, 
     browserSessionPersistence 
 } from "firebase/auth";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
+import { useAuth, initiateEmailSignIn } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,6 +44,7 @@ export default function SignInPage() {
     const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const auth = useAuth();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

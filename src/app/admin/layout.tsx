@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Settings, Users, Image as ImageIcon, Store, LogOut, Languages, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuth as useFirebaseAuth } from "@/firebase";
 import { useEffect } from "react";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+
 
 const sidebarNavItems = [
     {
@@ -49,6 +50,7 @@ const sidebarNavItems = [
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { user, userProfile, loading } = useAuth();
+    const firebaseAuth = useFirebaseAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -60,7 +62,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     }, [user, userProfile, loading, router]);
     
     const handleSignOut = async () => {
-        await signOut(auth);
+        await signOut(firebaseAuth);
         router.push('/');
     };
 

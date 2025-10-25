@@ -5,7 +5,7 @@ import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export default function ForgotPasswordPage() {
     const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
     const [isSent, setIsSent] = useState(false);
+    const auth = useAuth();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),

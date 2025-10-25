@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
@@ -36,10 +36,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import images from '@/app/lib/placeholder-images.json';
-import { storage } from '@/lib/firebase';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, addDoc, collection, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 const varietySchema = z.object({
   id: z.string(),
@@ -61,7 +60,6 @@ const productFormSchema = z.object({
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
-type Variety = z.infer<typeof varietySchema>;
 
 interface ImageAsset {
     id: string;
@@ -84,13 +82,14 @@ interface AppCategory {
     name: string;
 }
 
-export default function ProductFormPage() {
-    const searchParams = useSearchParams();
+function ProductForm() {
     const router = useRouter();
     const { toast } = useToast();
     const { user, userProfile } = useAuth();
+    const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
     const firestore = useFirestore();
+    const storage = getStorage();
 
     const [isUploading, setIsUploading] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
@@ -131,7 +130,7 @@ export default function ProductFormPage() {
             setValue('category', userProfile.category);
         }
     }, [userProfile, getValues, setValue]);
-
+    
     useEffect(() => {
         // Check for image data from camera page on mount
         const capturedImage = sessionStorage.getItem('capturedImageData');
@@ -162,7 +161,6 @@ export default function ProductFormPage() {
     const { data: allProducts } = useCollection<ProductForLibrary>(productsCollection);
 
     useEffect(() => {
-        // Load image library for the selected category
         const selectedCategory = getValues('category');
         if (selectedCategory && allProducts) {
             const categoryProducts = allProducts.filter(p => p.category === selectedCategory);
@@ -187,7 +185,7 @@ export default function ProductFormPage() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit to match storage rules
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
                 toast({
                     title: "Image Too Large",
                     description: "Please select an image smaller than 5MB.",
@@ -196,20 +194,16 @@ export default function ProductFormPage() {
                 return;
             }
             
-            setIsUploading(true);
             const reader = new FileReader();
             reader.onloadend = () => {
                 const dataUrl = reader.result as string;
-                // We just set the data URL for preview. The actual upload happens on submit.
                 setValue(`varieties.${fieldIndex}.image`, dataUrl, { shouldValidate: true });
-                setIsUploading(false);
                 toast({
                     title: "Image Preview Ready",
                     description: "Image will be uploaded when you save the product.",
                 });
             };
             reader.onerror = () => {
-                setIsUploading(false);
                 toast({
                     title: "Read Error",
                     description: "Could not read the selected image file.",
@@ -233,14 +227,12 @@ export default function ProductFormPage() {
 
     const uploadImage = async (dataUrl: string, userId: string): Promise<string> => {
         if (!dataUrl || dataUrl.startsWith('https') || dataUrl.startsWith('http')) {
-            // This is already an uploaded image URL, no need to re-upload
             return dataUrl;
         }
         
         const storageRef = ref(storage, `images/${userId}/${Date.now()}.png`);
         const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        return downloadURL;
+        return await getDownloadURL(snapshot.ref);
     }
 
     async function onSubmit(data: ProductFormValues) {
@@ -251,7 +243,6 @@ export default function ProductFormPage() {
 
         setIsUploading(true);
         try {
-            // Process and upload images for varieties that have new base64 data
             const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
                 if (variety.image && variety.image.startsWith('data:image')) {
                     const uploadedUrl = await uploadImage(variety.image, user.uid);
@@ -270,21 +261,14 @@ export default function ProductFormPage() {
             if (editId) {
                 const productDoc = doc(firestore, 'products', editId);
                 await setDoc(productDoc, productData, { merge: true });
-                toast({
-                    title: "Product Updated",
-                    description: `The product "${data.name}" has been successfully saved.`,
-                });
+                toast({ title: "Product Updated", description: `The product "${data.name}" has been saved.` });
             } else {
-                const productsCollection = collection(firestore, 'products');
-                await addDoc(productsCollection, productData);
-                toast({
-                    title: "Product Created",
-                    description: `The product "${data.name}" has been successfully added.`,
-                });
+                const productsCollectionRef = collection(firestore, 'products');
+                await addDoc(productsCollectionRef, productData);
+                toast({ title: "Product Created", description: `The product "${data.name}" has been added.` });
             }
 
-            // If user profile doesn't have a category, update it now.
-            if (!userProfile.category) {
+            if (!userProfile.category && data.category) {
                 const userDocRef = doc(firestore, 'users', user.uid);
                 await updateDoc(userDocRef, { category: data.category });
             }
@@ -295,7 +279,7 @@ export default function ProductFormPage() {
             console.error("Error saving product: ", error);
             toast({
                 title: "Error Saving Product",
-                description: error.message || "Could not save the product. Please check your connection and security rules.",
+                description: error.message || "Could not save the product.",
                 variant: "destructive",
             });
         } finally {
@@ -366,7 +350,7 @@ export default function ProductFormPage() {
                                                 </FormDescription>
                                             </>
                                         ) : (
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select a category for this product" />
@@ -420,7 +404,7 @@ export default function ProductFormPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                             <FormLabel>Status</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select product status" />
@@ -568,4 +552,12 @@ export default function ProductFormPage() {
             </Card>
         </div>
     );
+}
+
+export default function AddEditProductPage() {
+    return (
+        <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin" />}>
+            <ProductForm />
+        </Suspense>
+    )
 }

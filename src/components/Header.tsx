@@ -12,18 +12,19 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
+import { useAuth as useFirebaseAuth } from '@/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { Cart } from './Cart';
 
 export function Header() {
   const { language, setLanguage, t, availableLanguages } = useLanguage();
   const { user } = useAuth();
+  const firebaseAuth = useFirebaseAuth();
   const router = useRouter();
   
   const handleSignOut = async () => {
-      await signOut(auth);
+      await signOut(firebaseAuth);
       router.push('/');
   };
 
