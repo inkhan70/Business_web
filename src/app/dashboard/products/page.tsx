@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
@@ -82,7 +82,7 @@ interface AppCategory {
     name: string;
 }
 
-function ProductForm() {
+export default function ProductForm() {
     const router = useRouter();
     const { toast } = useToast();
     const { user, userProfile } = useAuth();
@@ -120,12 +120,30 @@ function ProductForm() {
         name: "varieties"
     });
     
+     useEffect(() => {
+        const fetchCategories = () => {
+            const storedCategoriesRaw = localStorage.getItem('categories');
+            if (storedCategoriesRaw) {
+                setAppCategories(JSON.parse(storedCategoriesRaw));
+            } else {
+                 const defaultCategories = [
+                    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
+                    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
+                    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
+                    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
+                    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
+                    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
+                    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
+                    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
+                ];
+                localStorage.setItem('categories', JSON.stringify(defaultCategories));
+                setAppCategories(defaultCategories);
+            }
+        };
+        fetchCategories();
+    }, []);
+    
     useEffect(() => {
-        const storedCategoriesRaw = localStorage.getItem('categories');
-        if (storedCategoriesRaw) {
-            setAppCategories(JSON.parse(storedCategoriesRaw));
-        }
-
         if (userProfile?.category && !getValues('category')) {
             setValue('category', userProfile.category);
         }
@@ -552,12 +570,4 @@ function ProductForm() {
             </Card>
         </div>
     );
-}
-
-export default function AddEditProductPage() {
-    return (
-        <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin" />}>
-            <ProductForm />
-        </Suspense>
-    )
 }
