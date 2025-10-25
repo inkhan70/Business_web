@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, LogOut } from "lucide-react";
+import { ShoppingBag, LayoutDashboard, Settings, MessageSquare, Bell, UserCircle, Image as ImageIconLucide, LogOut, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
@@ -65,8 +65,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     if (loading || !user) {
-        // You can return a loading spinner here if you want
-        return null;
+        return (
+            <div className="container mx-auto my-8 flex justify-center items-center min-h-[60vh]">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
     }
 
     const capitalizeFirstLetter = (string: string) => {
