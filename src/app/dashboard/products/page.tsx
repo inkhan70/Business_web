@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, Suspense, useState } from 'react';
+import { useEffect, Suspense, useState, useMemo } from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import * as z from "zod";
@@ -38,6 +38,8 @@ import { Separator } from '@/components/ui/separator';
 import images from '@/app/lib/placeholder-images.json';
 import { storage } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -89,12 +91,15 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     const { toast } = useToast();
     const { user } = useAuth();
     const editId = searchParams.get('edit');
+    const firestore = useFirestore();
 
     const [isUploading, setIsUploading] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
     const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
 
+    const productDocRef = useMemoFirebase(() => editId ? doc(firestore, 'products', editId) : null, [editId, firestore]);
+    const { data: productToEdit, isLoading: isProductLoading } = useDoc<ProductFormValues>(productDocRef);
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
@@ -146,35 +151,21 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 description: 'The image captured from your camera has been added to the variety.'
             });
         }
+    }, [setValue, toast]);
 
-        const fetchProduct = () => {
-            if (editId) {
-                const storedProductsRaw = localStorage.getItem('products');
-                if (storedProductsRaw) {
-                    const products = JSON.parse(storedProductsRaw);
-                    const productData = products.find((p: ProductFormValues) => p.id === editId);
-                    if (productData) {
-                        form.reset(productData);
-                    } else {
-                         toast({
-                            title: "Error",
-                            description: "Product not found in local storage.",
-                            variant: "destructive",
-                        });
-                        router.push('/dashboard');
-                    }
-                }
-            }
-        };
-        fetchProduct();
-    }, [editId, form, router, toast, setValue]);
+    useEffect(() => {
+        if(productToEdit) {
+            form.reset(productToEdit);
+        }
+    }, [productToEdit, form]);
+
+    const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
+    const { data: allProducts } = useCollection<ProductForLibrary>(productsCollection);
 
     useEffect(() => {
         // Load image library for the selected category
         const selectedCategory = getValues('category');
-        if (selectedCategory) {
-            const storedProductsRaw = localStorage.getItem('products');
-            const allProducts: ProductForLibrary[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+        if (selectedCategory && allProducts) {
             const categoryProducts = allProducts.filter(p => p.category === selectedCategory);
             const uniqueImages = new Map<string, ImageAsset>();
             categoryProducts.forEach(product => {
@@ -192,7 +183,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
         } else {
             setImageLibrary([]);
         }
-    }, [currentCategory, getValues]);
+    }, [currentCategory, getValues, allProducts]);
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
@@ -242,7 +233,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }
 
     const uploadImage = async (dataUrl: string, userId: string): Promise<string> => {
-        if (dataUrl.startsWith('http')) {
+        if (!dataUrl || dataUrl.startsWith('https') || dataUrl.startsWith('http')) {
             // This is already an uploaded image URL, no need to re-upload
             return dataUrl;
         }
@@ -277,30 +268,21 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                 category: data.category
             };
 
-            const storedProductsRaw = localStorage.getItem('products');
-            let products = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-
             if (editId) {
-                const productIndex = products.findIndex((p: ProductFormValues) => p.id === editId);
-                if (productIndex > -1) {
-                    products[productIndex] = productData;
-                    toast({
-                        title: "Product Updated",
-                        description: `The product "${data.name}" has been successfully saved.`,
-                    });
-                }
+                const productDoc = doc(firestore, 'products', editId);
+                await setDoc(productDoc, productData, { merge: true });
+                toast({
+                    title: "Product Updated",
+                    description: `The product "${data.name}" has been successfully saved.`,
+                });
             } else {
-                const newProduct = { 
-                    ...productData, 
-                    id: `prod_${Math.random().toString(36).substr(2, 9)}`,
-                };
-                products.push(newProduct);
+                const productsCollection = collection(firestore, 'products');
+                await addDoc(productsCollection, productData);
                 toast({
                     title: "Product Created",
                     description: `The product "${data.name}" has been successfully added.`,
                 });
             }
-            localStorage.setItem('products', JSON.stringify(products));
             router.push('/dashboard');
             router.refresh();
         } catch (error: any) {
@@ -316,6 +298,14 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
     }
     
     const isCategoryFixed = !!userProfile?.category;
+
+    if (isProductLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
 
     return (
          <Card>
@@ -358,7 +348,7 @@ function ProductForm({ userProfile }: { userProfile: UserProfile | null }) {
                                             </FormDescription>
                                         </>
                                     ) : (
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select a category for this product" />

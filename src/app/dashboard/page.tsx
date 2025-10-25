@@ -32,6 +32,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import images from '@/app/lib/placeholder-images.json';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, where, deleteDoc, doc } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -51,94 +53,28 @@ interface Product {
     varieties: Variety[];
 }
 
-const sampleProducts: Omit<Product, 'id' | 'userId'>[] = [
-    { 
-        name: 'Organic Fuji Apples', 
-        status: 'Active', 
-        inventory: 150, 
-        category: 'Food',
-        varieties: [
-            { id: 'v1', name: 'Single Apple', price: 0.50, image: images.products.apple, dataAiHint: 'apple fruit' },
-            { id: 'v2', name: 'Bag of Apples (5 lb)', price: 2.99, image: images.products.apple, dataAiHint: 'apples bag' },
-        ]
-    },
-    { 
-        name: 'Artisan Sourdough', 
-        status: 'Active', 
-        inventory: 80, 
-        category: 'Food', 
-        varieties: [
-            { id: 'v3', name: 'Classic White Loaf', price: 5.50, image: images.products.bread, dataAiHint: 'bread loaf' },
-            { id: 'v4', name: 'Whole Wheat Loaf', price: 6.00, image: images.products.bread, dataAiHint: 'brown bread' },
-        ]
-    },
-];
-
-
 export default function DashboardPage() {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const { t } = useLanguage();
     const { user } = useAuth();
+    const firestore = useFirestore();
 
-    useEffect(() => {
-        const fetchProducts = () => {
-            if (!user) {
-                setLoading(false);
-                return;
-            };
-            setLoading(true);
-            try {
-                const storedProductsRaw = localStorage.getItem('products');
-                let allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-                
-                if (allProducts.length === 0) {
-                    // Seed local storage if it's empty
-                    const productsToSeed = sampleProducts.map(prod => ({
-                        ...prod,
-                        id: `prod_${Math.random().toString(36).substr(2, 9)}`,
-                        userId: user.uid,
-                    }));
-                    localStorage.setItem('products', JSON.stringify(productsToSeed));
-                    allProducts = productsToSeed;
-                }
-                
-                const userProducts = allProducts.filter((p: Product) => p.userId === user.uid);
-                setProducts(userProducts);
-
-            } catch (error: any) {
-                console.error("Error fetching products from localStorage:", error);
-                toast({
-                    title: "Error",
-                    description: "Could not fetch products from local storage.",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, [toast, user]);
+    const productsCollection = user ? query(collection(firestore, "products"), where("userId", "==", user.uid)) : null;
+    const { data: products, isLoading: loading, error } = useCollection<Product>(productsCollection);
 
     const handleDelete = async (productId: string, productName: string) => {
         try {
-            const storedProductsRaw = localStorage.getItem('products');
-            let allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-            const updatedProducts = allProducts.filter((p: Product) => p.id !== productId);
-            localStorage.setItem('products', JSON.stringify(updatedProducts));
-            
-            setProducts(products.filter(p => p.id !== productId));
+            const productDoc = doc(firestore, 'products', productId);
+            await deleteDoc(productDoc);
             toast({
                 title: "Product Deleted",
-                description: `"${productName}" has been removed.`,
+                description: `"${productName}" has been removed from the database.`,
             });
         } catch (error: any) {
-            console.error("Error deleting product from localStorage: ", error);
+            console.error("Error deleting product: ", error);
             toast({
                 title: "Error",
-                description: "Could not delete the product.",
+                description: "Could not delete the product from the database.",
                 variant: "destructive",
             });
         }
@@ -183,7 +119,13 @@ export default function DashboardPage() {
                                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
-                        ) : products.length === 0 ? (
+                        ) : error ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="py-12 text-center text-red-500">
+                                    <p>Error loading products: {error.message}</p>
+                                </TableCell>
+                            </TableRow>
+                        ) : products && products.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-12">
                                     <p className="font-semibold mb-2">No products found.</p>
@@ -196,7 +138,7 @@ export default function DashboardPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            products.map((product) => (
+                            products && products.map((product) => (
                                 <TableRow key={product.id}>
                                     <TableCell className="hidden sm:table-cell">
                                         <Image

@@ -7,10 +7,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Edit, PlusCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import images from '@/app/lib/placeholder-images.json';
+import { useDoc, useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -32,51 +34,43 @@ interface Product {
 }
 
 export default function ProductVarietiesPage() {
-    const [product, setProduct] = useState<Product | null>(null);
-    const [loading, setLoading] = useState(true);
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
     const productId = params.id as string;
+    const firestore = useFirestore();
+
+    const productDocRef = productId ? doc(firestore, 'products', productId) : null;
+    const { data: product, isLoading: loading, error } = useDoc<Product>(productDocRef);
 
     useEffect(() => {
-        if (productId) {
-            setLoading(true);
-            try {
-                const storedProductsRaw = localStorage.getItem('products');
-                if (storedProductsRaw) {
-                    const products: Product[] = JSON.parse(storedProductsRaw);
-                    const foundProduct = products.find(p => p.id === productId);
-                    if (foundProduct) {
-                        setProduct(foundProduct);
-                    } else {
-                        toast({
-                            title: 'Product not found',
-                            description: `Could not find a product with ID ${productId}.`,
-                            variant: 'destructive',
-                        });
-                        router.push('/dashboard');
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching product from localStorage:", error);
-                toast({
-                    title: 'Error',
-                    description: 'Could not fetch product details.',
-                    variant: 'destructive',
-                });
-            } finally {
-                setLoading(false);
-            }
+        if (!loading && !product && !error) {
+            toast({
+                title: 'Product not found',
+                description: `Could not find a product with ID ${productId}.`,
+                variant: 'destructive',
+            });
+            router.push('/dashboard');
         }
-    }, [productId, router, toast]);
+        if (error) {
+            toast({
+                title: 'Error',
+                description: 'Could not fetch product details from the database.',
+                variant: 'destructive',
+            });
+        }
+    }, [loading, product, error, productId, router, toast]);
 
     if (loading) {
-        return <div className="text-center py-10">Loading product varieties...</div>;
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
     }
 
     if (!product) {
-        return <div className="text-center py-10">Product not found.</div>;
+        return <div className="text-center py-10">Product not found or you do not have permission to view it.</div>;
     }
 
     return (
