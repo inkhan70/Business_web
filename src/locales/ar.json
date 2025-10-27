@@ -86,6 +86,13 @@
   "signin.no_account": "ليس لديك حساب؟",
   "toast.signin_success": "تم تسجيل الدخول بنجاح",
   "toast.signin_success_desc": "مرحبًا بعودتك! جارٍ إعادة توجيهك إلى لوحة التحكم.",
+  "toast.email_not_verified_title": "البريد الإلكتروني غير مُتحقق منه",
+  "toast.email_not_verified_desc": "يرجى التحقق من بريدك الوارد والتحقق من عنوان بريدك الإلكتروني للمتابعة.",
+  "toast.resend_verification_button": "إعادة الإرسال",
+  "toast.verification_sent_title": "تم إرسال بريد التحقق",
+  "toast.verification_sent_desc": "تم إرسال رابط تحقق جديد إلى عنوان بريدك الإلكتروني.",
+  "toast.error_sending_verification_title": "خطأ في إرسال التحقق",
+  "toast.error_sending_verification_desc": "تعذر إرسال بريد تحقق جديد. يرجى المحاولة مرة أخرى.",
 
   "signup.title": "أنشئ حساب عملك",
   "signup.description": "انضم إلى شبكتنا من الشركات المحلية. إنه مجاني!",

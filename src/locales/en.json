@@ -89,7 +89,6 @@
   "toast.signin_success_desc": "Welcome back! Redirecting you to the dashboard.",
   "toast.email_not_verified_title": "Email Not Verified",
   "toast.email_not_verified_desc": "Please check your inbox and verify your email address to continue.",
-  "toast.email_not_verified_desc_new": "Your email is not verified. Please use the 'Forgot Password' link to have a new verification email sent.",
   "toast.resend_verification_button": "Resend",
   "toast.verification_sent_title": "Verification Email Sent",
   "toast.verification_sent_desc": "A new verification link has been sent to your email address.",

@@ -86,6 +86,13 @@
   "signin.no_account": "حساب کاربری ندارید؟",
   "toast.signin_success": "ورود با موفقیت انجام شد",
   "toast.signin_success_desc": "خوش آمدید! در حال هدایت شما به داشبورد.",
+  "toast.email_not_verified_title": "ایمیل تأیید نشده است",
+  "toast.email_not_verified_desc": "لطفاً صندوق ورودی خود را بررسی کرده و برای ادامه، آدرس ایمیل خود را تأیید کنید.",
+  "toast.resend_verification_button": "ارسال مجدد",
+  "toast.verification_sent_title": "ایمیل تأیید ارسال شد",
+  "toast.verification_sent_desc": "یک لینک تأیید جدید به آدرس ایمیل شما ارسال شده است.",
+  "toast.error_sending_verification_title": "خطا در ارسال تأیید",
+  "toast.error_sending_verification_desc": "ارسال ایمیل تأیید جدید انجام نشد. لطفاً دوباره امتحان کنید.",
 
   "signup.title": "حساب تجاری خود را ایجاد کنید",
   "signup.description": "به شبکه مشاغل محلی ما بپیوندید. رایگان است!",

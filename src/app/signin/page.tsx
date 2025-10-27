@@ -91,7 +91,7 @@ export default function SignInPage() {
             if (!user.emailVerified) {
                 toast({
                     title: t('toast.email_not_verified_title'),
-                    description: t('toast.email_not_verified_desc_new'),
+                    description: t('toast.email_not_verified_desc'),
                     variant: "destructive",
                     action: <Button variant="secondary" onClick={() => handleResendVerification(values.email)}>{t('toast.resend_verification_button')}</Button>
                 });
@@ -104,20 +104,19 @@ export default function SignInPage() {
             const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
             let userProfile = allUsers.find((u: any) => u.uid === user.uid);
 
-            let isAdmin = false;
             if (!userProfile) {
                 // This is the first time this user logs into this local instance.
-                // If there are no other users, they become admin.
-                isAdmin = allUsers.length === 0;
+                // We'll create a basic profile and make them admin if they are the first user ever.
+                const isAdmin = allUsers.length === 0;
                 
                 userProfile = {
                     uid: user.uid,
                     email: user.email,
-                    role: isAdmin ? 'admin' : 'buyer', // Default to buyer if not first user
+                    role: isAdmin ? 'admin' : 'buyer', // Default to buyer
                     businessName: null,
                     fullName: user.displayName || 'New User',
                     category: null,
-                    address: '', city: '', state: '', // These should be prompted later
+                    address: '', city: '', state: '',
                     createdAt: new Date().toISOString(),
                     isAdmin: isAdmin,
                 };
@@ -140,8 +139,8 @@ export default function SignInPage() {
             let description = "An unexpected error occurred. Please try again.";
              if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 description = "Invalid email or password. Please check your details and try again.";
-            } else if (error.code === 'auth/configuration-not-found') {
-                description = "Authentication is not configured correctly. Please enable Email/Password sign-in provider in the Firebase console.";
+            } else if (error.code === 'auth/too-many-requests') {
+                description = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";
             }
             toast({
                 title: "Sign In Failed",
