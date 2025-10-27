@@ -116,7 +116,7 @@
   "signup.create_account": "اکاؤنٹ بنائیں",
   "signup.have_account": "پہلے سے ہی اکاؤنٹ ہے؟",
   "toast.signup_success": "اکاؤنٹ بن گیا!",
-  "toast.signup_success_desc_verification": "آپ کا اکاؤنٹ بن گیا ہے۔ سائن ان करने سے پہلے اپنے اکاؤنٹ کی تصدیق کے لیے براہ کرم اپنا ای میل چیک کریں۔",
+  "toast.signup_success_desc_verification": "آپ کا اکاؤنٹ بن گیا ہے۔ سائن ان کرنے سے پہلے اپنے اکاؤنٹ کی تصدیق کے لیے براہ کرم اپنا ای میل چیک کریں۔",
   
   "forgot_password.title": "پاس ورڈ بھول گئے",
   "forgot_password.description": "اپنا ای میل درج کریں اور ہم آپ کو آپ کا پاس ورڈ دوبارہ ترتیب دینے کے لیے ایک لنک بھیجیں گے۔",
@@ -164,3 +164,5 @@
   "Jewelry": "زیورات",
   "Real Estate": "ریل اسٹیٹ"
 }
+
+    
