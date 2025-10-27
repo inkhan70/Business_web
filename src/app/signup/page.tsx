@@ -24,6 +24,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth, initiateEmailSignUp } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+
 
 interface Category {
     id: string;
@@ -73,6 +77,8 @@ export default function SignUpPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    const auth = useAuth();
+    const firestore = useFirestore();
     
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -111,21 +117,16 @@ export default function SignUpPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            // Mock user creation for localStorage
-            const uid = `user_${Date.now()}`;
-            const displayName = values.role === 'buyer' ? values.fullName : values.businessName;
-
-            const storedUsersRaw = localStorage.getItem('users');
-            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-
-            // The first user to sign up becomes an admin
+            // This starts a fresh user list, effectively clearing old accounts for this session's signup.
+            const allUsers: any[] = []; 
             const isAdmin = allUsers.length === 0;
             const finalRole = isAdmin ? 'admin' : values.role;
+
+            const uid = `user_${Date.now()}`;
 
             const newUserProfile = {
                 uid: uid,
                 email: values.email,
-                password: values.password, // In a real app, you'd hash this. For localStorage demo, we store it.
                 businessName: values.businessName || null,
                 fullName: values.fullName || null,
                 role: finalRole,
@@ -139,9 +140,29 @@ export default function SignUpPage() {
                 isAdmin: isAdmin,
             };
 
+            // This will only contain the new user, making them the admin.
             allUsers.push(newUserProfile);
             localStorage.setItem('users', JSON.stringify(allUsers));
             
+            // Still create the user in Firebase Auth for login purposes
+            initiateEmailSignUp(auth, values.email, values.password);
+
+            // Also create the profile in Firestore for consistency, though we are favoring localStorage for reads
+            const userDocRef = doc(firestore, 'users', uid);
+            await setDoc(userDocRef, {
+                uid,
+                email: values.email,
+                role: finalRole,
+                businessName: values.businessName || null,
+                fullName: values.fullName || null,
+                category: values.category || null,
+                address: values.address,
+                city: values.city,
+                state: values.state,
+                createdAt: new Date().toISOString(),
+                isAdmin: isAdmin,
+            });
+
             toast({
               title: isAdmin ? "Admin Account Created!" : t('toast.signup_success'),
               description: isAdmin ? "You are the first user, so you are the admin. You can now sign in." : "Your account has been created. You can now sign in.",
@@ -308,3 +329,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+    
