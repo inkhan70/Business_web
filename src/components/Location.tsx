@@ -82,6 +82,9 @@ export function Location() {
         } else if (error.code === error.POSITION_UNAVAILABLE) {
             title = "Location Unavailable";
             description = "Your location could not be determined. Please ensure your device's GPS is turned on and try again.";
+        } else if (error.code === error.TIMEOUT) {
+            title = "Location Request Timed Out";
+            description = "Fetching your location took too long. Please try again or enter your address manually.";
         }
         
         toast({
@@ -90,6 +93,9 @@ export function Location() {
           variant: "destructive",
         });
         setIsFetchingLocation(false);
+      },
+      {
+          timeout: 10000 // 10-second timeout
       }
     );
   };
