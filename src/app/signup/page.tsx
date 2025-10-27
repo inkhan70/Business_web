@@ -11,7 +11,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Location } from "@/components/Location";
 import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -120,6 +120,8 @@ export default function SignUpPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
+            await sendEmailVerification(user);
+
             const storedUsersRaw = localStorage.getItem('users');
             const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
             const isAdmin = allUsers.length === 0;
@@ -143,8 +145,6 @@ export default function SignUpPage() {
             allUsers.push(newUserProfile);
             localStorage.setItem('users', JSON.stringify(allUsers));
             
-            // This setDoc is for compatibility if we switch back to Firestore.
-            // It is not the primary data source in the current setup.
             await setDoc(doc(firestore, 'users', user.uid), {
                 uid: user.uid,
                 email: values.email,
@@ -160,8 +160,8 @@ export default function SignUpPage() {
             });
 
             toast({
-              title: isAdmin ? "Admin Account Created!" : t('toast.signup_success'),
-              description: isAdmin ? "You are the first user, so you are the admin. You can now sign in." : "Your account has been created. You can now sign in.",
+              title: t('toast.signup_success'),
+              description: t('toast.signup_success_desc_verification')
             });
 
             router.push("/signin");
