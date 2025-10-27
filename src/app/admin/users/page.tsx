@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
         try {
             const updatedUsers = users.map(user => {
                 if (user.uid === uid) {
-                    return { ...user, role: newRole };
+                    return { ...user, role: newRole, isAdmin: newRole === 'admin' };
                 }
                 return user;
             });

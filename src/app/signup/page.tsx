@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,10 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Location } from "@/components/Location";
+import { useState, useEffect } from "react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,11 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { Location } from "@/components/Location";
-import { useState, useEffect } from "react";
-import { Loader2, Eye, EyeOff } from "lucide-react";
 
 interface Category {
     id: string;
@@ -39,10 +36,8 @@ const formSchema = z.object({
   role: z.enum(["company", "wholesaler", "distributor", "shopkeeper", "buyer"], {
     required_error: "You need to select a role.",
   }),
-  // Business fields are now optional
   businessName: z.string().optional(),
   category: z.string().optional(),
-  // Personal name for buyers
   fullName: z.string().optional(),
   address: z.string().min(10, { message: "Full address is required." }),
   city: z.string().min(2, { message: "City is required." }),
@@ -78,7 +73,6 @@ export default function SignUpPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
-    const firestore = useFirestore();
     
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -117,22 +111,24 @@ export default function SignUpPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            const user = userCredential.user;
-
+            // Mock user creation for localStorage
+            const uid = `user_${Date.now()}`;
             const displayName = values.role === 'buyer' ? values.fullName : values.businessName;
-            await updateProfile(user, { displayName: displayName });
 
-            // The first user to sign up becomes an admin - this logic is simplified
-            // In a real app, you might check if an admin already exists in the database
-            const isAdmin = user.uid === 'YOUR_ADMIN_UID_HERE'; // Replace with a real check
+            const storedUsersRaw = localStorage.getItem('users');
+            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+
+            // The first user to sign up becomes an admin
+            const isAdmin = allUsers.length === 0;
+            const finalRole = isAdmin ? 'admin' : values.role;
 
             const newUserProfile = {
-                uid: user.uid,
+                uid: uid,
                 email: values.email,
+                password: values.password, // In a real app, you'd hash this. For localStorage demo, we store it.
                 businessName: values.businessName || null,
                 fullName: values.fullName || null,
-                role: values.role,
+                role: finalRole,
                 category: values.category || null,
                 address: values.address,
                 city: values.city,
@@ -143,30 +139,20 @@ export default function SignUpPage() {
                 isAdmin: isAdmin,
             };
 
-            const userDocRef = doc(firestore, "users", user.uid);
-            await setDoc(userDocRef, newUserProfile);
-
-            await sendEmailVerification(user);
-
+            allUsers.push(newUserProfile);
+            localStorage.setItem('users', JSON.stringify(allUsers));
+            
             toast({
               title: isAdmin ? "Admin Account Created!" : t('toast.signup_success'),
-              description: isAdmin ? "You are the first user, so you are the admin. Please verify your email." : t('toast.signup_success_desc_verification'),
+              description: isAdmin ? "You are the first user, so you are the admin. You can now sign in." : "Your account has been created. You can now sign in.",
             });
 
             router.push("/signin");
 
         } catch (error: any) {
-            let description = "An unexpected error occurred. Please try again.";
-            if (error.code === 'auth/email-already-in-use') {
-                description = "This email address is already in use by another account. Please sign in instead.";
-            } else if (error.code === 'auth/invalid-email') {
-                description = "The email address you entered is not valid. Please check and try again.";
-            } else if (error.code === 'auth/weak-password') {
-                description = 'The password is too weak. Please choose a stronger password.';
-            }
             toast({
                 title: "Sign-up Failed",
-                description: description,
+                description: "An unexpected error occurred. Please try again.",
                 variant: "destructive",
             });
             console.error("Sign-up error:", error);
