@@ -143,6 +143,8 @@ export default function SignUpPage() {
             allUsers.push(newUserProfile);
             localStorage.setItem('users', JSON.stringify(allUsers));
             
+            // This setDoc is for compatibility if we switch back to Firestore.
+            // It is not the primary data source in the current setup.
             await setDoc(doc(firestore, 'users', user.uid), {
                 uid: user.uid,
                 email: values.email,
