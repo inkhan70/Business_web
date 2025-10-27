@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,6 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Loader2, Users } from "lucide-react";
@@ -31,9 +39,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useCollection } from "@/firebase";
-import { collection, deleteDoc, doc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 
 interface User {
     uid: string;
@@ -46,28 +51,70 @@ interface User {
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
-    const firestore = useFirestore();
-    const usersCollection = collection(firestore, "users");
-    const { data: users, isLoading: loading, error } = useCollection<User>(usersCollection);
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
 
+    useEffect(() => {
+        setLoading(true);
+        try {
+            const storedUsersRaw = localStorage.getItem('users');
+            if (storedUsersRaw) {
+                setUsers(JSON.parse(storedUsersRaw));
+            }
+        } catch (error) {
+            console.error("Error fetching users from localStorage:", error);
+            toast({
+                title: "Error Loading Users",
+                description: "Could not load user data from local storage.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [toast]);
+    
     const handleDeleteUser = async (uid: string, name: string) => {
         try {
-            const userDoc = doc(firestore, 'users', uid);
-            await deleteDoc(userDoc);
+            const updatedUsers = users.filter(user => user.uid !== uid);
+            localStorage.setItem('users', JSON.stringify(updatedUsers));
+            setUsers(updatedUsers);
             toast({
                 title: "User Deleted",
-                description: `The account for "${name}" has been removed from the database.`,
+                description: `The account for "${name}" has been removed.`,
             });
         } catch (error) {
              toast({
                 title: "Error Deleting User",
-                description: "Could not remove the user from the database.",
+                description: "Could not remove the user.",
                 variant: "destructive",
             });
             console.error("Error deleting user: ", error);
         }
     };
     
+    const handleRoleChange = (uid: string, newRole: string) => {
+        try {
+            const updatedUsers = users.map(user => {
+                if (user.uid === uid) {
+                    return { ...user, role: newRole };
+                }
+                return user;
+            });
+            localStorage.setItem('users', JSON.stringify(updatedUsers));
+            setUsers(updatedUsers);
+            toast({
+                title: "Role Updated",
+                description: `The user's role has been changed to ${newRole}.`,
+            });
+        } catch(error) {
+            toast({
+                title: "Error Updating Role",
+                description: "Could not update the user's role.",
+                variant: "destructive"
+            });
+        }
+    };
+
     const capitalizeFirstLetter = (string: string) => {
         if (!string) return string;
         return string.charAt(0).toUpperCase() + string.slice(1);
@@ -105,19 +152,25 @@ export default function AdminUsersPage() {
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                             </TableCell>
                         </TableRow>
-                    ) : error ? (
-                         <TableRow>
-                            <TableCell colSpan={5} className="py-12 text-center text-red-500">
-                                <p>Error loading users: {error.message}</p>
-                            </TableCell>
-                        </TableRow>
                     ) : users && users.length > 0 ? (
                         users.map(user => (
                             <TableRow key={user.uid}>
                                 <TableCell className="font-medium">{user.businessName || user.fullName || "N/A"}</TableCell>
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>
-                                    <Badge variant={user.role === 'buyer' ? 'secondary' : 'default'}>{capitalizeFirstLetter(user.role)}</Badge>
+                                    <Select value={user.role} onValueChange={(newRole) => handleRoleChange(user.uid, newRole)}>
+                                        <SelectTrigger className="w-[140px]">
+                                            <SelectValue placeholder="Select role" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="buyer">Buyer</SelectItem>
+                                            <SelectItem value="company">Company</SelectItem>
+                                            <SelectItem value="wholesaler">Wholesaler</SelectItem>
+                                            <SelectItem value="distributor">Distributor</SelectItem>
+                                            <SelectItem value="shopkeeper">Shopkeeper</SelectItem>
+                                            <SelectItem value="admin">Admin</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </TableCell>
                                 <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-right">
@@ -131,7 +184,7 @@ export default function AdminUsersPage() {
                                             <AlertDialogHeader>
                                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This will permanently delete the account for <strong>{user.businessName || user.fullName}</strong> from the database. This action cannot be undone.
+                                                This will permanently delete the account for <strong>{user.businessName || user.fullName}</strong>. This action cannot be undone.
                                             </AlertDialogDescription>
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
@@ -151,7 +204,7 @@ export default function AdminUsersPage() {
                         <TableRow>
                             <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                                 <Users className="mx-auto h-10 w-10 mb-2"/>
-                                No users found in the database.
+                                No users found in local storage.
                             </TableCell>
                         </TableRow>
                     )}
