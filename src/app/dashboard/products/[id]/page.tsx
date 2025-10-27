@@ -11,8 +11,6 @@ import { ArrowLeft, Edit, PlusCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import images from '@/app/lib/placeholder-images.json';
-import { useDoc, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -38,28 +36,40 @@ export default function ProductVarietiesPage() {
     const router = useRouter();
     const { toast } = useToast();
     const productId = params.id as string;
-    const firestore = useFirestore();
-
-    const productDocRef = productId ? doc(firestore, 'products', productId) : null;
-    const { data: product, isLoading: loading, error } = useDoc<Product>(productDocRef);
+    const [product, setProduct] = useState<Product | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!loading && !product && !error) {
-            toast({
-                title: 'Product not found',
-                description: `Could not find a product with ID ${productId}.`,
-                variant: 'destructive',
-            });
-            router.push('/dashboard');
-        }
-        if (error) {
-            toast({
+        if (!productId) return;
+
+        setLoading(true);
+        try {
+            const storedProductsRaw = localStorage.getItem('products');
+            if (storedProductsRaw) {
+                const allProducts: Product[] = JSON.parse(storedProductsRaw);
+                const foundProduct = allProducts.find(p => p.id === productId);
+
+                if (foundProduct) {
+                    setProduct(foundProduct);
+                } else {
+                    toast({
+                        title: 'Product not found',
+                        description: `Could not find a product with ID ${productId}.`,
+                        variant: 'destructive',
+                    });
+                    router.push('/dashboard');
+                }
+            }
+        } catch(error) {
+             toast({
                 title: 'Error',
-                description: 'Could not fetch product details from the database.',
+                description: 'Could not fetch product details from local storage.',
                 variant: 'destructive',
             });
+        } finally {
+            setLoading(false);
         }
-    }, [loading, product, error, productId, router, toast]);
+    }, [productId, router, toast]);
 
     if (loading) {
         return (

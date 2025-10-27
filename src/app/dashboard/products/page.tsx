@@ -30,15 +30,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle, Camera } from 'lucide-react';
-import { useAuth, UserProfile } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, addDoc, collection, updateDoc } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from 'uuid';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -88,16 +86,12 @@ export default function ProductForm() {
     const { user, userProfile } = useAuth();
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
-    const firestore = useFirestore();
-    const storage = getStorage();
 
-    const [isUploading, setIsUploading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
     const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
-
-    const productDocRef = useMemoFirebase(() => editId ? doc(firestore, 'products', editId) : null, [editId, firestore]);
-    const { data: productToEdit, isLoading: isProductLoading } = useDoc<ProductFormValues>(productDocRef);
+    const [isLoading, setIsLoading] = useState(!!editId);
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
@@ -107,12 +101,12 @@ export default function ProductForm() {
             status: "Active",
             inventory: 0,
             category: "",
-            varieties: [{ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' }],
+            varieties: [{ id: `var_${Date.now()}`, name: '', price: 0, image: '', dataAiHint: '' }],
         },
         mode: "onChange",
     });
 
-    const { control, formState: { isSubmitting }, getValues, setValue, watch } = form;
+    const { control, getValues, setValue, watch } = form;
     const currentCategory = watch('category');
 
     const { fields, append, remove } = useFieldArray({
@@ -150,7 +144,6 @@ export default function ProductForm() {
     }, [userProfile, getValues, setValue]);
     
     useEffect(() => {
-        // Check for image data from camera page on mount
         const capturedImage = sessionStorage.getItem('capturedImageData');
         const targetIndex = sessionStorage.getItem('capturedImageTargetIndex');
 
@@ -158,7 +151,6 @@ export default function ProductForm() {
             const index = parseInt(targetIndex, 10);
             setValue(`varieties.${index}.image`, capturedImage, { shouldValidate: true });
             
-            // Clean up sessionStorage
             sessionStorage.removeItem('capturedImageData');
             sessionStorage.removeItem('capturedImageTargetIndex');
 
@@ -170,18 +162,27 @@ export default function ProductForm() {
     }, [setValue, toast]);
 
     useEffect(() => {
-        if(productToEdit) {
-            form.reset(productToEdit);
+        if (editId) {
+            setIsLoading(true);
+            const storedProductsRaw = localStorage.getItem('products');
+            if (storedProductsRaw) {
+                const allProducts = JSON.parse(storedProductsRaw);
+                const productToEdit = allProducts.find((p: ProductFormValues) => p.id === editId);
+                if (productToEdit) {
+                    form.reset(productToEdit);
+                }
+            }
+            setIsLoading(false);
         }
-    }, [productToEdit, form]);
-
-    const productsCollection = useMemoFirebase(() => collection(firestore, 'products'), [firestore]);
-    const { data: allProducts } = useCollection<ProductForLibrary>(productsCollection);
+    }, [editId, form]);
 
     useEffect(() => {
         const selectedCategory = getValues('category');
+        const storedProductsRaw = localStorage.getItem('products');
+        const allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+
         if (selectedCategory && allProducts) {
-            const categoryProducts = allProducts.filter(p => p.category === selectedCategory);
+            const categoryProducts = allProducts.filter((p: ProductForLibrary) => p.category === selectedCategory);
             const uniqueImages = new Map<string, ImageAsset>();
             categoryProducts.forEach(product => {
                 product.varieties?.forEach(variety => {
@@ -198,7 +199,7 @@ export default function ProductForm() {
         } else {
             setImageLibrary([]);
         }
-    }, [currentCategory, getValues, allProducts]);
+    }, [currentCategory, getValues]);
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
@@ -243,58 +244,39 @@ export default function ProductForm() {
         }
     }
 
-    // const uploadImage = async (dataUrl: string, userId: string): Promise<string> => {
-    //     if (!dataUrl || dataUrl.startsWith('https') || dataUrl.startsWith('http')) {
-    //         return dataUrl;
-    //     }
-        
-    //     const storageRef = ref(storage, `images/${userId}/${Date.now()}.png`);
-    //     const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
-    //     return await getDownloadURL(snapshot.ref);
-    // }
-
     async function onSubmit(data: ProductFormValues) {
         if (!user || !userProfile) {
             toast({ title: "Not Authenticated", description: "You must be logged in to save a product.", variant: "destructive" });
             return;
         }
 
-        setIsUploading(true);
+        setIsSubmitting(true);
         try {
-            // Keep the data URIs directly for localStorage testing
-            const updatedVarieties = data.varieties.map(variety => {
-                // No upload, just use the data URI as is.
-                return variety;
-            });
-            
-            // const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
-            //     if (variety.image && variety.image.startsWith('data:image')) {
-            //         const uploadedUrl = await uploadImage(variety.image, user.uid);
-            //         return { ...variety, image: uploadedUrl };
-            //     }
-            //     return variety;
-            // }));
-
-            const productData = {
-                ...data,
-                varieties: updatedVarieties,
-                userId: user.uid,
-                category: data.category
-            };
+            const storedProductsRaw = localStorage.getItem('products');
+            let allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
 
             if (editId) {
-                const productDoc = doc(firestore, 'products', editId);
-                await setDoc(productDoc, productData, { merge: true });
+                const productIndex = allProducts.findIndex((p: ProductFormValues) => p.id === editId);
+                if (productIndex > -1) {
+                    allProducts[productIndex] = { ...data, id: editId, userId: user.uid };
+                }
                 toast({ title: "Product Updated", description: `The product "${data.name}" has been saved.` });
             } else {
-                const productsCollectionRef = collection(firestore, 'products');
-                await addDoc(productsCollectionRef, productData);
+                const newProduct = { ...data, id: uuidv4(), userId: user.uid };
+                allProducts.push(newProduct);
                 toast({ title: "Product Created", description: `The product "${data.name}" has been added.` });
             }
+            
+            localStorage.setItem('products', JSON.stringify(allProducts));
 
             if (!userProfile.category && data.category) {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                await updateDoc(userDocRef, { category: data.category });
+                const storedUsersRaw = localStorage.getItem('users');
+                let allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+                const userIndex = allUsers.findIndex((u:any) => u.uid === user.uid);
+                if(userIndex > -1) {
+                    allUsers[userIndex].category = data.category;
+                    localStorage.setItem('users', JSON.stringify(allUsers));
+                }
             }
 
             router.push('/dashboard');
@@ -307,13 +289,13 @@ export default function ProductForm() {
                 variant: "destructive",
             });
         } finally {
-            setIsUploading(false);
+            setIsSubmitting(false);
         }
     }
     
     const isCategoryFixed = !!userProfile?.category;
 
-    if (isProductLoading) {
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -508,7 +490,7 @@ export default function ProductForm() {
                                                                         <Upload className="h-4 w-4" />
                                                                     </span>
                                                                 </Button>
-                                                                <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isUploading || isSubmitting}/>
+                                                                <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isSubmitting}/>
                                                             </Label>
                                                             <Button type="button" variant="outline" size="sm" className="w-full" asChild>
                                                                 <Link href={`/dashboard/camera?from=product-form&varietyIndex=${index}`}>
@@ -553,7 +535,7 @@ export default function ProductForm() {
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => append({ id: `var_${Math.random().toString(36).substr(2, 9)}`, name: '', price: 0, image: '', dataAiHint: '' })}
+                                        onClick={() => append({ id: `var_${Date.now()}`, name: '', price: 0, image: '', dataAiHint: '' })}
                                     >
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         Add Another Variety
@@ -565,9 +547,9 @@ export default function ProductForm() {
                             </div>
 
                             <div className="flex justify-end space-x-2 pt-8">
-                                 <Button type="submit" disabled={isUploading || isSubmitting}>
-                                    {(isUploading || isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {isUploading ? 'Uploading...' : isSubmitting ? 'Saving...' : editId ? 'Save Changes' : 'Create Product'}
+                                 <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isSubmitting ? 'Saving...' : editId ? 'Save Changes' : 'Create Product'}
                                  </Button>
                             </div>
                         </form>
@@ -577,5 +559,3 @@ export default function ProductForm() {
         </div>
     );
 }
-
-    

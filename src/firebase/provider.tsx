@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -156,10 +157,21 @@ export const useFirebaseApp = (): FirebaseApp => {
 
 type MemoFirebase <T> = T & {__memo?: boolean};
 
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
+/**
+ * Memoizes a Firebase reference or query to prevent re-renders in hooks.
+ * This is crucial for preventing infinite loops in `useEffect` with Firebase hooks.
+ * @param factory A function that returns the Firebase reference or query.
+ * @param deps A dependency array, similar to `useMemo`.
+ * @returns A memoized, stable reference to the Firebase object.
+ */
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoized = useMemo(factory, deps);
   
   if(typeof memoized !== 'object' || memoized === null) return memoized;
+  
+  // Attach a flag to the memoized object.
+  // This helps our custom hooks verify that memoization was used.
   (memoized as MemoFirebase<T>).__memo = true;
   
   return memoized;

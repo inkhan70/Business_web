@@ -23,12 +23,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, UserProfile } from "@/contexts/AuthContext";
-import { useFirestore } from "@/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Location } from "@/components/Location";
-import { doc, updateDoc } from "firebase/firestore";
 
 const profileFormSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters."),
@@ -44,7 +42,6 @@ export default function SettingsPage() {
     const { user, userProfile } = useAuth();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
-    const firestore = useFirestore();
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileFormSchema),
@@ -77,17 +74,25 @@ export default function SettingsPage() {
 
         setIsLoading(true);
         try {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            await updateDoc(userDocRef, data);
-            toast({
-                title: "Profile Updated",
-                description: "Your business information has been successfully updated.",
-            });
-            // Optional: You might not need to reload if the context updates automatically
-            // window.location.reload();
+            const storedUsersRaw = localStorage.getItem('users');
+            let allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+            const userIndex = allUsers.findIndex((u: any) => u.uid === user.uid);
+
+            if (userIndex > -1) {
+                allUsers[userIndex] = { ...allUsers[userIndex], ...data };
+                localStorage.setItem('users', JSON.stringify(allUsers));
+                toast({
+                    title: "Profile Updated",
+                    description: "Your business information has been successfully updated.",
+                });
+                // Force a reload of auth context, a bit heavy-handed but ensures sync
+                 window.location.reload();
+            } else {
+                 throw new Error("User profile not found in local storage.");
+            }
            
         } catch (error) {
-            console.error("Error updating profile in Firestore: ", error);
+            console.error("Error updating profile in localStorage: ", error);
             toast({
                 title: "Update Failed",
                 description: "There was a problem saving your changes. Please try again.",

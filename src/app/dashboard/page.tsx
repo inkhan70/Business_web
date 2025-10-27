@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, PlusCircle, Trash2, Edit, Loader2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, Edit, Loader2, Users } from "lucide-react";
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -32,8 +32,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, deleteDoc, doc } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -57,28 +55,52 @@ export default function DashboardPage() {
     const { toast } = useToast();
     const { t } = useLanguage();
     const { user } = useAuth();
-    const firestore = useFirestore();
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const productsCollection = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collection(firestore, "products"), where("userId", "==", user.uid));
-    }, [user, firestore]);
-    
-    const { data: products, isLoading: loading, error } = useCollection<Product>(productsCollection);
+     useEffect(() => {
+        if (!user) {
+            setLoading(false);
+            return;
+        };
+
+        setLoading(true);
+        try {
+            const storedProductsRaw = localStorage.getItem('products');
+            const allProducts: Product[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+            const userProducts = allProducts.filter(p => p.userId === user.uid);
+            setProducts(userProducts);
+        } catch (error) {
+            console.error("Error fetching products from localStorage:", error);
+            toast({
+                title: "Error loading products",
+                description: "Could not load products from local storage.",
+                variant: "destructive",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [user, toast]);
 
     const handleDelete = async (productId: string, productName: string) => {
         try {
-            const productDoc = doc(firestore, 'products', productId);
-            await deleteDoc(productDoc);
+            const storedProductsRaw = localStorage.getItem('products');
+            let allProducts: Product[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
+            const updatedProducts = allProducts.filter(p => p.id !== productId);
+            localStorage.setItem('products', JSON.stringify(updatedProducts));
+            
+            // Also update the local state to re-render the UI
+            setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
+            
             toast({
                 title: "Product Deleted",
-                description: `"${productName}" has been removed from the database.`,
+                description: `"${productName}" has been removed.`,
             });
         } catch (error: any) {
             console.error("Error deleting product: ", error);
             toast({
                 title: "Error",
-                description: "Could not delete the product from the database.",
+                description: "Could not delete the product.",
                 variant: "destructive",
             });
         }
@@ -123,15 +145,10 @@ export default function DashboardPage() {
                                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
-                        ) : error ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="py-12 text-center text-red-500">
-                                    <p>Error loading products: {error.message}</p>
-                                </TableCell>
-                            </TableRow>
                         ) : products && products.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-12">
+                                    <Users className="mx-auto h-10 w-10 mb-2 text-muted-foreground"/>
                                     <p className="font-semibold mb-2">No products found.</p>
                                     <p className="text-muted-foreground mb-4">Get started by adding your first product.</p>
                                     <Button asChild size="sm">
