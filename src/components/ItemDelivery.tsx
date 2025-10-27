@@ -3,11 +3,12 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MapPin, LocateFixed } from "lucide-react";
+import { MapPin, LocateFixed, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { Label } from "./ui/label";
+import { useState } from "react";
 
 export interface Address {
     address: string;
@@ -24,6 +25,8 @@ interface ItemDeliveryProps {
 export function ItemDelivery({ address, onAddressChange }: ItemDeliveryProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -42,22 +45,46 @@ export function ItemDelivery({ address, onAddressChange }: ItemDeliveryProps) {
       });
       return;
     }
+    
+    setIsFetchingLocation(true);
 
     navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
             const { latitude, longitude } = position.coords;
-            // In a real app, you would use a reverse geocoding API
-            // to turn these coordinates into an address and fill the fields.
-            // For now, we'll just pre-fill with a placeholder and coordinates.
-            onAddressChange({
-                address: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`,
-                city: "Geolocated City",
-                state: "Geolocated State",
-            });
-            toast({
-                title: "Location Fetched",
-                description: `Address fields have been pre-filled. Please verify them.`,
-            });
+            try {
+                // Use a free reverse geocoding service
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                const data = await response.json();
+
+                if (data && data.address) {
+                    const { road, house_number, city, state, postcode, country } = data.address;
+                    const street = `${house_number || ''} ${road || ''}`.trim();
+                    onAddressChange({
+                        address: street || data.display_name,
+                        city: city || "",
+                        state: state || "",
+                    });
+                    toast({
+                        title: "Location Fetched",
+                        description: `Your address fields have been pre-filled.`,
+                    });
+                } else {
+                    throw new Error("Could not find address details.");
+                }
+            } catch (error) {
+                toast({
+                    title: "Could Not Fetch Address",
+                    description: "Unable to convert coordinates to an address. Please enter it manually.",
+                    variant: "destructive"
+                });
+                onAddressChange({
+                    address: `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`,
+                    city: "Geolocated City",
+                    state: "Geolocated State",
+                });
+            } finally {
+                setIsFetchingLocation(false);
+            }
         },
         (error) => {
             let title = "Location Error";
@@ -76,6 +103,7 @@ export function ItemDelivery({ address, onAddressChange }: ItemDeliveryProps) {
               description: description,
               variant: "destructive",
             });
+            setIsFetchingLocation(false);
         }
     );
   };
@@ -114,9 +142,9 @@ export function ItemDelivery({ address, onAddressChange }: ItemDeliveryProps) {
         </div>
         
         <div>
-             <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation}>
-                <LocateFixed className="mr-2 h-4 w-4" />
-                GPS Location
+             <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation} disabled={isFetchingLocation}>
+                {isFetchingLocation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LocateFixed className="mr-2 h-4 w-4" />}
+                {isFetchingLocation ? "Fetching Location..." : "GPS Location"}
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-2">
                 Let your browser find your location automatically.

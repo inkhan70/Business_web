@@ -11,16 +11,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFormContext } from "react-hook-form";
-import { MapPin, LocateFixed } from "lucide-react";
+import { MapPin, LocateFixed, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { Label } from "./ui/label";
+import { useState } from "react";
 
 export function Location() {
   const { control, setValue } = useFormContext();
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   const handleGetCurrentLocation = async () => {
     if (!navigator.geolocation) {
@@ -32,19 +34,43 @@ export function Location() {
       return;
     }
 
+    setIsFetchingLocation(true);
+
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
-        // In a real app, you would use a reverse geocoding API
-        // to turn these coordinates into an address and fill the fields.
-        // For now, we'll just pre-fill with a placeholder and coordinates.
-        setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
-        setValue("city", "Geolocated City");
-        setValue("state", "Geolocated State");
-        toast({
-          title: "Location Fetched",
-          description: `Address fields have been pre-filled. Please verify them.`,
-        });
+        
+        try {
+          // Use a free reverse geocoding service
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const { road, house_number, city, state, postcode, country } = data.address;
+            const street = `${house_number || ''} ${road || ''}`.trim();
+
+            setValue("address", street || data.display_name, { shouldValidate: true });
+            setValue("city", city || '', { shouldValidate: true });
+            setValue("state", state || '', { shouldValidate: true });
+            
+            toast({
+              title: "Location Fetched",
+              description: "Your address fields have been pre-filled.",
+            });
+          } else {
+            throw new Error("Could not find address details.");
+          }
+        } catch (error) {
+           toast({
+            title: "Could Not Fetch Address",
+            description: "Unable to convert coordinates to an address. Please enter it manually.",
+            variant: "destructive"
+           });
+           // Fallback for when reverse geocoding fails
+           setValue("address", `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
+        } finally {
+            setIsFetchingLocation(false);
+        }
       },
       (error) => {
         let title = "Location Error";
@@ -63,6 +89,7 @@ export function Location() {
           description: description,
           variant: "destructive",
         });
+        setIsFetchingLocation(false);
       }
     );
   };
@@ -128,9 +155,9 @@ export function Location() {
         </div>
         
         <div>
-             <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation}>
-                <LocateFixed className="mr-2 h-4 w-4" />
-                GPS Location
+             <Button type="button" variant="outline" className="w-full" onClick={handleGetCurrentLocation} disabled={isFetchingLocation}>
+                {isFetchingLocation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LocateFixed className="mr-2 h-4 w-4" />}
+                {isFetchingLocation ? "Fetching Location..." : "GPS Location"}
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-2">
                 Let your browser find your location automatically.
