@@ -11,7 +11,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Location } from "@/components/Location";
 import { useState, useEffect } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth, initiateEmailSignUp } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
@@ -117,19 +117,19 @@ export default function SignUpPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            // This starts a fresh user list, effectively clearing old accounts for this session's signup.
-            const allUsers: any[] = []; 
-            const isAdmin = allUsers.length === 0;
-            const finalRole = isAdmin ? 'admin' : values.role;
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
 
-            const uid = `user_${Date.now()}`;
+            const storedUsersRaw = localStorage.getItem('users');
+            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+            const isAdmin = allUsers.length === 0;
 
             const newUserProfile = {
-                uid: uid,
+                uid: user.uid,
                 email: values.email,
                 businessName: values.businessName || null,
                 fullName: values.fullName || null,
-                role: finalRole,
+                role: isAdmin ? 'admin' : values.role,
                 category: values.category || null,
                 address: values.address,
                 city: values.city,
@@ -140,19 +140,13 @@ export default function SignUpPage() {
                 isAdmin: isAdmin,
             };
 
-            // This will only contain the new user, making them the admin.
             allUsers.push(newUserProfile);
             localStorage.setItem('users', JSON.stringify(allUsers));
             
-            // Still create the user in Firebase Auth for login purposes
-            initiateEmailSignUp(auth, values.email, values.password);
-
-            // Also create the profile in Firestore for consistency, though we are favoring localStorage for reads
-            const userDocRef = doc(firestore, 'users', uid);
-            await setDoc(userDocRef, {
-                uid,
+            await setDoc(doc(firestore, 'users', user.uid), {
+                uid: user.uid,
                 email: values.email,
-                role: finalRole,
+                role: isAdmin ? 'admin' : values.role,
                 businessName: values.businessName || null,
                 fullName: values.fullName || null,
                 category: values.category || null,
@@ -171,9 +165,13 @@ export default function SignUpPage() {
             router.push("/signin");
 
         } catch (error: any) {
+             let description = "An unexpected error occurred. Please try again.";
+            if (error.code === 'auth/email-already-in-use') {
+                description = "This email is already registered. Please sign in or use a different email.";
+            }
             toast({
                 title: "Sign-up Failed",
-                description: "An unexpected error occurred. Please try again.",
+                description: description,
                 variant: "destructive",
             });
             console.error("Sign-up error:", error);
@@ -329,5 +327,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-
-    

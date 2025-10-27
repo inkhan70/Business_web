@@ -8,9 +8,12 @@ import * as z from "zod";
 import { 
     setPersistence, 
     browserLocalPersistence, 
-    browserSessionPersistence 
+    browserSessionPersistence,
+    signInWithEmailAndPassword
 } from "firebase/auth";
-import { useAuth, initiateEmailSignIn } from "@/firebase";
+import { useAuth } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,6 +48,7 @@ export default function SignInPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const auth = useAuth();
+    const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -61,14 +65,45 @@ export default function SignInPage() {
             const persistence = values.rememberMe ? browserLocalPersistence : browserSessionPersistence;
             await setPersistence(auth, persistence);
             
-            initiateEmailSignIn(auth, values.email, values.password);
+            const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
+
+            // Check if user profile exists in localStorage, if not, create it.
+            const storedUsersRaw = localStorage.getItem('users');
+            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+            let userProfile = allUsers.find((u: any) => u.uid === user.uid);
+
+            let isAdmin = false;
+            if (!userProfile) {
+                // This is the first time this user logs into this local instance.
+                // If there are no other users, they become admin.
+                isAdmin = allUsers.length === 0;
+                
+                userProfile = {
+                    uid: user.uid,
+                    email: user.email,
+                    role: isAdmin ? 'admin' : 'buyer', // Default to buyer if not first user
+                    businessName: null,
+                    fullName: user.displayName || 'New User',
+                    category: null,
+                    address: '', city: '', state: '', // These should be prompted later
+                    createdAt: new Date().toISOString(),
+                    isAdmin: isAdmin,
+                };
+                allUsers.push(userProfile);
+                localStorage.setItem('users', JSON.stringify(allUsers));
+            }
 
             toast({
                 title: t('toast.signin_success'),
                 description: t('toast.signin_success_desc'),
             });
             
-            router.push("/dashboard");
+            if (userProfile.isAdmin) {
+                router.push("/admin");
+            } else {
+                router.push("/dashboard");
+            }
 
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
@@ -83,6 +118,7 @@ export default function SignInPage() {
                 variant: "destructive",
             });
             console.error(error);
+        } finally {
             setIsLoading(false);
         }
     }
