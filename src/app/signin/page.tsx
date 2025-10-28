@@ -10,7 +10,8 @@ import {
     browserLocalPersistence, 
     browserSessionPersistence,
     signInWithEmailAndPassword,
-    sendEmailVerification
+    sendEmailVerification,
+    User
 } from "firebase/auth";
 import { useAuth } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -51,28 +52,11 @@ export default function SignInPage() {
     const auth = useAuth();
     const firestore = useFirestore();
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            email: "",
-            password: "",
-            rememberMe: false,
-        },
-    });
-
-    const handleResendVerification = async (email: string) => {
+    const handleResendVerification = async (user: User) => {
+        if (!user) return;
         try {
-            // This is a bit of a workaround: we need to re-authenticate to get a fresh user object to send email
-            const { password } = form.getValues();
-            if (!password) {
-                 toast({ title: "Password Required", description: "Please enter your password to resend verification.", variant: "destructive"});
-                 return;
-            }
-            const tempUserCredential = await signInWithEmailAndPassword(auth, email, password);
-            if(tempUserCredential.user && !tempUserCredential.user.emailVerified) {
-                await sendEmailVerification(tempUserCredential.user);
-                toast({ title: t('toast.verification_sent_title'), description: t('toast.verification_sent_desc') });
-            }
+            await sendEmailVerification(user);
+            toast({ title: t('toast.verification_sent_title'), description: t('toast.verification_sent_desc') });
         } catch (error) {
             console.error("Error resending verification email:", error);
             toast({ title: t('toast.error_sending_verification_title'), description: t('toast.error_sending_verification_desc'), variant: "destructive" });
@@ -93,26 +77,24 @@ export default function SignInPage() {
                     title: t('toast.email_not_verified_title'),
                     description: t('toast.email_not_verified_desc'),
                     variant: "destructive",
-                    action: <Button variant="secondary" onClick={() => handleResendVerification(values.email)}>{t('toast.resend_verification_button')}</Button>
+                    action: <Button variant="secondary" onClick={() => handleResendVerification(user)}>{t('toast.resend_verification_button')}</Button>,
+                    duration: 10000,
                 });
                 setIsLoading(false);
                 return;
             }
 
-            // Check if user profile exists in localStorage, if not, create it.
             const storedUsersRaw = localStorage.getItem('users');
             const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
             let userProfile = allUsers.find((u: any) => u.uid === user.uid);
 
             if (!userProfile) {
-                // This is the first time this user logs into this local instance.
-                // We'll create a basic profile and make them admin if they are the first user ever.
                 const isAdmin = allUsers.length === 0;
                 
                 userProfile = {
                     uid: user.uid,
                     email: user.email,
-                    role: isAdmin ? 'admin' : 'buyer', // Default to buyer
+                    role: isAdmin ? 'admin' : 'buyer',
                     businessName: null,
                     fullName: user.displayName || 'New User',
                     category: null,
@@ -241,5 +223,3 @@ export default function SignInPage() {
     </div>
   );
 }
-
-    

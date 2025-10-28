@@ -34,7 +34,7 @@
   "toast.error_adding_category": "زمرہ شامل کرنے میں خرابی",
   "toast.error_adding_category_desc": "ڈیٹا بیس میں نیا زمرہ محفوظ نہیں کیا جا سکا۔",
   "toast.error_empty_name": "خرابی",
-  "toast.error_empty_name_desc": "زمرہ کا نام خالی نہیں ہو سکتا۔",
+  "toast.error_empty_name_desc": "زمرہ کا نام خالی نہیں ہو सकता۔",
   "toast.category_removed": "زمرہ ہٹا دیا گیا",
   "toast.category_removed_desc": "زمرہ ہٹا دیا گیا ہے۔",
   "toast.error_removing_category": "زمرہ ہٹانے میں خرابی",
@@ -164,5 +164,3 @@
   "Jewelry": "زیورات",
   "Real Estate": "ریل اسٹیٹ"
 }
-
-    
