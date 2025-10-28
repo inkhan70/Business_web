@@ -52,6 +52,15 @@ export default function SignInPage() {
     const auth = useAuth();
     const firestore = useFirestore();
 
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+            rememberMe: false,
+        },
+    });
+
     const handleResendVerification = async (user: User) => {
         if (!user) return;
         try {
