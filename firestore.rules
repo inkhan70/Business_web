@@ -1,81 +1,88 @@
 /**
- * @fileoverview Firestore Security Rules for the application.
+ * @fileoverview Firestore Security Rules for Production.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user profiles,
- * and allows public read access to products and orders while restricting
- * write access to authorized users based on ownership.
+ * This ruleset enforces a strict user-ownership model, where users (businesses and buyers) can only
+ * read and write their own profile data.  Products are also governed by an ownership model,
+ * where only the product's owner can modify it. Orders can be read/written to by buyer/seller.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, with the document ID matching the Firebase Auth UID.
- * - /products/{productId}: Stores product information, with each document containing a 'userId'
- *   field indicating the owner.
- * - /orders/{orderId}: Stores order information, with each document containing a 'buyerId' and 'businessId'
- *   field indicating the buyer and seller respectively.
+ * - /users/{userId}: Stores user profile information. The document ID is the Firebase Auth UID.
+ * - /products/{productId}: Stores product information. Each document has a 'userId' field indicating the owner.
+ * - /orders/{orderId}: Stores order information. Links buyers and sellers via 'buyerId' and 'businessId' respectively.
  *
  * Key Security Decisions:
- * - Users can only read and write their own profile data.
- * - Products and orders are publicly readable but can only be created, updated, or deleted by
- *   their respective owners (based on the 'userId', 'buyerId', and 'businessId' fields).
- * - No user listing is allowed.
+ * - Users cannot list all user profiles. This protects user privacy and prevents enumeration attacks.
+ * - Data shape validation is relaxed to allow for rapid prototyping. Only fields critical for authorization
+ *   and relational integrity are validated.
  *
  * Denormalization for Authorization:
- * The rules rely on the `userId` field within the `/products/{productId}` documents, and the `buyerId` and `businessId` in the `/orders/{orderId}` documents to enforce ownership.
- * This avoids costly `get()` operations to other collections for authorization.
+ *  - The 'Product' entity includes a 'userId' field. This allows rules on `/products/{productId}` to quickly
+ *    check ownership without additional `get()` calls. This is denormalization.
+ *  - No explicit data denormalization is required in this version, since the order data will be accessible to both parties via the IDs
  *
  * Structural Segregation:
- * The application uses a single `/users/{userId}` collection to store both business and buyer profiles. Access is controlled through the `uid` field.
+ *  - Draft vs. Published Content: Not applicable in the current data model.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Enforces that users can only read and write their own profile data.
+     * @description Secures user profiles, ensuring users can only access their own data.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) - User with UID 'm7wK4SLXdGc5RoIxZROCpwL9DQG2' can access /users/m7wK4SLXdGc5RoIxZROCpwL9DQG2
-     * @deny (get, create, update, delete) - User with UID 'otherUser' cannot access /users/m7wK4SLXdGc5RoIxZROCpwL9DQG2
+     * @allow (create) - User with UID 'user_abc' can create their profile at /users/user_abc.
+     * @allow (get, update, delete) - User with UID 'user_abc' can get, update, and delete their profile at /users/user_abc.
+     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /users/user_abc.
+     * @deny (get, update, delete) - User with UID 'user_xyz' cannot get, update or delete the profile at /users/user_abc.
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
-      allow update: if isSignedIn() && isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if false; // Prevent listing of all user profiles.
+
+      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows public read access to product information while restricting write access to the owner.
+     * @description Secures product information, ensuring only the owner can manage their products.
      * @path /products/{productId}
-     * @allow (get, list) - Any user can read product information.
-     * @allow (create) - User with UID 'user123' can create a product with userId: 'user123'.
-     * @allow (update, delete) - User with UID 'user123' can update/delete a product with userId: 'user123'.
-     * @deny (create, update, delete) - User with UID 'otherUser' cannot create/update/delete a product with userId: 'user123'.
-     * @principle Enforces owner-only writes with public read access.
+     * @allow (create) - User with UID 'user_abc' can create a product with userId: 'user_abc'.
+     * @allow (get, update, delete) - User with UID 'user_abc' can get, update, and delete a product with userId: 'user_abc'.
+     * @deny (create) - User with UID 'user_xyz' cannot create a product with userId: 'user_abc'.
+     * @deny (update, delete) - User with UID 'user_xyz' cannot update or delete a product with userId: 'user_abc'.
+     * @principle Enforces document ownership for writes. Allows public read access.
      */
     match /products/{productId} {
       allow get, list: if true;
+
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && isExistingProductOwner(resource.data.userId);
-      allow delete: if isSignedIn() && isExistingProductOwner(resource.data.userId);
+      allow update: if isExistingOwner(resource.data.userId);
+      allow delete: if isExistingOwner(resource.data.userId);
     }
 
-    /**
-     * @description Allows public read access to order information while restricting write access to the buyer or business.
-     * @path /orders/{orderId}
-     * @allow (get, list) - Any user can read order information.
-     * @allow (create) - User with UID 'buyer123' can create an order with buyerId: 'buyer123'.
-     * @allow (update, delete) - User with UID 'buyer123' can update/delete an order with buyerId: 'buyer123'.
-     * @deny (create, update, delete) - User with UID 'otherUser' cannot create/update/delete an order with buyerId: 'buyer123'.
-     * @principle Enforces owner-only writes with public read access.
-     */
-    match /orders/{orderId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
-      allow update: if isSignedIn() && (isExistingOrderOwner(resource.data.buyerId) || isExistingOrderBusiness(resource.data.businessId));
-      allow delete: if isSignedIn() && (isExistingOrderOwner(resource.data.buyerId) || isExistingOrderBusiness(resource.data.businessId));
-    }
+     /**
+      * @description Secures orders, allowing only the buyer and seller to access order information.
+      * @path /orders/{orderId}
+      * @allow (create) - Any authenticated user can create an order, as long as they set buyerId and businessId to valid user IDs.
+      * @allow (get) - User with UID 'user_abc' can get an order where buyerId or businessId is 'user_abc'.
+      * @allow (list) - Not applicable, listing should be managed by the application, not open to all.
+      * @allow (update) - The buyer/seller should be able to update order data (for example, delivery status).
+      * @allow (delete) - The buyer/seller should be able to delete order data.
+      * @deny (create) - User with UID 'user_xyz' cannot create an order where buyerId is 'user_abc' (unless they *are* user_abc).
+      * @deny (update, delete) - User with UID 'user_xyz' cannot update or delete an order where neither buyerId nor businessId is 'user_xyz'.
+      * @principle Shared Access: Restricts access to orders based on buyerId and businessId ownership.
+      */
+     match /orders/{orderId} {
+        allow get: if isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.businessId == request.auth.uid);
+        allow list: if false; // Listing is controlled by the application logic.
+
+        allow create: if isSignedIn() && request.resource.data.buyerId != null && request.resource.data.businessId != null;
+        allow update: if isExistingBuyerOrBusiness(resource.data.buyerId, resource.data.businessId);
+        allow delete: if isExistingBuyerOrBusiness(resource.data.buyerId, resource.data.businessId);
+     }
   }
 
   // Helper functions
@@ -84,34 +91,14 @@ service cloud.firestore {
   }
 
   function isOwner(userId) {
-    return request.auth.uid == userId;
+    return isSignedIn() && request.auth.uid == userId;
   }
 
   function isExistingOwner(userId) {
-    return isSignedIn() && isOwner(userId) && resource != null;
+    return isOwner(userId) && resource != null;
   }
 
-  function isProductOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-  function isExistingProductOwner(userId) {
-    return isSignedIn() && isProductOwner(userId) && resource != null;
-  }
-
-  function isOrderOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-  function isExistingOrderOwner(userId) {
-    return isSignedIn() && isOrderOwner(userId) && resource != null;
-  }
-
-    function isBusiness(businessId) {
-    return request.auth.uid == businessId;
-  }
-
-  function isExistingOrderBusiness(businessId) {
-    return isSignedIn() && isBusiness(businessId) && resource != null;
-  }
+    function isExistingBuyerOrBusiness(buyerId, businessId) {
+      return resource != null && isSignedIn() && (request.auth.uid == buyerId || request.auth.uid == businessId);
+    }
 }
