@@ -55,8 +55,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/signin');
+        if (!loading) {
+            if (!user || !user.emailVerified) {
+                router.push('/signin');
+            }
         }
     }, [user, loading, router]);
     
@@ -65,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push('/');
     };
 
-    if (loading || !user) {
+    if (loading || !user || !user.emailVerified) {
         return (
             <div className="container mx-auto my-8 flex justify-center items-center min-h-[60vh]">
                 <Loader2 className="h-8 w-8 animate-spin" />

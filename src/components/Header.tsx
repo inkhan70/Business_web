@@ -38,7 +38,7 @@ export function Header() {
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
-            {user && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
+            {user && user.emailVerified && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
           </nav>
         </div>
         
@@ -97,7 +97,7 @@ export function Header() {
                     </Link>
                     <div className="flex flex-col space-y-4">
                         <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
-                         {user && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
+                         {user && user.emailVerified && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
                         
                         <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value="item-1" className="border-b-0">
