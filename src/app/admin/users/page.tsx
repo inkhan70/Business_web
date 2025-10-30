@@ -39,6 +39,8 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, doc, deleteDoc, updateDoc } from "firebase/firestore";
 
 interface User {
     uid: string;
@@ -47,61 +49,54 @@ interface User {
     businessName?: string;
     fullName?: string;
     createdAt: string;
+    isAdmin?: boolean;
 }
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
+    
+    const usersQuery = useMemoFirebase(() => query(collection(firestore, "users")), [firestore]);
+    const { data: users, isLoading: loading, error } = useCollection<User>(usersQuery);
 
     useEffect(() => {
-        setLoading(true);
-        try {
-            const storedUsersRaw = localStorage.getItem('users');
-            if (storedUsersRaw) {
-                setUsers(JSON.parse(storedUsersRaw));
-            }
-        } catch (error) {
-            console.error("Error fetching users from localStorage:", error);
+        if(error) {
+            console.error("Error fetching users from Firestore:", error);
             toast({
                 title: "Error Loading Users",
-                description: "Could not load user data from local storage.",
+                description: "Could not load user data from the database.",
                 variant: "destructive",
             });
-        } finally {
-            setLoading(false);
         }
-    }, [toast]);
+    }, [error, toast]);
     
     const handleDeleteUser = async (uid: string, name: string) => {
         try {
-            const updatedUsers = users.filter(user => user.uid !== uid);
-            localStorage.setItem('users', JSON.stringify(updatedUsers));
-            setUsers(updatedUsers);
+            const userDocRef = doc(firestore, "users", uid);
+            await deleteDoc(userDocRef);
+            // In a real app, you would also need to delete the user from Firebase Auth via a backend function.
+            // This client-side code can only delete the Firestore document.
             toast({
-                title: "User Deleted",
-                description: `The account for "${name}" has been removed.`,
+                title: "User Document Deleted",
+                description: `The Firestore document for "${name}" has been removed. Auth user may still exist.`,
             });
         } catch (error) {
              toast({
                 title: "Error Deleting User",
-                description: "Could not remove the user.",
+                description: "Could not remove the user document.",
                 variant: "destructive",
             });
             console.error("Error deleting user: ", error);
         }
     };
     
-    const handleRoleChange = (uid: string, newRole: string) => {
+    const handleRoleChange = async (uid: string, newRole: string) => {
         try {
-            const updatedUsers = users.map(user => {
-                if (user.uid === uid) {
-                    return { ...user, role: newRole, isAdmin: newRole === 'admin' };
-                }
-                return user;
+            const userDocRef = doc(firestore, "users", uid);
+            await updateDoc(userDocRef, {
+                role: newRole,
+                isAdmin: newRole === 'admin'
             });
-            localStorage.setItem('users', JSON.stringify(updatedUsers));
-            setUsers(updatedUsers);
             toast({
                 title: "Role Updated",
                 description: `The user's role has been changed to ${newRole}.`,
@@ -158,7 +153,7 @@ export default function AdminUsersPage() {
                                 <TableCell className="font-medium">{user.businessName || user.fullName || "N/A"}</TableCell>
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>
-                                    <Select value={user.role} onValueChange={(newRole) => handleRoleChange(user.uid, newRole)}>
+                                    <Select value={user.role} onValueChange={(newRole) => handleRoleChange(user.uid, newRole)} disabled={user.isAdmin && users.filter(u=>u.isAdmin).length <= 1}>
                                         <SelectTrigger className="w-[140px]">
                                             <SelectValue placeholder="Select role" />
                                         </SelectTrigger>
@@ -176,7 +171,7 @@ export default function AdminUsersPage() {
                                 <TableCell className="text-right">
                                      <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="destructive" size="icon">
+                                            <Button variant="destructive" size="icon" disabled={user.isAdmin && users.filter(u=>u.isAdmin).length <= 1}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </AlertDialogTrigger>
@@ -204,7 +199,7 @@ export default function AdminUsersPage() {
                         <TableRow>
                             <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                                 <Users className="mx-auto h-10 w-10 mb-2"/>
-                                No users found in local storage.
+                                No users found in the database.
                             </TableCell>
                         </TableRow>
                     )}

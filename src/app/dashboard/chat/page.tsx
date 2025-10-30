@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Send, MessageSquare, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, addDoc, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -89,12 +89,11 @@ function ChatPage() {
                 timestamp: serverTimestamp(),
             });
 
-            // Also update the last message on the chat document (non-blocking)
             const chatDocRef = doc(firestore, 'chats', activeChat.id);
-            await addDoc(collection(firestore, 'chats', activeChat.id, 'messages'), {
+            await setDoc(chatDocRef, {
                 lastMessage: newMessage,
                 lastMessageTimestamp: serverTimestamp(),
-            });
+            }, { merge: true });
 
             setNewMessage('');
         } catch (error) {
@@ -130,7 +129,7 @@ function ChatPage() {
                                 <button key={chat.id} onClick={() => setActiveChat(chat)} className={cn("w-full text-left p-4 border-b hover:bg-muted/50", activeChat?.id === chat.id && "bg-muted")}>
                                     <div className="flex items-center space-x-3">
                                         <Avatar>
-                                            <AvatarFallback>{otherUser?.name.charAt(0) || 'U'}</AvatarFallback>
+                                            <AvatarFallback>{otherUser?.name?.charAt(0) || 'U'}</AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 overflow-hidden">
                                             <p className="font-semibold truncate">{otherUser?.name || 'Unknown User'}</p>
@@ -156,7 +155,7 @@ function ChatPage() {
                         <CardHeader className="border-b">
                            <div className="flex items-center space-x-3">
                                <Avatar>
-                                   <AvatarFallback>{getOtherParticipant(activeChat)?.name.charAt(0) || 'U'}</AvatarFallback>
+                                   <AvatarFallback>{getOtherParticipant(activeChat)?.name?.charAt(0) || 'U'}</AvatarFallback>
                                </Avatar>
                                <div>
                                    <p className="font-semibold">{getOtherParticipant(activeChat)?.name}</p>
@@ -210,11 +209,8 @@ function ChatPage() {
 
 export default function ChatPageWrapper() {
     return (
-        // Suspense boundary is required for useSearchParams
-        <java.Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
             <ChatPage />
-        </java.Suspense>
+        </Suspense>
     );
 }
-
-    

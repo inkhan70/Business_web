@@ -23,7 +23,7 @@ import type { Address } from "./ItemDelivery";
 import images from '@/app/lib/placeholder-images.json';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -89,6 +89,8 @@ export function Cart() {
         return acc;
       }, {} as Record<string, typeof cart>);
 
+      const ordersCollection = collection(firestore, 'orders');
+
       for (const businessId in ordersByBusiness) {
         const itemsForBusiness = ordersByBusiness[businessId];
         const businessTotalCost = itemsForBusiness.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -111,10 +113,9 @@ export function Cart() {
           totalCost: businessTotalCost + 5.00, // Including transport cost
           orderDate: serverTimestamp(),
           status: "Pending",
-          pickupCode: Math.random().toString(36).substring(2, 16).toUpperCase(),
+          pickupCode: Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 8).toUpperCase(),
         };
-
-        const ordersCollection = collection(firestore, 'orders');
+        
         await addDoc(ordersCollection, newOrder);
       }
       
@@ -242,5 +243,3 @@ export function Cart() {
     </Sheet>
   );
 }
-
-    
