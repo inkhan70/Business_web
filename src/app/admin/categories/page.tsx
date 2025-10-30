@@ -20,7 +20,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Trash2, UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Icon } from "lucide-react";
+import { PlusCircle, Trash2, UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Icon, Shirt, Home, Car, Wrench, Bone } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -42,7 +42,7 @@ interface Category {
 }
 
 const iconMap: { [key: string]: React.ElementType } = {
-    UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal
+    UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Shirt, Home, Car, Wrench, Bone
 };
 
 const defaultCategories: Category[] = [
@@ -54,6 +54,11 @@ const defaultCategories: Category[] = [
     { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
     { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
     { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
+    { id: 'cat9', name: 'Apparel', href:"/roles?category=apparel", icon: 'Shirt', order: 9 },
+    { id: 'cat10', name: 'Home & Garden', href:"/roles?category=home-garden", icon: 'Home', order: 10 },
+    { id: 'cat11', name: 'Automotive', href:"/roles?category=automotive", icon: 'Car', order: 11 },
+    { id: 'cat12', name: 'Services', href:"/roles?category=services", icon: 'Wrench', order: 12 },
+    { id: 'cat13', name: 'Pets', href:"/roles?category=pets", icon: 'Bone', order: 13 },
 ];
 
 export default function AdminCategoriesPage() {

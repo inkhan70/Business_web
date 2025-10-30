@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Settings } from 'lucide-react';
+import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Settings, Shirt, Home, Car, Wrench, Bone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
 const iconMap: { [key: string]: React.ElementType } = {
-    UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal
+    UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Shirt, Home, Car, Wrench, Bone
 };
 
 interface Category {
@@ -33,6 +33,11 @@ const defaultCategories: Category[] = [
     { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
     { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
     { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
+    { id: 'cat9', name: 'Apparel', href:"/roles?category=apparel", icon: 'Shirt', order: 9 },
+    { id: 'cat10', name: 'Home & Garden', href:"/roles?category=home-garden", icon: 'Home', order: 10 },
+    { id: 'cat11', name: 'Automotive', href:"/roles?category=automotive", icon: 'Car', order: 11 },
+    { id: 'cat12', name: 'Services', href:"/roles?category=services", icon: 'Wrench', order: 12 },
+    { id: 'cat13', name: 'Pets', href:"/roles?category=pets", icon: 'Bone', order: 13 },
 ];
 
 export default function CategoriesPage() {
