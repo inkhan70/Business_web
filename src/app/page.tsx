@@ -66,7 +66,7 @@ export default function Home() {
                 width={600}
                 height={400}
                 className="rounded-xl shadow-2xl"
-                data-ai-hint="city shops"
+                data-ai-hint="vegetable stand"
               />
             </div>
           </div>
