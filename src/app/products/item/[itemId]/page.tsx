@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,16 +9,21 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Minus, Plus, ShoppingCart, Share2 } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Share2, Star, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import images from '@/app/lib/placeholder-images.json';
-
+import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, addDoc, serverTimestamp, doc, getDocs } from 'firebase/firestore';
+import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'next/navigation';
 
 const product = {
   id: 'item2',
   name: "Artisan Sourdough Bread",
+  userId: "business_owner_123", // Added for starting chat
   varieties: [
     { id: 'var1', name: 'Classic White Sourdough', price: 5.50, manufacturer: 'Golden Grains Bakery', image: images.varieties.white_bread, dataAiHint: 'white bread' },
     { id: 'var2', name: 'Whole Wheat Sourdough', price: 6.00, manufacturer: 'Hearty Harvest Breads', image: images.varieties.brown_bread, dataAiHint: 'brown bread' },
@@ -26,28 +31,100 @@ const product = {
   ]
 };
 
+interface Review {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: {
+    toDate: () => Date;
+  };
+}
+
 export default function ItemDetailPage({ params }: { params: { itemId: string } }) {
   const [selectedVariety, setSelectedVariety] = useState(product.varieties[0]);
   const [quantity, setQuantity] = useState(1);
+  const [newRating, setNewRating] = useState(0);
+  const [newComment, setNewComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  
   const { t } = useLanguage();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { user, userProfile } = useAuth();
+  const router = useRouter();
+  const firestore = useFirestore();
+
+  const reviewsRef = useMemoFirebase(() => collection(firestore, `products/${params.itemId}/reviews`), [firestore, params.itemId]);
+  const { data: reviews, isLoading: reviewsLoading } = useCollection<Review>(reviewsRef);
+
+  const averageRating = reviews && reviews.length > 0
+    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+    : 0;
 
   const handleAddToCart = () => {
     addToCart({
-        productId: product.id,
+        productId: params.itemId,
         productName: product.name,
         varietyId: selectedVariety.id,
         varietyName: selectedVariety.name,
         price: selectedVariety.price,
         image: selectedVariety.image,
         quantity: quantity,
+        userId: product.userId
     });
     toast({
         title: "Item Added to Cart",
         description: `${quantity} x ${selectedVariety.name} has been added.`
     });
   }
+  
+  const handleStartChat = async () => {
+    if (!user || !userProfile) {
+      toast({ title: "Please sign in", description: "You need to be logged in to start a chat.", variant: "destructive"});
+      return;
+    }
+    if (user.uid === product.userId) {
+      toast({ title: "Cannot chat with yourself", description: "You cannot start a chat with your own business.", variant: "destructive"});
+      return;
+    }
+
+    try {
+      const chatsRef = collection(firestore, "chats");
+      const q = query(chatsRef, where('participants', 'array-contains', user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      let existingChat = null;
+      querySnapshot.forEach(doc => {
+        const chat = doc.data();
+        if (chat.participants.includes(product.userId)) {
+          existingChat = { id: doc.id, ...chat };
+        }
+      });
+      
+      if (existingChat) {
+        router.push(`/dashboard/chat?chatId=${existingChat.id}`);
+      } else {
+        const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", product.userId)));
+        const businessUserProfile = businessUserDoc.docs[0]?.data();
+
+        const newChatRef = await addDoc(chatsRef, {
+          participants: [user.uid, product.userId],
+          participantProfiles: {
+            [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
+            [product.userId]: { name: businessUserProfile?.fullName || businessUserProfile?.businessName, role: businessUserProfile?.role },
+          },
+          lastMessage: "Chat started...",
+          lastMessageTimestamp: serverTimestamp(),
+        });
+        router.push(`/dashboard/chat?chatId=${newChatRef.id}`);
+      }
+    } catch (error) {
+      console.error("Error starting chat:", error);
+      toast({ title: "Error", description: "Could not start chat.", variant: "destructive" });
+    }
+  }
+
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -63,6 +140,42 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
         variant: "destructive",
       })
     });
+  };
+  
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !userProfile) {
+      toast({ title: "Please log in to review.", variant: "destructive" });
+      return;
+    }
+    if (newRating === 0 || !newComment) {
+      toast({ title: "Please provide a rating and a comment.", variant: "destructive" });
+      return;
+    }
+    
+    setIsSubmittingReview(true);
+    try {
+      await addDoc(collection(firestore, `products/${params.itemId}/reviews`), {
+        productId: params.itemId,
+        userId: user.uid,
+        userName: userProfile.fullName || userProfile.businessName || "Anonymous",
+        rating: newRating,
+        comment: newComment,
+        createdAt: serverTimestamp()
+      });
+
+      // In a real app, you'd trigger a function to update the product's average rating.
+      // For now, we'll just show a success message.
+
+      toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
+      setNewRating(0);
+      setNewComment("");
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast({ title: "Error submitting review", variant: "destructive" });
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
 
@@ -83,8 +196,17 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
         <div>
           <Card>
             <CardHeader>
-              <CardTitle className="font-headline text-3xl">{selectedVariety.name}</CardTitle>
-              <CardDescription>{t('item_detail.by_manufacturer')} {selectedVariety.manufacturer}</CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="font-headline text-3xl">{selectedVariety.name}</CardTitle>
+                    <CardDescription>{t('item_detail.by_manufacturer')} {selectedVariety.manufacturer}</CardDescription>
+                </div>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span>{averageRating.toFixed(1)} ({reviews?.length || 0} reviews)</span>
+                </div>
+              </div>
+
               <p className="text-2xl font-bold text-primary pt-2">${selectedVariety.price.toFixed(2)}</p>
             </CardHeader>
             <CardContent>
@@ -117,14 +239,77 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
                 <Button className="w-full" size="lg" onClick={handleAddToCart}>
                     <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.add_to_cart')}
                 </Button>
-                <Button variant="outline" size="lg" onClick={handleShare}>
-                    <Share2 className="mr-2 h-5 w-5" /> Share
+                 <Button variant="outline" size="lg" onClick={handleStartChat}>
+                    <MessageSquare className="mr-2 h-5 w-5" /> Chat
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleShare}>
+                    <Share2 className="h-5 w-5" />
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+      
+       <Separator className="my-12" />
+
+      {/* Reviews Section */}
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-2xl font-bold font-headline mb-6">Ratings & Reviews</h2>
+        
+        {/* Review Form */}
+        {user && (
+            <Card className="mb-8">
+                <CardHeader>
+                    <CardTitle>Write a Review</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleReviewSubmit} className="space-y-4">
+                        <div>
+                            <Label>Your Rating</Label>
+                            <div className="flex items-center gap-1 mt-2">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <button key={star} type="button" onClick={() => setNewRating(star)}>
+                                        <Star className={`h-6 w-6 transition-colors ${newRating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                         <div>
+                            <Label htmlFor="comment">Your Comment</Label>
+                            <Textarea id="comment" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="What did you like or dislike?" />
+                        </div>
+                        <Button type="submit" disabled={isSubmittingReview}>
+                            {isSubmittingReview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit Review
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        )}
+
+        {/* Existing Reviews */}
+        <div className="space-y-6">
+            {reviewsLoading ? <p>Loading reviews...</p> : 
+             reviews && reviews.length > 0 ? reviews.map(review => (
+                <Card key={review.id} className="bg-muted/50">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="font-semibold">{review.userName}</p>
+                            <span className="text-xs text-muted-foreground">{review.createdAt?.toDate().toLocaleDateString()}</span>
+                        </div>
+                         <div className="flex items-center gap-1 mb-2">
+                           {[1,2,3,4,5].map(star => <Star key={star} className={`h-4 w-4 ${review.rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />)}
+                        </div>
+                        <p className="text-sm">{review.comment}</p>
+                    </CardContent>
+                </Card>
+             )) : <p className="text-muted-foreground">No reviews yet. Be the first to leave one!</p>
+            }
+        </div>
+      </div>
     </div>
   );
 }
+
+    

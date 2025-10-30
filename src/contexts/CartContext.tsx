@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Define the shape of a single cart item
-interface CartItem {
+export interface CartItem {
     productId: string;
     productName: string;
     varietyId: string;
@@ -12,6 +12,7 @@ interface CartItem {
     price: number;
     image: string;
     quantity: number;
+    userId: string; // Business owner's UID
 }
 
 // Define the shape of the context
@@ -105,3 +106,5 @@ export const useCart = () => {
     }
     return context;
 };
+
+    
