@@ -14,8 +14,6 @@ import {
     User
 } from "firebase/auth";
 import { useAuth } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,7 +48,6 @@ export default function SignInPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const auth = useAuth();
-    const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -93,29 +90,18 @@ export default function SignInPage() {
                 return;
             }
 
-            const userDocRef = doc(firestore, 'users', user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-
-            if (!userDocSnap.exists()) {
-                throw new Error("User profile does not exist in the database.");
-            }
-            
-            const userProfile = userDocSnap.data();
-
             toast({
                 title: t('toast.signin_success'),
                 description: t('toast.signin_success_desc'),
             });
             
-            if (userProfile.isAdmin) {
-                router.push("/admin");
-            } else {
-                router.push("/dashboard");
-            }
+            // Redirection is now handled by the AuthContext and layouts
+            // which wait for the user profile to be loaded.
+            router.push('/dashboard'); 
 
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
-             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 description = "Invalid email or password. Please check your details and try again.";
             } else if (error.code === 'auth/too-many-requests') {
                 description = "Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";

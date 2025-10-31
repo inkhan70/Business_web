@@ -39,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const firestore = useFirestore();
 
   // Use the useDoc hook to get a real-time, memoized user profile from Firestore.
+  // This is now the single source of truth for the user's profile.
   const userDocRef = useMemoFirebase(() => 
     user ? doc(firestore, 'users', user.uid) : null,
     [user, firestore]
