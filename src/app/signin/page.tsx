@@ -97,8 +97,6 @@ export default function SignInPage() {
             const userDocSnap = await getDoc(userDocRef);
 
             if (!userDocSnap.exists()) {
-                // This case is unlikely if sign-up is working correctly,
-                // but it's a good safeguard.
                 throw new Error("User profile does not exist in the database.");
             }
             
