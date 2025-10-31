@@ -52,18 +52,13 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const firebaseAuth = useFirebaseAuth();
     const router = useRouter();
 
-    // This is a specific check to ensure the first user is an admin.
-    // In a real application, this would be handled by a backend function on user creation.
-    const isFirstAdmin = user && user.email === 'admin@example.com';
-    const hasAdminAccess = userProfile?.isAdmin || isFirstAdmin;
-
     useEffect(() => {
         if (!loading) {
-            if (!user || !hasAdminAccess) {
+            if (!user || !userProfile?.isAdmin) {
                 router.replace('/');
             }
         }
-    }, [user, userProfile, loading, router, hasAdminAccess]);
+    }, [user, userProfile, loading, router]);
     
     const handleSignOut = async () => {
         if (!firebaseAuth) return;
@@ -71,7 +66,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         router.push('/');
     };
 
-    if (loading || !userProfile || !hasAdminAccess) {
+    if (loading || !userProfile || !userProfile.isAdmin) {
         return (
             <div className="container mx-auto my-8 flex justify-center items-center min-h-[60vh]">
                 <Loader2 className="h-8 w-8 animate-spin" />

@@ -209,7 +209,7 @@ export default function SignInPage() {
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            {t('signin.no_account')}{" "}
+            {t('signup.have_account')}{" "}
             <Link href="/signup" className="font-medium text-primary hover:underline">
               {t('home.sign_up')}
             </Link>

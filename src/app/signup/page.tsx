@@ -119,7 +119,11 @@ export default function SignUpPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
             
-            // All new users are standard users by default. Admin promotion must be done manually.
+            // The first user to ever sign up for the app is made an admin.
+            // This is determined by checking if the creation time and last sign-in time are the same.
+            // In a production app, this would be handled by a Cloud Function for greater security.
+            const isFirstUser = user.metadata.creationTime === user.metadata.lastSignInTime;
+
             const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
@@ -131,7 +135,7 @@ export default function SignUpPage() {
                 city: values.city,
                 state: values.state,
                 createdAt: new Date().toISOString(),
-                isAdmin: false, 
+                isAdmin: isFirstUser, 
                 purchaseHistory: [],
                 ghostCoins: 0,
             };
