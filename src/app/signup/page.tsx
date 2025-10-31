@@ -118,11 +118,8 @@ export default function SignUpPage() {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
-
-            await sendEmailVerification(user);
             
-            // Secure by default: all new users are NOT admins.
-            // Admin promotion should be handled manually by an existing admin.
+            // All new users are standard users by default. Admin promotion must be done manually.
             const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
@@ -134,12 +131,14 @@ export default function SignUpPage() {
                 city: values.city,
                 state: values.state,
                 createdAt: new Date().toISOString(),
-                isAdmin: false, // All new users are standard users.
+                isAdmin: false, 
                 purchaseHistory: [],
                 ghostCoins: 0,
             };
             
             await setDoc(doc(firestore, "users", user.uid), newUserProfile);
+            
+            await sendEmailVerification(user);
 
             toast({
               title: t('toast.signup_success'),
@@ -313,5 +312,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-
-    
