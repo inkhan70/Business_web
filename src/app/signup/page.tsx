@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDocs, collection } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 
@@ -122,9 +122,10 @@ export default function SignUpPage() {
 
             await sendEmailVerification(user);
 
-            const storedUsersRaw = localStorage.getItem('users');
-            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-            const isAdmin = allUsers.length === 0;
+            // Check if any user exists in the Firestore database to determine if this is the first user.
+            const usersCollectionRef = collection(firestore, "users");
+            const userDocs = await getDocs(usersCollectionRef);
+            const isAdmin = userDocs.empty; // If no documents, this is the first user.
 
             const newUserProfile = {
                 uid: user.uid,
@@ -141,23 +142,15 @@ export default function SignUpPage() {
                 ghostCoins: 0,
                 isAdmin: isAdmin,
             };
-
+            
+            await setDoc(doc(firestore, 'users', user.uid), newUserProfile);
+            
+            // Also save to local storage for immediate use in AuthContext
+            const storedUsersRaw = localStorage.getItem('users');
+            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
             allUsers.push(newUserProfile);
             localStorage.setItem('users', JSON.stringify(allUsers));
-            
-            await setDoc(doc(firestore, 'users', user.uid), {
-                uid: user.uid,
-                email: values.email,
-                role: isAdmin ? 'admin' : values.role,
-                businessName: values.businessName || null,
-                fullName: values.fullName || null,
-                category: values.category || null,
-                address: values.address,
-                city: values.city,
-                state: values.state,
-                createdAt: new Date().toISOString(),
-                isAdmin: isAdmin,
-            });
+
 
             toast({
               title: t('toast.signup_success'),

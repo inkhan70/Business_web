@@ -14,7 +14,7 @@ import {
     User
 } from "firebase/auth";
 import { useAuth } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 import { Button } from "@/components/ui/button";
@@ -93,27 +93,16 @@ export default function SignInPage() {
                 return;
             }
 
-            const storedUsersRaw = localStorage.getItem('users');
-            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-            let userProfile = allUsers.find((u: any) => u.uid === user.uid);
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
-            if (!userProfile) {
-                const isAdmin = allUsers.length === 0;
-                
-                userProfile = {
-                    uid: user.uid,
-                    email: user.email,
-                    role: isAdmin ? 'admin' : 'buyer',
-                    businessName: null,
-                    fullName: user.displayName || 'New User',
-                    category: null,
-                    address: '', city: '', state: '',
-                    createdAt: new Date().toISOString(),
-                    isAdmin: isAdmin,
-                };
-                allUsers.push(userProfile);
-                localStorage.setItem('users', JSON.stringify(allUsers));
+            if (!userDocSnap.exists()) {
+                // This case is unlikely if sign-up is working correctly,
+                // but it's a good safeguard.
+                throw new Error("User profile does not exist in the database.");
             }
+            
+            const userProfile = userDocSnap.data();
 
             toast({
                 title: t('toast.signin_success'),
