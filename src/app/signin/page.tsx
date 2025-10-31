@@ -13,7 +13,8 @@ import {
     sendEmailVerification,
     User
 } from "firebase/auth";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,6 +49,7 @@ export default function SignInPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const auth = useAuth();
+    const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -90,15 +92,27 @@ export default function SignInPage() {
                 return;
             }
 
-            toast({
-                title: t('toast.signin_success'),
-                description: t('toast.signin_success_desc'),
-            });
-            
-            // Redirection is now handled by the AuthContext and layouts
-            // which wait for the user profile to be loaded.
-            router.push('/dashboard'); 
+            const userDocRef = doc(firestore, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
+            if (!userDocSnap.exists()) {
+                // This can happen in a race condition where sign-in happens before profile is created.
+                // We'll let the AuthContext handle redirection when it loads the profile.
+                toast({ title: "Profile loading...", description: "Please wait while we prepare your dashboard." });
+                router.push('/dashboard'); // Go to a neutral place
+            } else {
+                const userProfile = userDocSnap.data();
+                toast({
+                    title: t('toast.signin_success'),
+                    description: t('toast.signin_success_desc'),
+                });
+
+                if (userProfile.isAdmin) {
+                    router.push("/admin");
+                } else {
+                    router.push("/dashboard");
+                }
+            }
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
