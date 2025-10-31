@@ -144,13 +144,6 @@ export default function SignUpPage() {
             };
             
             await setDoc(doc(firestore, 'users', user.uid), newUserProfile);
-            
-            // Also save to local storage for immediate use in AuthContext
-            const storedUsersRaw = localStorage.getItem('users');
-            const allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-            allUsers.push(newUserProfile);
-            localStorage.setItem('users', JSON.stringify(allUsers));
-
 
             toast({
               title: t('toast.signup_success'),
