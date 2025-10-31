@@ -28,7 +28,9 @@ service cloud.firestore {
 
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
+      // Allow create only if the user is creating their own document.
+      // This rule is checked during the transaction in the signup form.
+      allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isExistingOwner(userId) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
     }

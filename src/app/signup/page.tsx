@@ -119,51 +119,53 @@ export default function SignUpPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
-            const newUserProfile = {
-                uid: user.uid,
-                email: values.email,
-                role: values.role,
-                businessName: values.businessName || null,
-                fullName: values.fullName || null,
-                category: values.category || null,
-                address: values.address,
-                city: values.city,
-                state: values.state,
-                createdAt: new Date().toISOString(),
-                isAdmin: false, 
-                purchaseHistory: [],
-                ghostCoins: 0,
-            };
-
             const configRef = doc(firestore, "config", "user_count");
             const userRef = doc(firestore, "users", user.uid);
-
+            
             try {
                 await runTransaction(firestore, async (transaction) => {
                     const configDoc = await transaction.get(configRef);
-                    
+                    let isAdmin = false;
+
                     if (!configDoc.exists()) {
+                        // This is the first user.
                         transaction.set(configRef, { count: 1 });
-                        transaction.set(userRef, { ...newUserProfile, isAdmin: true });
+                        isAdmin = true;
                     } else {
+                        // Subsequent user.
                         const newCount = configDoc.data().count + 1;
                         transaction.update(configRef, { count: newCount });
-                        transaction.set(userRef, newUserProfile);
+                        isAdmin = false;
                     }
+                    
+                    const newUserProfile = {
+                        uid: user.uid,
+                        email: values.email,
+                        role: values.role,
+                        businessName: values.businessName || null,
+                        fullName: values.fullName || null,
+                        category: values.category || null,
+                        address: values.address,
+                        city: values.city,
+                        state: values.state,
+                        createdAt: new Date().toISOString(),
+                        isAdmin: isAdmin, 
+                        purchaseHistory: [],
+                        ghostCoins: 0,
+                    };
+
+                    transaction.set(userRef, newUserProfile);
                 });
             } catch (transactionError: any) {
                  if (transactionError.code === 'permission-denied') {
                     const permissionError = new FirestorePermissionError({
-                        // We guess the most likely failing path. The contextual error will confirm.
                         path: userRef.path,
                         operation: 'create', 
-                        requestResourceData: newUserProfile,
+                        requestResourceData: { uid: user.uid, email: values.email, role: values.role },
                     });
                     errorEmitter.emit('permission-error', permissionError);
-                    // Throw to stop execution and let the listener handle it
                     throw permissionError;
                 }
-                // Re-throw other transaction errors so they are caught by the outer catch
                 throw transactionError;
             }
             
@@ -177,17 +179,22 @@ export default function SignUpPage() {
             router.push("/signin");
 
         } catch (error: any) {
-            // This will catch auth errors or re-thrown transaction errors
-             let description = "An unexpected error occurred. Please try again.";
+            if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
+                // This error is already handled and emitted by the transaction block.
+                // We just need to prevent the generic error toast from showing.
+                return;
+            }
+
+            let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please sign in or use a different email.";
-            } else if (error.name !== 'FirebaseError') { // Don't show toast for our custom handled permission error
-                 toast({
-                    title: "Sign-up Failed",
-                    description: error.message || description,
-                    variant: "destructive",
-                });
             }
+
+            toast({
+                title: "Sign-up Failed",
+                description: error.message || description,
+                variant: "destructive",
+            });
         } finally {
             setIsLoading(false);
         }
