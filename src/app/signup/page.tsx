@@ -24,9 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 
 
 interface Category {
@@ -122,28 +121,25 @@ export default function SignUpPage() {
 
             await sendEmailVerification(user);
             
-            // This logic is flawed and causes permission errors. A secure implementation
-            // would use a Cloud Function triggered on user creation to determine who the first admin is.
-            // For now, we default isAdmin to false to fix the crash.
-            const isAdmin = false;
-
+            // Secure by default: all new users are NOT admins.
+            // Admin promotion should be handled manually by an existing admin.
             const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
+                role: values.role,
                 businessName: values.businessName || null,
                 fullName: values.fullName || null,
-                role: isAdmin ? 'admin' : values.role,
                 category: values.category || null,
                 address: values.address,
                 city: values.city,
                 state: values.state,
                 createdAt: new Date().toISOString(),
+                isAdmin: false, // All new users are standard users.
                 purchaseHistory: [],
                 ghostCoins: 0,
-                isAdmin: isAdmin,
             };
             
-            await setDoc(doc(firestore, 'users', user.uid), newUserProfile);
+            await setDoc(doc(firestore, "users", user.uid), newUserProfile);
 
             toast({
               title: t('toast.signup_success'),
@@ -317,3 +313,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+    
