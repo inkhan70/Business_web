@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
 
 
@@ -119,25 +119,6 @@ export default function SignUpPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
             const user = userCredential.user;
 
-            const configRef = doc(firestore, "config", "user_count");
-            const userRef = doc(firestore, "users", user.uid);
-
-            // Run a transaction to make the process atomic
-            const isAdmin = await runTransaction(firestore, async (transaction) => {
-                const configDoc = await transaction.get(configRef);
-                
-                if (!configDoc.exists()) {
-                    // This is the first user. Create the count doc and set user as admin.
-                    transaction.set(configRef, { count: 1 });
-                    return true;
-                } else {
-                    // Subsequent user. Increment the count.
-                    const newCount = configDoc.data().count + 1;
-                    transaction.update(configRef, { count: newCount });
-                    return false;
-                }
-            });
-
             const newUserProfile = {
                 uid: user.uid,
                 email: values.email,
@@ -149,12 +130,42 @@ export default function SignUpPage() {
                 city: values.city,
                 state: values.state,
                 createdAt: new Date().toISOString(),
-                isAdmin: isAdmin, 
+                isAdmin: false, 
                 purchaseHistory: [],
                 ghostCoins: 0,
             };
-            
-            await setDoc(userRef, newUserProfile);
+
+            const configRef = doc(firestore, "config", "user_count");
+            const userRef = doc(firestore, "users", user.uid);
+
+            try {
+                await runTransaction(firestore, async (transaction) => {
+                    const configDoc = await transaction.get(configRef);
+                    
+                    if (!configDoc.exists()) {
+                        transaction.set(configRef, { count: 1 });
+                        transaction.set(userRef, { ...newUserProfile, isAdmin: true });
+                    } else {
+                        const newCount = configDoc.data().count + 1;
+                        transaction.update(configRef, { count: newCount });
+                        transaction.set(userRef, newUserProfile);
+                    }
+                });
+            } catch (transactionError: any) {
+                 if (transactionError.code === 'permission-denied') {
+                    const permissionError = new FirestorePermissionError({
+                        // We guess the most likely failing path. The contextual error will confirm.
+                        path: userRef.path,
+                        operation: 'create', 
+                        requestResourceData: newUserProfile,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    // Throw to stop execution and let the listener handle it
+                    throw permissionError;
+                }
+                // Re-throw other transaction errors
+                throw transactionError;
+            }
             
             await sendEmailVerification(user);
 
@@ -166,18 +177,17 @@ export default function SignUpPage() {
             router.push("/signin");
 
         } catch (error: any) {
+            // This will catch auth errors or re-thrown transaction errors
              let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please sign in or use a different email.";
-            } else if (error.code === 'permission-denied') {
-                 description = "You do not have permission to perform this action. This might happen if the app setup is not complete. Please contact support.";
+            } else if (error.name !== 'FirebaseError') { // Don't show toast for our custom handled permission error
+                 toast({
+                    title: "Sign-up Failed",
+                    description: description,
+                    variant: "destructive",
+                });
             }
-            toast({
-                title: "Sign-up Failed",
-                description: description,
-                variant: "destructive",
-            });
-            console.error("Sign-up error:", error);
         } finally {
             setIsLoading(false);
         }
