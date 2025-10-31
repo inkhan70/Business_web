@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/firebase";
-import { doc, setDoc, getDocs, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 
 
@@ -121,11 +121,11 @@ export default function SignUpPage() {
             const user = userCredential.user;
 
             await sendEmailVerification(user);
-
-            // Check if any user exists in the Firestore database to determine if this is the first user.
-            const usersCollectionRef = collection(firestore, "users");
-            const userDocs = await getDocs(usersCollectionRef);
-            const isAdmin = userDocs.empty; // If no documents, this is the first user.
+            
+            // This logic is flawed and causes permission errors. A secure implementation
+            // would use a Cloud Function triggered on user creation to determine who the first admin is.
+            // For now, we default isAdmin to false to fix the crash.
+            const isAdmin = false;
 
             const newUserProfile = {
                 uid: user.uid,
@@ -156,6 +156,8 @@ export default function SignUpPage() {
              let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/email-already-in-use') {
                 description = "This email is already registered. Please sign in or use a different email.";
+            } else if (error.code === 'permission-denied') {
+                 description = "You do not have permission to perform this action. Please contact support.";
             }
             toast({
                 title: "Sign-up Failed",
