@@ -163,7 +163,7 @@ export default function SignUpPage() {
                     // Throw to stop execution and let the listener handle it
                     throw permissionError;
                 }
-                // Re-throw other transaction errors
+                // Re-throw other transaction errors so they are caught by the outer catch
                 throw transactionError;
             }
             
@@ -184,7 +184,7 @@ export default function SignUpPage() {
             } else if (error.name !== 'FirebaseError') { // Don't show toast for our custom handled permission error
                  toast({
                     title: "Sign-up Failed",
-                    description: description,
+                    description: error.message || description,
                     variant: "destructive",
                 });
             }
