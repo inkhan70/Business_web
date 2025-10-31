@@ -32,6 +32,19 @@ service cloud.firestore {
       allow update: if isExistingOwner(userId) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
     }
+    
+    // Secure the config collection, specifically the user_count document
+    match /config/user_count {
+      // The first user can create this document, but only if they are setting the count to 1
+      allow create: if request.auth != null && request.resource.data.count == 1;
+
+      // Any subsequent authenticated user can increment the count, but only by exactly 1
+      allow update: if request.auth != null && request.resource.data.count == resource.data.count + 1;
+      
+      // No one can read or delete the document directly
+      allow get, list, delete: if false;
+    }
+
 
     match /products/{productId} {
        function isSignedIn() {
