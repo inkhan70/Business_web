@@ -95,12 +95,7 @@ export default function SignInPage() {
             const userDocRef = doc(firestore, "users", user.uid);
             const userDocSnap = await getDoc(userDocRef);
 
-            if (!userDocSnap.exists()) {
-                // This can happen in a race condition where sign-in happens before profile is created.
-                // We'll let the AuthContext handle redirection when it loads the profile.
-                toast({ title: "Profile loading...", description: "Please wait while we prepare your dashboard." });
-                router.push('/dashboard'); // Go to a neutral place
-            } else {
+            if (userDocSnap.exists()) {
                 const userProfile = userDocSnap.data();
                 toast({
                     title: t('toast.signin_success'),
@@ -112,6 +107,12 @@ export default function SignInPage() {
                 } else {
                     router.push("/dashboard");
                 }
+            } else {
+                // This case handles potential delays in Firestore profile creation.
+                // The AuthContext will eventually pick up the profile and layouts will redirect.
+                // For a better UX, we'll just redirect to the main dashboard.
+                toast({ title: "Welcome!", description: "Loading your dashboard..." });
+                router.push("/dashboard");
             }
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
