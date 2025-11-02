@@ -43,6 +43,7 @@ import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, doc, deleteDoc, updateDoc } from "firebase/firestore";
 
 interface User {
+    id: string; // The document ID from Firestore
     uid: string;
     email: string;
     role: string;
@@ -149,7 +150,7 @@ export default function AdminUsersPage() {
                         </TableRow>
                     ) : users && users.length > 0 ? (
                         users.map(user => (
-                            <TableRow key={user.uid}>
+                            <TableRow key={user.id}>
                                 <TableCell className="font-medium">{user.businessName || user.fullName || "N/A"}</TableCell>
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>
