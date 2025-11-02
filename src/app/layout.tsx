@@ -10,6 +10,7 @@ import { Providers } from '@/components/Providers';
 export const metadata: Metadata = {
   title: 'business_web',
   description: 'Find and connect with local businesses and distributors in your city.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -23,6 +24,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png"></link>
+        <meta name="theme-color" content="#fafafa" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
         <Providers>
