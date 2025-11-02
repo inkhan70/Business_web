@@ -80,6 +80,7 @@ service cloud.firestore {
       }
 
       allow get: if isSignedIn() && isPartyToOrder(resource.data);
+      allow list: if isAdmin();
       allow create: if isSignedIn() && request.auth.uid == request.resource.data.buyerId;
       allow update: if isSignedIn() && isPartyToOrder(resource.data);
       allow delete: if false;
