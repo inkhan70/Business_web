@@ -40,7 +40,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, query, doc, deleteDoc, updateDoc, Firestore } from "firebase/firestore";
 
 interface User {
     id: string; // The document ID from Firestore
@@ -52,6 +52,46 @@ interface User {
     createdAt: string;
     isAdmin?: boolean;
 }
+
+const handleDeleteUser = async (firestore: Firestore, uid: string, name: string, toast: (options: any) => void) => {
+    try {
+        const userDocRef = doc(firestore, "users", uid);
+        await deleteDoc(userDocRef);
+        // In a real app, you would also need to delete the user from Firebase Auth via a backend function.
+        // This client-side code can only delete the Firestore document.
+        toast({
+            title: "User Document Deleted",
+            description: `The Firestore document for "${name}" has been removed. Auth user may still exist.`,
+        });
+    } catch (error) {
+         toast({
+            title: "Error Deleting User",
+            description: "Could not remove the user document.",
+            variant: "destructive",
+        });
+        console.error("Error deleting user: ", error);
+    }
+};
+
+const handleRoleChange = async (firestore: Firestore, uid: string, newRole: string, toast: (options: any) => void) => {
+    try {
+        const userDocRef = doc(firestore, "users", uid);
+        await updateDoc(userDocRef, {
+            role: newRole,
+            isAdmin: newRole === 'admin'
+        });
+        toast({
+            title: "Role Updated",
+            description: `The user's role has been changed to ${newRole}.`,
+        });
+    } catch(error) {
+        toast({
+            title: "Error Updating Role",
+            description: "Could not update the user's role.",
+            variant: "destructive"
+        });
+    }
+};
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
@@ -71,46 +111,6 @@ export default function AdminUsersPage() {
         }
     }, [error, toast]);
     
-    const handleDeleteUser = async (uid: string, name: string) => {
-        try {
-            const userDocRef = doc(firestore, "users", uid);
-            await deleteDoc(userDocRef);
-            // In a real app, you would also need to delete the user from Firebase Auth via a backend function.
-            // This client-side code can only delete the Firestore document.
-            toast({
-                title: "User Document Deleted",
-                description: `The Firestore document for "${name}" has been removed. Auth user may still exist.`,
-            });
-        } catch (error) {
-             toast({
-                title: "Error Deleting User",
-                description: "Could not remove the user document.",
-                variant: "destructive",
-            });
-            console.error("Error deleting user: ", error);
-        }
-    };
-    
-    const handleRoleChange = async (uid: string, newRole: string) => {
-        try {
-            const userDocRef = doc(firestore, "users", uid);
-            await updateDoc(userDocRef, {
-                role: newRole,
-                isAdmin: newRole === 'admin'
-            });
-            toast({
-                title: "Role Updated",
-                description: `The user's role has been changed to ${newRole}.`,
-            });
-        } catch(error) {
-            toast({
-                title: "Error Updating Role",
-                description: "Could not update the user's role.",
-                variant: "destructive"
-            });
-        }
-    };
-
     const capitalizeFirstLetter = (string: string) => {
         if (!string) return string;
         return string.charAt(0).toUpperCase() + string.slice(1);
@@ -154,7 +154,11 @@ export default function AdminUsersPage() {
                                 <TableCell className="font-medium">{user.businessName || user.fullName || "N/A"}</TableCell>
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>
-                                    <Select value={user.role} onValueChange={(newRole) => handleRoleChange(user.uid, newRole)} disabled={user.isAdmin && users.filter(u=>u.isAdmin).length <= 1}>
+                                    <Select 
+                                        value={user.role} 
+                                        onValueChange={(newRole) => handleRoleChange(firestore, user.uid, newRole, toast)} 
+                                        disabled={user.isAdmin && users.filter(u=>u.isAdmin).length <= 1}
+                                    >
                                         <SelectTrigger className="w-[140px]">
                                             <SelectValue placeholder="Select role" />
                                         </SelectTrigger>
@@ -187,7 +191,7 @@ export default function AdminUsersPage() {
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                                             <AlertDialogAction 
                                                 className="bg-destructive hover:bg-destructive/90"
-                                                onClick={() => handleDeleteUser(user.uid, user.businessName || user.fullName || "user")}>
+                                                onClick={() => handleDeleteUser(firestore, user.uid, user.businessName || user.fullName || "user", toast)}>
                                                 Delete Account
                                             </AlertDialogAction>
                                             </AlertDialogFooter>
