@@ -9,27 +9,32 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Minus, Plus, ShoppingCart, Share2, Star, MessageSquare } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Share2, Star, MessageSquare, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCart } from '@/contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import images from '@/app/lib/placeholder-images.json';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc, serverTimestamp, doc, getDocs } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 
-const product = {
-  id: 'item2',
-  name: "Artisan Sourdough Bread",
-  userId: "business_owner_123", // Added for starting chat
-  varieties: [
-    { id: 'var1', name: 'Classic White Sourdough', price: 5.50, manufacturer: 'Golden Grains Bakery', image: images.varieties.white_bread, dataAiHint: 'white bread' },
-    { id: 'var2', name: 'Whole Wheat Sourdough', price: 6.00, manufacturer: 'Hearty Harvest Breads', image: images.varieties.brown_bread, dataAiHint: 'brown bread' },
-    { id: 'var3', name: 'Rosemary & Olive Oil Sourdough', price: 6.50, manufacturer: 'Golden Grains Bakery', image: images.varieties.herb_bread, dataAiHint: 'herb bread' },
-  ]
-};
+interface Variety {
+  id: string;
+  name: string;
+  price: number;
+  image?: string;
+  dataAiHint?: string;
+  manufacturer?: string; // Adding optional manufacturer
+}
+
+interface Product {
+  id: string;
+  name: string;
+  userId: string;
+  varieties: Variety[];
+}
 
 interface Review {
   id: string;
@@ -42,7 +47,7 @@ interface Review {
 }
 
 export default function ItemDetailPage({ params }: { params: { itemId: string } }) {
-  const [selectedVariety, setSelectedVariety] = useState(product.varieties[0]);
+  const [selectedVariety, setSelectedVariety] = useState<Variety | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [newRating, setNewRating] = useState(0);
   const [newComment, setNewComment] = useState("");
@@ -55,21 +60,31 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
   const router = useRouter();
   const firestore = useFirestore();
 
+  const productDocRef = useMemoFirebase(() => doc(firestore, `products/${params.itemId}`), [firestore, params.itemId]);
+  const { data: product, isLoading: productLoading, error: productError } = useDoc<Product>(productDocRef);
+
   const reviewsRef = useMemoFirebase(() => collection(firestore, `products/${params.itemId}/reviews`), [firestore, params.itemId]);
   const { data: reviews, isLoading: reviewsLoading } = useCollection<Review>(reviewsRef);
+
+  useEffect(() => {
+    if (product && product.varieties.length > 0 && !selectedVariety) {
+      setSelectedVariety(product.varieties[0]);
+    }
+  }, [product, selectedVariety]);
 
   const averageRating = reviews && reviews.length > 0
     ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
     : 0;
 
   const handleAddToCart = () => {
+    if (!product || !selectedVariety) return;
     addToCart({
         productId: params.itemId,
         productName: product.name,
         varietyId: selectedVariety.id,
         varietyName: selectedVariety.name,
         price: selectedVariety.price,
-        image: selectedVariety.image,
+        image: selectedVariety.image || '',
         quantity: quantity,
         userId: product.userId
     });
@@ -80,7 +95,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
   }
   
   const handleStartChat = async () => {
-    if (!user || !userProfile) {
+    if (!user || !userProfile || !product) {
       toast({ title: "Please sign in", description: "You need to be logged in to start a chat.", variant: "destructive"});
       return;
     }
@@ -108,11 +123,15 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
         const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", product.userId)));
         const businessUserProfile = businessUserDoc.docs[0]?.data();
 
+        if (!businessUserProfile) {
+            throw new Error("Could not find business owner's profile.");
+        }
+
         const newChatRef = await addDoc(chatsRef, {
           participants: [user.uid, product.userId],
           participantProfiles: {
             [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
-            [product.userId]: { name: businessUserProfile?.fullName || businessUserProfile?.businessName, role: businessUserProfile?.role },
+            [product.userId]: { name: businessUserProfile.fullName || businessUserProfile.businessName, role: businessUserProfile.role },
           },
           lastMessage: "Chat started...",
           lastMessageTimestamp: serverTimestamp(),
@@ -164,9 +183,6 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
         createdAt: serverTimestamp()
       });
 
-      // In a real app, you'd trigger a function to update the product's average rating.
-      // For now, we'll just show a success message.
-
       toast({ title: "Review Submitted", description: "Thank you for your feedback!" });
       setNewRating(0);
       setNewComment("");
@@ -177,17 +193,33 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       setIsSubmittingReview(false);
     }
   };
+  
+  if (productLoading) {
+      return <div className="container mx-auto px-4 py-12 flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin"/></div>
+  }
 
+  if (productError || !product) {
+      return <div className="container mx-auto px-4 py-12 text-center">Product not found or an error occurred.</div>
+  }
+
+  if (!selectedVariety) {
+      return (
+          <div className="container mx-auto px-4 py-12">
+            <h1 className="text-2xl font-bold">{product.name}</h1>
+            <p className="text-muted-foreground mt-4">This product currently has no varieties available.</p>
+          </div>
+      )
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="grid md:grid-cols-2 gap-12">
         <div>
-          <Image src={selectedVariety.image} alt={selectedVariety.name} width={500} height={500} className="rounded-xl shadow-lg object-cover w-full" data-ai-hint={selectedVariety.dataAiHint} />
+          <Image src={selectedVariety.image || images.products.generic} alt={selectedVariety.name} width={500} height={500} className="rounded-xl shadow-lg object-cover w-full" data-ai-hint={selectedVariety.dataAiHint || 'product photo'} />
           <div className="mt-4 grid grid-cols-4 gap-2">
             {product.varieties.map(v => (
                  <button key={v.id} onClick={() => setSelectedVariety(v)}>
-                    <Image src={v.image} alt={v.name} width={100} height={100} className={`rounded-md object-cover border-2 ${selectedVariety.id === v.id ? 'border-primary' : 'border-transparent'}`} data-ai-hint={v.dataAiHint} />
+                    <Image src={v.image || images.varieties.variety_thumb} alt={v.name} width={100} height={100} className={`rounded-md object-cover border-2 ${selectedVariety.id === v.id ? 'border-primary' : 'border-transparent'}`} data-ai-hint={v.dataAiHint || 'product photo'} />
                  </button>
             ))}
           </div>
@@ -199,7 +231,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
               <div className="flex justify-between items-start">
                 <div>
                     <CardTitle className="font-headline text-3xl">{selectedVariety.name}</CardTitle>
-                    <CardDescription>{t('item_detail.by_manufacturer')} {selectedVariety.manufacturer}</CardDescription>
+                    {selectedVariety.manufacturer && <CardDescription>{t('item_detail.by_manufacturer')} {selectedVariety.manufacturer}</CardDescription>}
                 </div>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -290,7 +322,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
 
         {/* Existing Reviews */}
         <div className="space-y-6">
-            {reviewsLoading ? <p>Loading reviews...</p> : 
+            {reviewsLoading ? <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin"/></div> : 
              reviews && reviews.length > 0 ? reviews.map(review => (
                 <Card key={review.id} className="bg-muted/50">
                     <CardContent className="p-6">
@@ -311,5 +343,3 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
     </div>
   );
 }
-
-    
