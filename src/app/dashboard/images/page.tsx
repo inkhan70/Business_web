@@ -9,9 +9,11 @@ import { PlusCircle, Download, AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { useAuth } from "@/contexts/AuthContext";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
 
 interface ImageAsset {
-    id: string; // Using data URL as ID for simplicity
+    id: string; 
     src: string;
     alt: string;
     category?: string;
@@ -30,38 +32,25 @@ interface Product {
 export default function ProductImagesPage() {
     const { toast } = useToast();
     const { userProfile } = useAuth();
+    const firestore = useFirestore();
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [userCategory, setUserCategory] = useState<string | null>(null);
+    
+    const userCategory = userProfile?.category;
+
+    const productsQuery = useMemoFirebase(() => 
+        userCategory ? query(collection(firestore, "products"), where("category", "==", userCategory)) : null,
+        [firestore, userCategory]
+    );
+    const { data: products, isLoading: loading } = useCollection<Product>(productsQuery);
 
     useEffect(() => {
-        if (!userProfile) {
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        setUserCategory(userProfile.category);
-
-        if (!userProfile.category) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const storedProductsRaw = localStorage.getItem('products');
-            const allProducts: Product[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-
-            // Filter products that match the current user's category
-            const categoryProducts = allProducts.filter(p => p.category === userProfile.category);
-            
+        if (products) {
             const uniqueImages = new Map<string, ImageAsset>();
-
-            categoryProducts.forEach(product => {
+            products.forEach(product => {
                 product.varieties?.forEach(variety => {
                     if (variety.image && !uniqueImages.has(variety.image)) {
                         uniqueImages.set(variety.image, {
-                            id: variety.image, // Use the data URL itself as a unique ID
+                            id: variety.image,
                             src: variety.image,
                             alt: variety.name || product.name,
                             category: product.category,
@@ -69,20 +58,9 @@ export default function ProductImagesPage() {
                     }
                 });
             });
-
-            setImageLibrary(Array.from(uniqueImages.values()).reverse()); // Newest likely to be last, so reverse
-
-        } catch (error) {
-            console.error("Error fetching images from localStorage:", error);
-            toast({
-                title: "Error loading images",
-                description: "Could not load images from local storage.",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
+            setImageLibrary(Array.from(uniqueImages.values()).reverse());
         }
-    }, [toast, userProfile]);
+    }, [products]);
 
     
     const handleDownload = (src: string) => {

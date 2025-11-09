@@ -37,6 +37,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import images from '@/app/lib/placeholder-images.json';
 import { v4 as uuidv4 } from 'uuid';
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'firebase/firestore';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -86,6 +88,7 @@ export default function ProductForm() {
     const { user, userProfile } = useAuth();
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
+    const firestore = useFirestore();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
@@ -106,13 +109,20 @@ export default function ProductForm() {
         mode: "onChange",
     });
 
-    const { control, getValues, setValue, watch } = form;
+    const { control, getValues, setValue, watch, reset } = form;
     const currentCategory = watch('category');
 
     const { fields, append, remove } = useFieldArray({
         control,
         name: "varieties"
     });
+
+    // Fetch products for image library based on category
+    const productsForLibraryQuery = useMemoFirebase(() => 
+        currentCategory ? query(collection(firestore, 'products'), where('category', '==', currentCategory)) : null,
+        [firestore, currentCategory]
+    );
+    const { data: categoryProducts } = useCollection<ProductForLibrary>(productsForLibraryQuery);
     
      useEffect(() => {
         const fetchCategories = () => {
@@ -164,25 +174,24 @@ export default function ProductForm() {
     useEffect(() => {
         if (editId) {
             setIsLoading(true);
-            const storedProductsRaw = localStorage.getItem('products');
-            if (storedProductsRaw) {
-                const allProducts = JSON.parse(storedProductsRaw);
-                const productToEdit = allProducts.find((p: ProductFormValues) => p.id === editId);
-                if (productToEdit) {
-                    form.reset(productToEdit);
+            const fetchProduct = async () => {
+                const productDocRef = doc(firestore, 'products', editId);
+                const docSnap = await getDoc(productDocRef);
+                if (docSnap.exists()) {
+                    const productData = docSnap.data() as ProductFormValues;
+                    reset(productData);
+                } else {
+                    toast({ title: "Error", description: "Product not found.", variant: "destructive" });
+                    router.push('/dashboard/products');
                 }
-            }
-            setIsLoading(false);
+                setIsLoading(false);
+            };
+            fetchProduct();
         }
-    }, [editId, form]);
+    }, [editId, firestore, reset, router, toast]);
 
     useEffect(() => {
-        const selectedCategory = getValues('category');
-        const storedProductsRaw = localStorage.getItem('products');
-        const allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-
-        if (selectedCategory && allProducts) {
-            const categoryProducts = allProducts.filter((p: ProductForLibrary) => p.category === selectedCategory);
+        if (categoryProducts) {
             const uniqueImages = new Map<string, ImageAsset>();
             categoryProducts.forEach(product => {
                 product.varieties?.forEach(variety => {
@@ -199,7 +208,7 @@ export default function ProductForm() {
         } else {
             setImageLibrary([]);
         }
-    }, [currentCategory, getValues]);
+    }, [categoryProducts]);
     
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, fieldIndex: number) => {
         if (e.target.files && e.target.files[0]) {
@@ -252,31 +261,21 @@ export default function ProductForm() {
 
         setIsSubmitting(true);
         try {
-            const storedProductsRaw = localStorage.getItem('products');
-            let allProducts = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-
             if (editId) {
-                const productIndex = allProducts.findIndex((p: ProductFormValues) => p.id === editId);
-                if (productIndex > -1) {
-                    allProducts[productIndex] = { ...data, id: editId, userId: user.uid };
-                }
+                const productRef = doc(firestore, "products", editId);
+                await updateDoc(productRef, { ...data, userId: user.uid });
                 toast({ title: "Product Updated", description: `The product "${data.name}" has been saved.` });
             } else {
-                const newProduct = { ...data, id: uuidv4(), userId: user.uid };
-                allProducts.push(newProduct);
+                const id = uuidv4();
+                const productRef = doc(firestore, "products", id);
+                await setDoc(productRef, { ...data, id, userId: user.uid });
                 toast({ title: "Product Created", description: `The product "${data.name}" has been added.` });
             }
-            
-            localStorage.setItem('products', JSON.stringify(allProducts));
 
+            // Logic to update user's category if not set
             if (!userProfile.category && data.category) {
-                const storedUsersRaw = localStorage.getItem('users');
-                let allUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-                const userIndex = allUsers.findIndex((u:any) => u.uid === user.uid);
-                if(userIndex > -1) {
-                    allUsers[userIndex].category = data.category;
-                    localStorage.setItem('users', JSON.stringify(allUsers));
-                }
+                 const userDocRef = doc(firestore, 'users', user.uid);
+                 await updateDoc(userDocRef, { category: data.category });
             }
 
             router.push('/dashboard');
@@ -559,3 +558,5 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    

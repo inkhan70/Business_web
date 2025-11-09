@@ -11,6 +11,8 @@ import { ArrowLeft, Edit, PlusCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import images from '@/app/lib/placeholder-images.json';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -35,41 +37,32 @@ export default function ProductVarietiesPage() {
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
+    const firestore = useFirestore();
     const productId = params.id as string;
-    const [product, setProduct] = useState<Product | null>(null);
-    const [loading, setLoading] = useState(true);
+    
+    const productDocRef = useMemoFirebase(() => 
+        productId ? doc(firestore, 'products', productId) : null,
+        [firestore, productId]
+    );
+    
+    const { data: product, isLoading: loading, error } = useDoc<Product>(productDocRef);
 
     useEffect(() => {
-        if (!productId) return;
-
-        setLoading(true);
-        try {
-            const storedProductsRaw = localStorage.getItem('products');
-            if (storedProductsRaw) {
-                const allProducts: Product[] = JSON.parse(storedProductsRaw);
-                const foundProduct = allProducts.find(p => p.id === productId);
-
-                if (foundProduct) {
-                    setProduct(foundProduct);
-                } else {
-                    toast({
-                        title: 'Product not found',
-                        description: `Could not find a product with ID ${productId}.`,
-                        variant: 'destructive',
-                    });
-                    router.push('/dashboard');
-                }
-            }
-        } catch(error) {
-             toast({
+        if (error) {
+            toast({
                 title: 'Error',
-                description: 'Could not fetch product details from local storage.',
+                description: 'Could not fetch product details from the database.',
                 variant: 'destructive',
             });
-        } finally {
-            setLoading(false);
+        } else if (!loading && !product && productId) {
+             toast({
+                title: 'Product not found',
+                description: `Could not find a product with ID ${productId}.`,
+                variant: 'destructive',
+            });
+            router.push('/dashboard');
         }
-    }, [productId, router, toast]);
+    }, [product, loading, error, productId, router, toast]);
 
     if (loading) {
         return (
@@ -148,3 +141,5 @@ export default function ProductVarietiesPage() {
         </div>
     );
 }
+
+    

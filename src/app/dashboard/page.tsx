@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,9 +28,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import images from '@/app/lib/placeholder-images.json';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc, deleteDoc } from "firebase/firestore";
 
 interface Variety {
     id: string;
@@ -43,7 +43,7 @@ interface Variety {
 
 interface Product {
     id: string;
-    name: string; // This is now the Brand/Product Line name
+    name: string;
     status: "Active" | "Archived" | "Low Stock" | "Out of Stock";
     inventory: number;
     category?: string;
@@ -53,44 +53,19 @@ interface Product {
 
 export default function DashboardPage() {
     const { toast } = useToast();
-    const { t } = useLanguage();
     const { user } = useAuth();
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
+    const firestore = useFirestore();
 
-     useEffect(() => {
-        if (!user) {
-            setLoading(false);
-            return;
-        };
-
-        setLoading(true);
-        try {
-            const storedProductsRaw = localStorage.getItem('products');
-            const allProducts: Product[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-            const userProducts = allProducts.filter(p => p.userId === user.uid);
-            setProducts(userProducts);
-        } catch (error) {
-            console.error("Error fetching products from localStorage:", error);
-            toast({
-                title: "Error loading products",
-                description: "Could not load products from local storage.",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    }, [user, toast]);
+    const productsQuery = useMemoFirebase(() => 
+        user ? query(collection(firestore, 'products'), where('userId', '==', user.uid)) : null,
+        [user, firestore]
+    );
+    const { data: products, isLoading: loading, error } = useCollection<Product>(productsQuery);
 
     const handleDelete = async (productId: string, productName: string) => {
         try {
-            const storedProductsRaw = localStorage.getItem('products');
-            let allProducts: Product[] = storedProductsRaw ? JSON.parse(storedProductsRaw) : [];
-            const updatedProducts = allProducts.filter(p => p.id !== productId);
-            localStorage.setItem('products', JSON.stringify(updatedProducts));
-            
-            // Also update the local state to re-render the UI
-            setProducts(prevProducts => prevProducts.filter(p => p.id !== productId));
+            const productDocRef = doc(firestore, 'products', productId);
+            await deleteDoc(productDocRef);
             
             toast({
                 title: "Product Deleted",
@@ -143,6 +118,12 @@ export default function DashboardPage() {
                             <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center">
                                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                                </TableCell>
+                            </TableRow>
+                        ) : error ? (
+                             <TableRow>
+                                <TableCell colSpan={6} className="text-center text-destructive py-12">
+                                   Error loading products: {error.message}
                                 </TableCell>
                             </TableRow>
                         ) : products && products.length === 0 ? (
@@ -241,3 +222,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
