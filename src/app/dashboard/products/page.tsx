@@ -39,6 +39,7 @@ import images from '@/app/lib/placeholder-images.json';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -46,6 +47,8 @@ const varietySchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number."),
   image: z.string().optional(),
   dataAiHint: z.string().optional(),
+  // Add a field to hold the raw file or the existing URL
+  imageFile: z.any().optional(),
 });
 
 const productFormSchema = z.object({
@@ -82,6 +85,9 @@ interface AppCategory {
     name: string;
 }
 
+// Helper function to check if a string is a data URL
+const isDataURL = (s: string) => s.startsWith('data:image');
+
 export default function ProductForm() {
     const router = useRouter();
     const { toast } = useToast();
@@ -89,6 +95,7 @@ export default function ProductForm() {
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
     const firestore = useFirestore();
+    const storage = getStorage();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
@@ -159,6 +166,7 @@ export default function ProductForm() {
 
         if (capturedImage && targetIndex !== null) {
             const index = parseInt(targetIndex, 10);
+            setValue(`varieties.${index}.imageFile`, capturedImage, { shouldValidate: true });
             setValue(`varieties.${index}.image`, capturedImage, { shouldValidate: true });
             
             sessionStorage.removeItem('capturedImageData');
@@ -182,7 +190,7 @@ export default function ProductForm() {
                     reset(productData);
                 } else {
                     toast({ title: "Error", description: "Product not found.", variant: "destructive" });
-                    router.push('/dashboard/products');
+                    router.push('/dashboard');
                 }
                 setIsLoading(false);
             };
@@ -225,10 +233,11 @@ export default function ProductForm() {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const dataUrl = reader.result as string;
+                setValue(`varieties.${fieldIndex}.imageFile`, dataUrl, { shouldValidate: true });
                 setValue(`varieties.${fieldIndex}.image`, dataUrl, { shouldValidate: true });
                 toast({
                     title: "Image Preview Ready",
-                    description: "Image will be saved when you save the product.",
+                    description: "Image will be uploaded when you save the product.",
                 });
             };
             reader.onerror = () => {
@@ -243,12 +252,20 @@ export default function ProductForm() {
     };
     
     const removeVarietyImage = (fieldIndex: number) => {
+        const currentImage = getValues(`varieties.${fieldIndex}.image`);
+        // If it's a firebase storage URL, plan to delete it on submit
+        if (currentImage && currentImage.includes('firebasestorage.googleapis.com')) {
+             setValue(`varieties.${fieldIndex}.imageFile`, 'DELETE');
+        } else {
+             setValue(`varieties.${fieldIndex}.imageFile`, undefined);
+        }
         setValue(`varieties.${fieldIndex}.image`, ""); 
     }
 
     const selectImageFromLibrary = (image: ImageAsset) => {
         if (isLibraryOpen.fieldIndex !== null) {
             setValue(`varieties.${isLibraryOpen.fieldIndex}.image`, image.src);
+            setValue(`varieties.${isLibraryOpen.fieldIndex}.imageFile`, undefined); // No new file to upload
             setIsLibraryOpen({open: false, fieldIndex: null});
         }
     }
@@ -260,19 +277,49 @@ export default function ProductForm() {
         }
 
         setIsSubmitting(true);
+        const productId = editId || uuidv4();
+
         try {
+            // Process image uploads
+            const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
+                const newVariety = { ...variety };
+
+                if (newVariety.imageFile) {
+                    if(isDataURL(newVariety.imageFile)) {
+                        // New image to upload
+                        const storageRef = ref(storage, `images/${user.uid}/${productId}/${newVariety.id}`);
+                        const snapshot = await uploadString(storageRef, newVariety.imageFile, 'data_url');
+                        newVariety.image = await getDownloadURL(snapshot.ref);
+                    } else if (newVariety.imageFile === 'DELETE' && variety.image && variety.image.includes('firebasestorage')) {
+                        // Image marked for deletion
+                        try {
+                           const imageRef = ref(storage, variety.image);
+                           await deleteObject(imageRef);
+                        } catch (error: any) {
+                            if (error.code !== 'storage/object-not-found') {
+                                console.warn("Could not delete old image, it may have already been removed:", error);
+                            }
+                        }
+                        newVariety.image = "";
+                    }
+                }
+                
+                delete newVariety.imageFile; // Clean up the temporary field
+                return newVariety;
+            }));
+
+            const finalData = { ...data, varieties: updatedVarieties, id: productId, userId: user.uid };
+
+            const productRef = doc(firestore, "products", productId);
+
             if (editId) {
-                const productRef = doc(firestore, "products", editId);
-                await updateDoc(productRef, { ...data, userId: user.uid });
+                await updateDoc(productRef, finalData);
                 toast({ title: "Product Updated", description: `The product "${data.name}" has been saved.` });
             } else {
-                const id = uuidv4();
-                const productRef = doc(firestore, "products", id);
-                await setDoc(productRef, { ...data, id, userId: user.uid });
+                await setDoc(productRef, finalData);
                 toast({ title: "Product Created", description: `The product "${data.name}" has been added.` });
             }
 
-            // Logic to update user's category if not set
             if (!userProfile.category && data.category) {
                  const userDocRef = doc(firestore, 'users', user.uid);
                  await updateDoc(userDocRef, { category: data.category });
@@ -472,7 +519,7 @@ export default function ProductForm() {
                                                             <CardContent className="p-0 flex flex-col items-center justify-center text-center h-full relative">
                                                                 {getValues(`varieties.${index}.image`) ? (
                                                                     <>
-                                                                        <Image src={getValues(`varieties.${index}.image`)!} alt="Product preview" layout="fill" className="object-cover rounded-md" />
+                                                                        <Image src={getValues(`varieties.${index}.image`)!} alt="Product preview" fill={true} className="object-cover rounded-md" />
                                                                         <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => removeVarietyImage(index)}>
                                                                             <Trash2 className="h-3 w-3" />
                                                                         </Button>
@@ -558,5 +605,3 @@ export default function ProductForm() {
         </div>
     );
 }
-
-    
