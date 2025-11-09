@@ -13,8 +13,8 @@ import {
     sendEmailVerification,
     User
 } from "firebase/auth";
-import { useAuth, useFirestore } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { useAuth as useFirebaseAuth, useFirestore } from "@/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +33,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { UserProfile } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -48,7 +49,7 @@ export default function SignInPage() {
     const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const auth = useAuth();
+    const auth = useFirebaseAuth();
     const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -94,26 +95,46 @@ export default function SignInPage() {
 
             const userDocRef = doc(firestore, "users", user.uid);
             const userDocSnap = await getDoc(userDocRef);
+            let userProfile: UserProfile | null = null;
 
             if (userDocSnap.exists()) {
-                const userProfile = userDocSnap.data();
-                toast({
-                    title: t('toast.signin_success'),
-                    description: t('toast.signin_success_desc'),
-                });
-
-                if (userProfile.isAdmin) {
-                    router.push("/admin");
-                } else {
-                    router.push("/dashboard");
-                }
+                userProfile = userDocSnap.data() as UserProfile;
             } else {
-                // This case handles potential delays in Firestore profile creation.
-                // The AuthContext will eventually pick up the profile and layouts will redirect.
-                // For a better UX, we'll just redirect to the main dashboard.
-                toast({ title: "Welcome!", description: "Loading your dashboard..." });
+                // This is an old user. Create a profile for them on the fly.
+                console.log(`User profile for ${user.uid} not found. Creating a new one.`);
+                const newUserProfile: UserProfile = {
+                    uid: user.uid,
+                    email: user.email!,
+                    role: 'buyer', // Default role for migrated users
+                    businessName: '',
+                    fullName: user.displayName || 'New User',
+                    category: '',
+                    address: '',
+                    city: '',
+                    state: '',
+                    createdAt: new Date().toISOString(),
+                    isAdmin: false,
+                };
+                await setDoc(userDocRef, newUserProfile);
+                userProfile = newUserProfile;
+
+                toast({
+                    title: "Welcome Back!",
+                    description: "We've updated your account to our new system."
+                });
+            }
+
+            toast({
+                title: t('toast.signin_success'),
+                description: t('toast.signin_success_desc'),
+            });
+
+            if (userProfile?.isAdmin) {
+                router.push("/admin");
+            } else {
                 router.push("/dashboard");
             }
+            
         } catch (error: any) {
             let description = "An unexpected error occurred. Please try again.";
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
