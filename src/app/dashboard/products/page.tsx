@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -29,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle, Camera } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle, Camera, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -40,6 +39,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { generateDescription } from '@/ai/flows/generate-description-flow';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -98,6 +98,7 @@ export default function ProductForm() {
     const storage = getStorage();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
     const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
@@ -118,6 +119,7 @@ export default function ProductForm() {
 
     const { control, getValues, setValue, watch, reset } = form;
     const currentCategory = watch('category');
+    const currentProductName = watch('name');
 
     const { fields, append, remove } = useFieldArray({
         control,
@@ -269,6 +271,41 @@ export default function ProductForm() {
             setIsLibraryOpen({open: false, fieldIndex: null});
         }
     }
+    
+    const handleGenerateDescription = async () => {
+        const productName = getValues('name');
+        const category = getValues('category');
+
+        if (!productName || !category) {
+            toast({
+                title: "Missing Information",
+                description: "Please provide a Product Name and Category first.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsGenerating(true);
+        try {
+            const result = await generateDescription({ productName, category });
+            if (result.description) {
+                setValue('description', result.description, { shouldValidate: true });
+                toast({
+                    title: "Description Generated!",
+                    description: "The AI-powered description has been added.",
+                });
+            }
+        } catch (error) {
+            console.error("Error generating description:", error);
+            toast({
+                title: "Generation Failed",
+                description: "Could not generate a description at this time.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
     async function onSubmit(data: ProductFormValues) {
         if (!user || !userProfile) {
@@ -424,7 +461,13 @@ export default function ProductForm() {
                                     name="description"
                                     render={({ field }) => (
                                         <FormItem className="md:col-span-2">
-                                        <FormLabel>Description</FormLabel>
+                                        <div className="flex justify-between items-center">
+                                            <FormLabel>Description</FormLabel>
+                                            <Button type="button" variant="ghost" size="sm" onClick={handleGenerateDescription} disabled={isGenerating || !currentProductName || !currentCategory}>
+                                                {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                                                Generate with AI
+                                            </Button>
+                                        </div>
                                         <FormControl>
                                             <Textarea
                                                 placeholder="Provide a detailed description of the product brand..."
