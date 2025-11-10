@@ -3,37 +3,39 @@
 
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
+interface WallpaperData {
+  url: string;
+}
 
 export function Wallpaper() {
   const pathname = usePathname();
+  const firestore = useFirestore();
+  const docId = encodeURIComponent(pathname);
+  const wallpaperDocRef = useMemoFirebase(() => doc(firestore, 'appearance', docId), [firestore, docId]);
+  
+  const { data: wallpaperData, isLoading } = useDoc<WallpaperData>(wallpaperDocRef);
+
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const key = `wallpaper_${pathname}`;
-      const url = localStorage.getItem(key);
-      setWallpaperUrl(url);
-    };
-
-    // Initial load
-    handleStorageChange();
-
-    // Listen for direct storage changes (e.g., from other tabs or our admin page)
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [pathname]); // Re-run effect if the page path changes
+    if (wallpaperData) {
+      setWallpaperUrl(wallpaperData.url);
+    } else {
+      setWallpaperUrl(null);
+    }
+  }, [wallpaperData]);
 
 
-  if (!wallpaperUrl) {
+  if (isLoading || !wallpaperUrl) {
     return null;
   }
 
   return (
     <div
-      className="fixed inset-0 z-[-1] bg-cover bg-center"
+      className="fixed inset-0 z-[-1] bg-cover bg-center transition-all duration-500"
       style={{ backgroundImage: `url(${wallpaperUrl})` }}
     />
   );

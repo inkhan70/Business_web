@@ -1,8 +1,10 @@
+
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Match any file path inside the 'images' folder
+    
+    // Rules for user-specific product images
     match /images/{userId}/{allPaths=**} {
       // Allow public read access so images can be displayed in the app
       allow read;
@@ -10,6 +12,18 @@ service firebase.storage {
       // Allow write access only if the user is authenticated and the path matches their UID.
       // This rule ensures users can only upload files to their own designated folder.
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Rules for global appearance (wallpaper) images
+    match /appearance/{allPaths=**} {
+      // Allow public read access for all users
+      allow read;
+      
+      // Allow write access (create, update, delete) only for administrators
+      // We check this by seeing if the user's document in Firestore has the isAdmin flag.
+      allow write: if request.auth != null && 
+                      exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
   }
 }
