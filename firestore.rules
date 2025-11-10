@@ -25,12 +25,21 @@ service cloud.firestore {
       function isExistingOwner(uid) {
         return isOwner(uid) && exists(/databases/$(database)/documents/users/$(uid));
       }
+      
+      // The first user signup can set isAdmin to true.
+      // Subsequent signups cannot set isAdmin to true.
+      function isFirstUserAndBecomingAdmin() {
+        return !exists(/databases/$(database)/documents/config/user_count) &&
+               request.resource.data.isAdmin == true;
+      }
 
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      // Allow create only if the user is creating their own document.
-      // This rule is checked during the transaction in the signup form.
-      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Allow create if the user is creating their own document.
+      // Additionally, allow setting isAdmin only if they are the first user.
+      allow create: if isSignedIn() && 
+                     request.auth.uid == userId &&
+                     (isFirstUserAndBecomingAdmin() || request.resource.data.isAdmin == false);
       allow update: if isExistingOwner(userId) || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
     }
