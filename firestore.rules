@@ -101,5 +101,10 @@ service cloud.firestore {
         allow read, create: if isChatParticipant();
       }
     }
+    
+    match /appearance/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
