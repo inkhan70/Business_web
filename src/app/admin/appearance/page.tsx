@@ -16,27 +16,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ImageIcon, Upload, Trash2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useFirestore } from "@/firebase";
-import { doc, setDoc, getDoc, deleteDoc } from "firebase/firestore";
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import { useAuth } from "@/contexts/AuthContext";
-
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export default function AppearancePage() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const searchParams = useSearchParams();
-  const firestore = useFirestore();
-  const storage = getStorage();
 
   const pagePath = searchParams.get('page') || '/';
-  // Use a URL-safe document ID
-  const docId = encodeURIComponent(pagePath);
-  const appearanceDocRef = doc(firestore, "appearance", docId);
-  const storagePath = `appearance/${docId}/wallpaper.png`;
-  const storageRef = ref(storage, storagePath);
+  const localStorageKey = `wallpaper_${pagePath}`;
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -44,21 +32,18 @@ export default function AppearancePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchExistingWallpaper = async () => {
-      try {
-        const docSnap = await getDoc(appearanceDocRef);
-        if (docSnap.exists()) {
-          setPreviewImage(docSnap.data().url);
-        }
-      } catch (error) {
-        console.error("Error fetching wallpaper:", error);
-        toast({ title: "Error", description: "Could not load existing wallpaper.", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
+    try {
+      const storedWallpaper = localStorage.getItem(localStorageKey);
+      if (storedWallpaper) {
+        setPreviewImage(storedWallpaper);
       }
-    };
-    fetchExistingWallpaper();
-  }, [appearanceDocRef, toast]);
+    } catch (error) {
+      console.error("Error fetching wallpaper from localStorage:", error);
+      toast({ title: "Error", description: "Could not load existing wallpaper from your browser.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [localStorageKey, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -85,7 +70,7 @@ export default function AppearancePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedFile || !previewImage) {
         toast({
@@ -95,48 +80,33 @@ export default function AppearancePage() {
         });
         return;
     }
-    if (!user) {
-        toast({ title: "Not Authenticated", variant: "destructive"});
-        return;
-    }
-
+    
     setIsSubmitting(true);
     try {
-        const snapshot = await uploadString(storageRef, previewImage, 'data_url');
-        const downloadURL = await getDownloadURL(snapshot.ref);
-
-        await setDoc(appearanceDocRef, {
-            url: downloadURL,
-            path: pagePath,
-            setBy: user.uid,
-            updatedAt: new Date().toISOString()
-        });
-
-        setPreviewImage(downloadURL);
+        localStorage.setItem(localStorageKey, previewImage);
         setSelectedFile(null);
 
         toast({
           title: "Wallpaper Updated",
-          description: `The background for ${pagePath} has been set for all users.`,
+          description: `The background for ${pagePath} has been set in your browser.`,
         });
+        window.dispatchEvent(new Event('storage')); // Notify other tabs
     } catch (error) {
         toast({
             title: "Failed to Save Wallpaper",
-            description: "An error occurred while uploading the image.",
+            description: "An error occurred while saving the image to your browser.",
             variant: "destructive"
         });
-        console.error("Error saving wallpaper:", error);
+        console.error("Error saving wallpaper to localStorage:", error);
     } finally {
         setIsSubmitting(false);
     }
   };
 
-  const handleRemoveWallpaper = async () => {
+  const handleRemoveWallpaper = () => {
     setIsSubmitting(true);
     try {
-        await deleteDoc(appearanceDocRef);
-        await deleteObject(storageRef);
-
+        localStorage.removeItem(localStorageKey);
         setPreviewImage(null);
         setSelectedFile(null);
         const fileInput = document.getElementById('wallpaper-upload') as HTMLInputElement;
@@ -145,22 +115,16 @@ export default function AppearancePage() {
         }
         toast({
             title: "Wallpaper Removed",
-            description: `The background for ${pagePath} has been removed for all users.`
+            description: `The background for ${pagePath} has been removed from your browser.`
         });
-    } catch (error: any) {
-         if (error.code === 'storage/object-not-found') {
-            // If storage object doesn't exist, but doc does, still delete doc.
-            await deleteDoc(appearanceDocRef).catch(console.error);
-            setPreviewImage(null);
-            toast({ title: "Wallpaper Removed" });
-         } else {
-            toast({
-                title: "Error Removing Wallpaper",
-                description: "Could not remove the wallpaper. It may have already been deleted.",
-                variant: "destructive"
-            });
-            console.error("Error removing wallpaper:", error);
-         }
+        window.dispatchEvent(new Event('storage')); // Notify other tabs
+    } catch (error) {
+        toast({
+            title: "Error Removing Wallpaper",
+            description: "Could not remove the wallpaper.",
+            variant: "destructive"
+        });
+        console.error("Error removing wallpaper from localStorage:", error);
     } finally {
         setIsSubmitting(false);
     }
@@ -178,7 +142,7 @@ export default function AppearancePage() {
         <CardHeader>
           <CardTitle>Page Wallpaper</CardTitle>
           <CardDescription>
-            Set a global background for the <code className="bg-muted px-2 py-1 rounded-md">{pagePath}</code> page.
+            Set a background for the <code className="bg-muted px-2 py-1 rounded-md">{pagePath}</code> page. This will only be visible in your current browser.
              <br />
              Go back to the page: <Link href={pagePath} className="text-primary underline">Go to {pagePath}</Link>
           </CardDescription>

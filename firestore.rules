@@ -50,11 +50,6 @@ service cloud.firestore {
       allow list, delete: if false;
     }
 
-    match /appearance/{docId} {
-      allow read: if true; // Allow public read access
-      allow write: if isAdmin(); // Only admins can create, update, or delete
-    }
-
     match /products/{productId} {
        function isSignedIn() {
         return request.auth != null;

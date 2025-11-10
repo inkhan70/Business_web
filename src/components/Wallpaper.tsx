@@ -3,33 +3,40 @@
 
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-
-interface WallpaperData {
-  url: string;
-}
 
 export function Wallpaper() {
   const pathname = usePathname();
-  const firestore = useFirestore();
-  const docId = encodeURIComponent(pathname);
-  const wallpaperDocRef = useMemoFirebase(() => doc(firestore, 'appearance', docId), [firestore, docId]);
-  
-  const { data: wallpaperData, isLoading } = useDoc<WallpaperData>(wallpaperDocRef);
-
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (wallpaperData) {
-      setWallpaperUrl(wallpaperData.url);
-    } else {
+  const updateWallpaper = () => {
+    try {
+      const key = `wallpaper_${pathname}`;
+      const storedUrl = localStorage.getItem(key);
+      setWallpaperUrl(storedUrl);
+    } catch (error) {
+      console.error("Could not read from localStorage", error);
       setWallpaperUrl(null);
     }
-  }, [wallpaperData]);
+  };
 
+  useEffect(() => {
+    updateWallpaper();
 
-  if (isLoading || !wallpaperUrl) {
+    // Listen for changes from other tabs/windows
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === `wallpaper_${pathname}` || event.key === null) {
+        updateWallpaper();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [pathname]);
+
+  if (!wallpaperUrl) {
     return null;
   }
 
