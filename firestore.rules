@@ -51,7 +51,7 @@ service cloud.firestore {
     }
 
     match /appearance/{docId} {
-      allow get, list: if true; // Allow public read access
+      allow read: if true; // Allow public read access
       allow write: if isAdmin(); // Only admins can create, update, or delete
     }
 
