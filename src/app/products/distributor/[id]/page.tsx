@@ -12,6 +12,7 @@ import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect } from "react";
+import { ProductSearch } from "@/components/ProductSearch";
 
 interface Variety {
     id: string;
@@ -60,7 +61,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <div className="mb-12">
+      <div className="mb-8">
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
           {business.businessName}
         </h1>
@@ -70,13 +71,8 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         </p>
       </div>
 
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder={t('distributor_inventory.search_placeholder')}
-          className="pl-9 w-full md:w-1/2 lg:w-1/3"
-        />
+      <div className="mb-8">
+        <ProductSearch placeholder={t('distributor_inventory.search_placeholder')} />
       </div>
 
       {products && products.length > 0 ? (
