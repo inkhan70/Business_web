@@ -33,8 +33,9 @@ service cloud.firestore {
                request.resource.data.isAdmin == true;
       }
 
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      // Allow anyone to read user/business profiles.
+      allow read: if true;
+
       // Allow create if the user is creating their own document.
       // Additionally, allow setting isAdmin only if they are the first user.
       allow create: if isSignedIn() && 
