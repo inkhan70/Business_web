@@ -25,16 +25,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, Trash2, ImageIcon } from "lucide-react";
 import { Location } from "@/components/Location";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
+import Image from "next/image";
 
 const profileFormSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters."),
   address: z.string().min(10, "Full address is required."),
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
+  storefrontWallpaper: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -44,7 +47,11 @@ export default function SettingsPage() {
     const { user, userProfile } = useAuth();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const firestore = useFirestore();
+    const storage = getStorage();
+
+    const [wallpaperPreview, setWallpaperPreview] = useState<string | null>(null);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileFormSchema),
@@ -53,6 +60,7 @@ export default function SettingsPage() {
             address: "",
             city: "",
             state: "",
+            storefrontWallpaper: "",
         },
         mode: "onChange",
     });
@@ -64,9 +72,109 @@ export default function SettingsPage() {
                 address: userProfile.address || "",
                 city: userProfile.city || "",
                 state: userProfile.state || "",
+                storefrontWallpaper: userProfile.storefrontWallpaper || "",
             });
+            if (userProfile.storefrontWallpaper) {
+                setWallpaperPreview(userProfile.storefrontWallpaper);
+            }
         }
     }, [userProfile, form]);
+    
+     const handleWallpaperChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                toast({
+                    title: "Image Too Large",
+                    description: "Please select an image smaller than 5MB.",
+                    variant: "destructive"
+                });
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                handleWallpaperUpload(dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    const handleWallpaperUpload = async (dataUrl: string) => {
+        if (!user) return;
+        setIsUploading(true);
+
+        const oldWallpaperUrl = userProfile?.storefrontWallpaper;
+
+        try {
+            // Upload new image
+            const storageRef = ref(storage, `images/${user.uid}/storefront-wallpaper.jpg`);
+            const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
+            const newImageUrl = await getDownloadURL(snapshot.ref);
+
+            // Update user profile with new URL
+            const userDocRef = doc(firestore, "users", user.uid);
+            await updateDoc(userDocRef, { storefrontWallpaper: newImageUrl });
+
+            // Delete old image if it exists and is different
+            if (oldWallpaperUrl && oldWallpaperUrl !== newImageUrl) {
+                 try {
+                    const oldImageRef = ref(storage, oldWallpaperUrl);
+                    await deleteObject(oldImageRef);
+                } catch(deleteError: any) {
+                     // It's okay if the old image doesn't exist, just log a warning.
+                    if (deleteError.code !== 'storage/object-not-found') {
+                        console.warn("Could not delete old wallpaper:", deleteError);
+                    }
+                }
+            }
+            
+            setWallpaperPreview(newImageUrl);
+            toast({
+                title: "Wallpaper Updated",
+                description: "Your new storefront wallpaper has been saved.",
+            });
+
+        } catch (error) {
+            console.error("Error uploading wallpaper:", error);
+            toast({
+                title: "Upload Failed",
+                description: "There was a problem uploading your new wallpaper.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsUploading(false);
+        }
+    }
+
+    const handleRemoveWallpaper = async () => {
+        if (!user || !userProfile?.storefrontWallpaper) return;
+        setIsUploading(true);
+        try {
+            const imageRef = ref(storage, userProfile.storefrontWallpaper);
+            await deleteObject(imageRef);
+
+            const userDocRef = doc(firestore, "users", user.uid);
+            await updateDoc(userDocRef, { storefrontWallpaper: "" });
+            
+            setWallpaperPreview(null);
+            toast({ title: "Wallpaper Removed" });
+        } catch (error: any) {
+            if (error.code === 'storage/object-not-found') {
+                // If file doesn't exist in storage, just clear it from the profile
+                 const userDocRef = doc(firestore, "users", user.uid);
+                 await updateDoc(userDocRef, { storefrontWallpaper: "" });
+                 setWallpaperPreview(null);
+                 toast({ title: "Wallpaper Removed" });
+            } else {
+                 console.error("Error removing wallpaper:", error);
+                 toast({ title: "Error", description: "Could not remove wallpaper.", variant: "destructive" });
+            }
+        } finally {
+            setIsUploading(false);
+        }
+    }
 
 
     const onSubmit = async (data: ProfileFormValues) => {
@@ -177,6 +285,47 @@ export default function SettingsPage() {
                             </div>
                         </form>
                     </Form>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Storefront Wallpaper</CardTitle>
+                    <CardDescription>Upload a background image for your public business page. (Max 5MB)</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Label htmlFor="wallpaper-upload" className="flex-grow">
+                             <Button asChild variant="outline" className="w-full justify-center" disabled={isUploading}>
+                                <span>
+                                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4"/> }
+                                    {isUploading ? "Uploading..." : "Upload New Image"}
+                                </span>
+                             </Button>
+                             <Input id="wallpaper-upload" type="file" className="sr-only" accept="image/*" onChange={handleWallpaperChange} disabled={isUploading}/>
+                        </Label>
+                        {wallpaperPreview && (
+                             <Button variant="destructive" onClick={handleRemoveWallpaper} disabled={isUploading}>
+                                <Trash2 className="mr-2 h-4 w-4"/>
+                                Remove
+                            </Button>
+                        )}
+                    </div>
+                    <div className="mt-2">
+                        <h3 className="text-sm font-medium mb-2">Preview:</h3>
+                        <div className="aspect-video w-full max-w-md rounded-md border border-dashed flex items-center justify-center bg-muted/50" >
+                             {isUploading ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/>
+                             ) : wallpaperPreview ? (
+                                <Image src={wallpaperPreview} alt="Wallpaper preview" width={400} height={225} className="object-cover rounded-md"/>
+                             ) : (
+                                <div className="text-center text-muted-foreground p-4">
+                                    <ImageIcon className="mx-auto h-8 w-8 mb-2" />
+                                    <p>No wallpaper set</p>
+                                </div>
+                             )}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>

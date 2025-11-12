@@ -20,6 +20,7 @@ export interface UserProfile {
     isAdmin?: boolean;
     purchaseHistory?: string[];
     ghostCoins?: number;
+    storefrontWallpaper?: string;
 }
 
 interface AuthContextType {

@@ -13,6 +13,7 @@ import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase
 import { doc, collection, query, where } from "firebase/firestore";
 import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
+import { Wallpaper } from "@/components/Wallpaper";
 
 interface Variety {
     id: string;
@@ -32,6 +33,7 @@ interface BusinessProfile {
     uid: string;
     businessName: string;
     address: string;
+    storefrontWallpaper?: string;
 }
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
@@ -60,56 +62,64 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          {business.businessName}
-        </h1>
-        <p className="flex items-center text-lg text-muted-foreground mt-2">
-            <MapPin className="h-5 w-5 mr-2" />
-            {business.address}
-        </p>
-      </div>
-
-      <div className="mb-8">
-        <ProductSearch placeholder={t('distributor_inventory.search_placeholder')} />
-      </div>
-
-      {products && products.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <Card key={product.id} className="flex flex-col overflow-hidden">
-              <CardHeader className="p-0">
-                <Image 
-                  src={product.varieties?.[0]?.image || images.products.generic} 
-                  alt={product.name} 
-                  width={300} 
-                  height={300} 
-                  className="object-cover w-full h-48" 
-                  data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"} 
-                />
-              </CardHeader>
-              <CardContent className="p-4 flex-grow">
-                  <h3 className="font-bold font-headline">{product.name}</h3>
-                  <p className="text-muted-foreground text-sm mt-1">{product.varieties?.length || 0} varieties available</p>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                  <Button asChild className="w-full" variant="outline">
-                      <Link href={`/products/item/${product.id}`}>
-                          {t('distributor_inventory.view_details')}
-                      </Link>
-                  </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-16 bg-muted/50 rounded-lg">
-            <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mt-4">No Products Found</h3>
-            <p className="text-muted-foreground mt-2">This business has not listed any products yet.</p>
-        </div>
+    <>
+      {business.storefrontWallpaper && (
+         <div
+            className="fixed inset-0 z-[-1] bg-cover bg-center transition-all duration-500"
+            style={{ backgroundImage: `url(${business.storefrontWallpaper})` }}
+        />
       )}
-    </div>
+      <div className="container mx-auto px-4 py-12">
+        <div className={`mb-8 p-6 rounded-lg ${business.storefrontWallpaper ? 'bg-background/80 backdrop-blur-sm' : ''}`}>
+          <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
+            {business.businessName}
+          </h1>
+          <p className="flex items-center text-lg text-muted-foreground mt-2">
+              <MapPin className="h-5 w-5 mr-2" />
+              {business.address}
+          </p>
+        </div>
+
+        <div className="mb-8">
+          <ProductSearch placeholder={t('distributor_inventory.search_placeholder')} />
+        </div>
+
+        {products && products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <Card key={product.id} className="flex flex-col overflow-hidden">
+                <CardHeader className="p-0">
+                  <Image 
+                    src={product.varieties?.[0]?.image || images.products.generic} 
+                    alt={product.name} 
+                    width={300} 
+                    height={300} 
+                    className="object-cover w-full h-48" 
+                    data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"} 
+                  />
+                </CardHeader>
+                <CardContent className="p-4 flex-grow">
+                    <h3 className="font-bold font-headline">{product.name}</h3>
+                    <p className="text-muted-foreground text-sm mt-1">{product.varieties?.length || 0} varieties available</p>
+                </CardContent>
+                <CardFooter className="p-4 pt-0">
+                    <Button asChild className="w-full" variant="outline">
+                        <Link href={`/products/item/${product.id}`}>
+                            {t('distributor_inventory.view_details')}
+                        </Link>
+                    </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 bg-muted/50 rounded-lg">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mt-4">No Products Found</h3>
+              <p className="text-muted-foreground mt-2">This business has not listed any products yet.</p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

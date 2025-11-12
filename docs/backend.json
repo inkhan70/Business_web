@@ -19,7 +19,8 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the account was created." },
         "isAdmin": { "type": "boolean", "description": "Flag to indicate if the user is an administrator." },
         "purchaseHistory": { "type": "array", "items": { "type": "string" }, "description": "List of order IDs for a buyer." },
-        "ghostCoins": { "type": "number", "description": "The number of reward coins a buyer has." }
+        "ghostCoins": { "type": "number", "description": "The number of reward coins a buyer has." },
+        "storefrontWallpaper": { "type": "string", "format": "uri", "description": "URL for the business's custom storefront wallpaper." }
       },
       "required": ["uid", "email", "role", "createdAt"]
     },
@@ -172,5 +173,3 @@
     }
   }
 }
-
-    
