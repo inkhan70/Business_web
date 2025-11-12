@@ -31,6 +31,8 @@ const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => 
   return d; // Distance in km
 };
 
+const PROXIMITY_RADIUS_KM = 100;
+
 interface Business extends UserProfile {
     distance?: number;
     // Assuming user profiles used as businesses have lat/lon stored somehow
@@ -48,7 +50,7 @@ function BusinessesContent() {
   const category = searchParams.get('category') || 'all';
   const role = searchParams.get('role') || 'shopkeeper';
   
-  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [displayedBusinesses, setDisplayedBusinesses] = useState<Business[]>([]);
   const [userCoords, setUserCoords] = useState<{lat: number, lon: number} | null>(null);
 
   const businessesQuery = useMemoFirebase(() => {
@@ -79,23 +81,35 @@ function BusinessesContent() {
 
   useEffect(() => {
     if (fetchedBusinesses) {
-      // Create a temporary array of businesses with placeholder images and location data.
-      // In a real app, this data would come from the UserProfile object itself.
-      let businessesWithTempData: Business[] = fetchedBusinesses.map((biz, index) => ({
+      let allBusinessesWithData: Business[] = fetchedBusinesses.map((biz) => ({
         ...biz,
-        lat: 34.0522 + (Math.random() - 0.5) * 0.1, // Fake lat around LA
-        lon: -118.2437 + (Math.random() - 0.5) * 0.1, // Fake lon around LA
+        lat: 34.0522 + (Math.random() - 0.5) * 2, // Fake lat around LA
+        lon: -118.2437 + (Math.random() - 0.5) * 2, // Fake lon around LA
         image: images.businesses.corner_store, // Placeholder image
         dataAiHint: 'corner store'
       }));
 
       if (userCoords) {
-        businessesWithTempData = businessesWithTempData.map(biz => ({
+        // Calculate distance for all businesses
+        const businessesWithDistance = allBusinessesWithData.map(biz => ({
           ...biz,
           distance: getDistance(userCoords.lat, userCoords.lon, biz.lat!, biz.lon!),
-        })).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+        }));
+
+        // Filter for businesses within the radius
+        const nearbyBusinesses = businessesWithDistance.filter(biz => biz.distance! <= PROXIMITY_RADIUS_KM);
+        
+        if (nearbyBusinesses.length > 0) {
+          // If there are nearby businesses, show them sorted by distance
+          setDisplayedBusinesses(nearbyBusinesses.sort((a, b) => a.distance! - b.distance!));
+        } else {
+          // If no businesses are nearby, show all businesses, still sorted by distance
+          setDisplayedBusinesses(businessesWithDistance.sort((a, b) => a.distance! - b.distance!));
+        }
+      } else {
+        // If no user location, just show all fetched businesses
+        setDisplayedBusinesses(allBusinessesWithData);
       }
-      setBusinesses(businessesWithTempData);
     }
   }, [fetchedBusinesses, userCoords]);
 
@@ -113,10 +127,10 @@ function BusinessesContent() {
   }
 
   const renderContent = () => {
-    if (businesses.length > 0) {
+    if (displayedBusinesses.length > 0) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {businesses.map((biz) => (
+            {displayedBusinesses.map((biz) => (
               <Card key={biz.uid} className="flex flex-col">
                 <CardHeader className="p-0">
                   <Image src={biz.image || images.businesses.supermarket_aisle} alt={biz.businessName || 'Business'} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint || 'business exterior'} />
@@ -146,12 +160,12 @@ function BusinessesContent() {
         )
     }
     
-     if (businesses.length === 0) {
+     if (displayedBusinesses.length === 0 && !loading) {
          return (
             <div className="text-center py-16 bg-muted/50 rounded-lg">
                 <Store className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="text-xl font-semibold mt-4">No Businesses Found</h3>
-                <p className="text-muted-foreground mt-2">There are no businesses available for the selected role and category.</p>
+                <p className="text-muted-foreground mt-2">There are no businesses registered for the selected role and category.</p>
             </div>
         )
     }
@@ -162,7 +176,7 @@ function BusinessesContent() {
   return (
     <div className="container mx-auto px-4 py-12">
         <div className="mb-8">
-            <ProductSearch placeholder={t('businesses.search_placeholder')} />
+          <ProductSearch placeholder={t('businesses.search_placeholder')} />
         </div>
 
       <div className="text-left mb-8">
