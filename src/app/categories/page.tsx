@@ -4,79 +4,76 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
-import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Settings, Shirt, Home, Car, Wrench, Bone } from 'lucide-react';
+import { UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Settings, Shirt, Home, Car, Wrench, Bone, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Wallpaper } from '@/components/Wallpaper';
 import { WallpaperManager } from '@/components/WallpaperManager';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 const iconMap: { [key: string]: React.ElementType } = {
     UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Shirt, Home, Car, Wrench, Bone
 };
 
-interface Category {
+export interface Category {
     id: string;
     name: string;
     icon: string;
-    href: string;
     order: number;
 }
 
+interface CategoriesDoc {
+    list: Category[];
+}
+
 const defaultCategories: Category[] = [
-    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
-    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
-    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
-    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
-    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
-    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
-    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
-    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
-    { id: 'cat9', name: 'Apparel', href:"/roles?category=apparel", icon: 'Shirt', order: 9 },
-    { id: 'cat10', name: 'Home & Garden', href:"/roles?category=home-garden", icon: 'Home', order: 10 },
-    { id: 'cat11', name: 'Automotive', href:"/roles?category=automotive", icon: 'Car', order: 11 },
-    { id: 'cat12', name: 'Services', href:"/roles?category=services", icon: 'Wrench', order: 12 },
-    { id: 'cat13', name: 'Pets', href:"/roles?category=pets", icon: 'Bone', order: 13 },
+    { id: 'cat1', name: 'Food', icon: "UtensilsCrossed", order: 1},
+    { id: 'cat2', name: 'Drinks', icon: "GlassWater", order: 2},
+    { id: 'cat3', name: 'Electronics', icon: "Laptop", order: 3},
+    { id: 'cat4', name: 'Health', icon: "Pill", order: 4},
+    { id 'cat5', name: 'Shoes', icon: "Footprints", order: 5},
+    { id: 'cat6', name: 'Beauty', icon: "Scissors", order: 6},
+    { id: 'cat7', name: 'Jewelry', icon: "Gem", order: 7},
+    { id: 'cat8', name: 'Real Estate', icon: "Building", order: 8},
+    { id: 'cat9', name: 'Apparel', icon: 'Shirt', order: 9 },
+    { id: 'cat10', name: 'Home & Garden', icon: 'Home', order: 10 },
+    { id: 'cat11', name: 'Automotive', icon: 'Car', order: 11 },
+    { id: 'cat12', name: 'Services', icon: 'Wrench', order: 12 },
+    { id: 'cat13', name: 'Pets', icon: 'Bone', order: 13 },
 ];
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   const { userProfile } = useAuth();
+  const firestore = useFirestore();
+
+  const categoriesDocRef = useMemoFirebase(() => doc(firestore, 'app_config', 'categories'), [firestore]);
+  const { data: categoriesDoc, isLoading: loading, error } = useDoc<CategoriesDoc>(categoriesDocRef);
 
   useEffect(() => {
-    const fetchCategories = () => {
-        setLoading(true);
-        try {
-            const storedCategoriesRaw = localStorage.getItem('categories');
-            if (storedCategoriesRaw) {
-                const storedCategories = JSON.parse(storedCategoriesRaw);
-                setCategories(storedCategories.sort((a:Category, b:Category) => a.order - b.order));
-            } else {
-                // If nothing in localStorage, seed it with default data
-                localStorage.setItem('categories', JSON.stringify(defaultCategories));
-                setCategories(defaultCategories.sort((a,b) => a.order - b.order));
-            }
-        } catch(error: any) {
-            console.error("Error loading categories from localStorage:", error);
-            toast({
-                title: "Error Loading Data",
-                description: "Could not load category data from your browser's storage.",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    fetchCategories();
-  }, [toast]);
+    if (categoriesDoc) {
+      const categoryList = categoriesDoc.list && categoriesDoc.list.length > 0 ? categoriesDoc.list : defaultCategories;
+      setCategories(categoryList.sort((a, b) => a.order - b.order));
+    } else if (!loading && !categoriesDoc) {
+        setCategories(defaultCategories);
+    }
+    if (error) {
+        console.error("Error loading categories from Firestore:", error);
+        toast({
+            title: "Error Loading Data",
+            description: "Could not load category data. Displaying defaults.",
+            variant: "destructive",
+        });
+        setCategories(defaultCategories);
+    }
+  }, [categoriesDoc, loading, error, toast]);
 
   const getCategoryLink = (category: Category) => {
-    if (category.href) return category.href;
     return `/roles?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`;
   }
 
@@ -105,7 +102,9 @@ export default function CategoriesPage() {
       </div>
 
         {loading ? (
-            <p className="text-center mt-12">{t('categories.loading')}</p>
+            <div className="flex justify-center items-center h-48">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
         ) : categories.length === 0 ? (
              <div className="text-center text-muted-foreground py-12">
                 <p className="font-semibold">No categories found.</p>

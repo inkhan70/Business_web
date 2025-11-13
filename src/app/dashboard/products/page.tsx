@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -40,6 +41,7 @@ import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase
 import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { generateDescription } from '@/ai/flows/generate-description-flow';
+import type { Category } from '@/app/admin/categories/page';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -80,9 +82,8 @@ interface ProductForLibrary {
     }[];
 }
 
-interface AppCategory {
-    id: string;
-    name: string;
+interface CategoriesDoc {
+    list: Category[];
 }
 
 // Helper function to check if a string is a data URL
@@ -101,7 +102,7 @@ export default function ProductForm() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
-    const [appCategories, setAppCategories] = useState<AppCategory[]>([]);
+    const [appCategories, setAppCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(!!editId);
 
     const form = useForm<ProductFormValues>({
@@ -126,35 +127,23 @@ export default function ProductForm() {
         name: "varieties"
     });
 
+    // Fetch categories from Firestore
+    const categoriesDocRef = useMemoFirebase(() => doc(firestore, 'app_config', 'categories'), [firestore]);
+    const { data: categoriesDoc } = useDoc<CategoriesDoc>(categoriesDocRef);
+
+    useEffect(() => {
+        if (categoriesDoc && categoriesDoc.list) {
+            setAppCategories(categoriesDoc.list);
+        }
+    }, [categoriesDoc]);
+
+
     // Fetch products for image library based on category
     const productsForLibraryQuery = useMemoFirebase(() => 
         currentCategory ? query(collection(firestore, 'products'), where('category', '==', currentCategory)) : null,
         [firestore, currentCategory]
     );
     const { data: categoryProducts } = useCollection<ProductForLibrary>(productsForLibraryQuery);
-    
-     useEffect(() => {
-        const fetchCategories = () => {
-            const storedCategoriesRaw = localStorage.getItem('categories');
-            if (storedCategoriesRaw) {
-                setAppCategories(JSON.parse(storedCategoriesRaw));
-            } else {
-                 const defaultCategories = [
-                    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
-                    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
-                    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
-                    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
-                    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
-                    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
-                    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
-                    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
-                ];
-                localStorage.setItem('categories', JSON.stringify(defaultCategories));
-                setAppCategories(defaultCategories);
-            }
-        };
-        fetchCategories();
-    }, []);
     
     useEffect(() => {
         if (userProfile?.category && !getValues('category')) {

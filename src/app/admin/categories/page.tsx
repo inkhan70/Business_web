@@ -20,7 +20,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Trash2, UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Icon, Shirt, Home, Car, Wrench, Bone } from "lucide-react";
+import { PlusCircle, Trash2, UtensilsCrossed, GlassWater, Laptop, Pill, Footprints, Scissors, Gem, Building, MoreHorizontal, Shirt, Home, Car, Wrench, Bone, Loader2 } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,13 +32,19 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
-interface Category {
+
+export interface Category {
     id: string;
     name: string;
     icon: string;
-    href: string;
     order: number;
+}
+
+interface CategoriesDoc {
+    list: Category[];
 }
 
 const iconMap: { [key: string]: React.ElementType } = {
@@ -46,36 +52,60 @@ const iconMap: { [key: string]: React.ElementType } = {
 };
 
 const defaultCategories: Category[] = [
-    { id: 'cat1', name: 'Food', href:"/roles?category=food", icon: "UtensilsCrossed", order: 1},
-    { id: 'cat2', name: 'Drinks', href:"/roles?category=drinks", icon: "GlassWater", order: 2},
-    { id: 'cat3', name: 'Electronics', href:"/roles?category=electronics", icon: "Laptop", order: 3},
-    { id: 'cat4', name: 'Health', href:"/roles?category=health", icon: "Pill", order: 4},
-    { id: 'cat5', name: 'Shoes', href:"/roles?category=shoes", icon: "Footprints", order: 5},
-    { id: 'cat6', name: 'Beauty', href:"/roles?category=beauty", icon: "Scissors", order: 6},
-    { id: 'cat7', name: 'Jewelry', href:"/roles?category=jewelry", icon: "Gem", order: 7},
-    { id: 'cat8', name: 'Real Estate', href:"/roles?category=real-estate", icon: "Building", order: 8},
-    { id: 'cat9', name: 'Apparel', href:"/roles?category=apparel", icon: 'Shirt', order: 9 },
-    { id: 'cat10', name: 'Home & Garden', href:"/roles?category=home-garden", icon: 'Home', order: 10 },
-    { id: 'cat11', name: 'Automotive', href:"/roles?category=automotive", icon: 'Car', order: 11 },
-    { id: 'cat12', name: 'Services', href:"/roles?category=services", icon: 'Wrench', order: 12 },
-    { id: 'cat13', name: 'Pets', href:"/roles?category=pets", icon: 'Bone', order: 13 },
+    { id: 'cat1', name: 'Food', icon: "UtensilsCrossed", order: 1},
+    { id: 'cat2', name: 'Drinks', icon: "GlassWater", order: 2},
+    { id: 'cat3', name: 'Electronics', icon: "Laptop", order: 3},
+    { id: 'cat4', name: 'Health', icon: "Pill", order: 4},
+    { id: 'cat5', name: 'Shoes', icon: "Footprints", order: 5},
+    { id: 'cat6', name: 'Beauty', icon: "Scissors", order: 6},
+    { id: 'cat7', name: 'Jewelry', icon: "Gem", order: 7},
+    { id: 'cat8', name: 'Real Estate', icon: "Building", order: 8},
+    { id: 'cat9', name: 'Apparel', icon: 'Shirt', order: 9 },
+    { id: 'cat10', name: 'Home & Garden', icon: 'Home', order: 10 },
+    { id: 'cat11', name: 'Automotive', icon: 'Car', order: 11 },
+    { id: 'cat12', name: 'Services', icon: 'Wrench', order: 12 },
+    { id: 'cat13', name: 'Pets', icon: 'Bone', order: 13 },
 ];
 
 export default function AdminCategoriesPage() {
     const { toast } = useToast();
+    const firestore = useFirestore();
+    
     const [categoryName, setCategoryName] = useState("");
     const [categoryIcon, setCategoryIcon] = useState("");
     const [categories, setCategories] = useState<Category[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const categoriesDocRef = useMemoFirebase(() => doc(firestore, 'app_config', 'categories'), [firestore]);
+    const { data: categoriesDoc, isLoading: loading, error } = useDoc<CategoriesDoc>(categoriesDocRef);
 
     useEffect(() => {
-        const storedCategoriesRaw = localStorage.getItem('categories');
-        if (storedCategoriesRaw) {
-            setCategories(JSON.parse(storedCategoriesRaw).sort((a: Category, b: Category) => a.order - b.order));
-        } else {
-            localStorage.setItem('categories', JSON.stringify(defaultCategories));
+        if (categoriesDoc) {
+            // If the document exists, use its data. If list is empty/null, use defaults.
+            const categoryList = categoriesDoc.list && categoriesDoc.list.length > 0 ? categoriesDoc.list : defaultCategories;
+            setCategories(categoryList.sort((a, b) => a.order - b.order));
+        } else if (!loading && !categoriesDoc) {
+            // If doc doesn't exist and we're not loading, initialize with defaults
             setCategories(defaultCategories);
         }
-    }, []);
+        if (error) {
+            toast({ title: "Error", description: "Could not load categories.", variant: "destructive"});
+        }
+    }, [categoriesDoc, loading, error, toast]);
+
+    const saveCategories = async (updatedCategories: Category[]) => {
+        setIsSaving(true);
+        try {
+            await setDoc(categoriesDocRef, { list: updatedCategories });
+            toast({ title: "Success", description: "Category list updated." });
+        } catch (err) {
+            console.error("Error saving categories: ", err);
+            toast({ title: "Error", description: "Could not save categories.", variant: "destructive"});
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     const handleAddCategory = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -85,33 +115,23 @@ export default function AdminCategoriesPage() {
             return;
         }
 
-        try {
-            const newCategory: Category = { 
-                id: `cat_${Date.now()}`, 
-                name: categoryName, 
-                icon: categoryIcon, 
-                order: categories.length + 1,
-                href: `/roles?category=${categoryName.toLowerCase().replace(/\s+/g, '-')}`
-            };
+        const newCategory: Category = { 
+            id: `cat_${Date.now()}`, 
+            name: categoryName, 
+            icon: categoryIcon, 
+            order: categories.length + 1,
+        };
 
-            const updatedCategories = [...categories, newCategory];
-            localStorage.setItem("categories", JSON.stringify(updatedCategories));
-            setCategories(updatedCategories);
+        const updatedCategories = [...categories, newCategory];
+        saveCategories(updatedCategories);
 
-            toast({ title: "Category Added", description: `"${categoryName}" has been created.` });
-            setCategoryName("");
-            setCategoryIcon("");
-            
-        } catch (error) {
-            toast({ title: "Error Adding Category", description: "Something went wrong.", variant: "destructive" });
-        }
+        setCategoryName("");
+        setCategoryIcon("");
     };
 
     const handleRemoveCategory = (id: string) => {
         const updatedCategories = categories.filter(cat => cat.id !== id);
-        localStorage.setItem("categories", JSON.stringify(updatedCategories));
-        setCategories(updatedCategories);
-        toast({ title: "Category Removed" });
+        saveCategories(updatedCategories);
     };
 
   return (
@@ -119,7 +139,7 @@ export default function AdminCategoriesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold font-headline">Manage Categories</h1>
         <p className="text-muted-foreground">
-          Add, remove, and manage application categories.
+          Add or remove application categories. Changes will be visible to all users.
         </p>
       </div>
 
@@ -135,11 +155,11 @@ export default function AdminCategoriesPage() {
             <form onSubmit={handleAddCategory} className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="cat-name">Category Name</Label>
-                    <Input id="cat-name" value={categoryName} onChange={e => setCategoryName(e.target.value)} placeholder="e.g., Apparel" />
+                    <Input id="cat-name" value={categoryName} onChange={e => setCategoryName(e.target.value)} placeholder="e.g., Apparel" disabled={isSaving}/>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="cat-icon">Category Icon</Label>
-                    <Select value={categoryIcon} onValueChange={setCategoryIcon}>
+                    <Select value={categoryIcon} onValueChange={setCategoryIcon} disabled={isSaving}>
                         <SelectTrigger id="cat-icon">
                             <SelectValue placeholder="Select an icon" />
                         </SelectTrigger>
@@ -155,8 +175,9 @@ export default function AdminCategoriesPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                <Button type="submit">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Category
+                <Button type="submit" disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlusCircle className="mr-2 h-4 w-4" />}
+                    Add Category
                 </Button>
             </form>
             </CardContent>
@@ -168,7 +189,11 @@ export default function AdminCategoriesPage() {
                 <CardDescription>List of all current categories.</CardDescription>
             </CardHeader>
             <CardContent>
-                {categories.length > 0 ? (
+                {loading ? (
+                    <div className="flex justify-center items-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                ) : categories.length > 0 ? (
                     <ul className="space-y-2">
                         {categories.map(cat => {
                             const IconComponent = iconMap[cat.icon] || MoreHorizontal;
@@ -180,7 +205,7 @@ export default function AdminCategoriesPage() {
                                     </div>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="destructive" size="icon">
+                                            <Button variant="destructive" size="icon" disabled={isSaving}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </AlertDialogTrigger>

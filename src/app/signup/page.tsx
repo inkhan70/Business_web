@@ -24,13 +24,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
+import type { Category } from '@/app/admin/categories/page';
 
-
-interface Category {
-    id: string;
-    name: string;
+interface CategoriesDoc {
+    list: Category[];
 }
 
 const formSchema = z.object({
@@ -79,6 +78,15 @@ export default function SignUpPage() {
     const auth = useAuth();
     const firestore = useFirestore();
     
+    const categoriesDocRef = useMemoFirebase(() => doc(firestore, 'app_config', 'categories'), [firestore]);
+    const { data: categoriesDoc } = useDoc<CategoriesDoc>(categoriesDocRef);
+
+    useEffect(() => {
+        if (categoriesDoc && categoriesDoc.list) {
+            setCategories(categoriesDoc.list);
+        }
+    }, [categoriesDoc]);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -93,25 +101,6 @@ export default function SignUpPage() {
     });
 
     const selectedRole = form.watch("role");
-
-    useEffect(() => {
-        const fetchCategories = () => {
-            const storedCategoriesRaw = localStorage.getItem('categories');
-            if (storedCategoriesRaw) {
-                setCategories(JSON.parse(storedCategoriesRaw));
-            } else {
-                const defaultCategories = [
-                    { id: 'cat1', name: 'Food' }, { id: 'cat2', name: 'Drinks' },
-                    { id: 'cat3', name: 'Electronics' }, { id: 'cat4', name: 'Health' },
-                    { id: 'cat5', name: 'Shoes' }, { id: 'cat6', name: 'Beauty' },
-                    { id: 'cat7', name: 'Jewelry' }, { id: 'cat8', name: 'Real Estate' },
-                ];
-                localStorage.setItem('categories', JSON.stringify(defaultCategories));
-                setCategories(defaultCategories);
-            }
-        };
-        fetchCategories();
-    }, []);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);

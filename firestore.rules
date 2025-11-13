@@ -112,7 +112,7 @@ service cloud.firestore {
       }
     }
     
-    match /appearance/{docId} {
+    match /app_config/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
