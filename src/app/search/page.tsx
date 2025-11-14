@@ -11,7 +11,7 @@ import { Loader2, SearchX, Store, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase, UserProfile } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, and, or } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -40,7 +40,8 @@ type SearchResult =
 function SearchResultsContent() {
     const searchParams = useSearchParams();
     const { t } = useLanguage();
-    const queryTerm = searchParams.get('q') || '';
+    const searchTerm = searchParams.get('q') || '';
+    const city = searchParams.get('city') || '';
     const firestore = useFirestore();
     
     // NOTE: Firestore does not support full-text search on its own.
@@ -48,22 +49,29 @@ function SearchResultsContent() {
     // For a real-world app, a third-party search service like Algolia or Typesense would be necessary.
     
     const productsQuery = useMemoFirebase(() => {
-        if (!queryTerm) return null;
+        if (!searchTerm) return null;
         return query(collection(firestore, 'products'), 
-            where('name', '>=', queryTerm),
-            where('name', '<=', queryTerm + '\uf8ff')
+            where('name', '>=', searchTerm),
+            where('name', '<=', searchTerm + '\uf8ff')
         );
-    }, [firestore, queryTerm]);
+    }, [firestore, searchTerm]);
     
     const businessesQuery = useMemoFirebase(() => {
-        if (!queryTerm) return null;
         const businessRoles = ["company", "wholesaler", "distributor", "shopkeeper"];
-        return query(collection(firestore, 'users'),
-            where('businessName', '>=', queryTerm),
-            where('businessName', '<=', queryTerm + '\uf8ff'),
-            where('role', 'in', businessRoles)
-        );
-    }, [firestore, queryTerm]);
+        const usersCollection = collection(firestore, 'users');
+        let q = query(usersCollection, where('role', 'in', businessRoles));
+
+        const nameFilter = searchTerm ? [where('businessName', '>=', searchTerm), where('businessName', '<=', searchTerm + '\uf8ff')] : [];
+        const cityFilter = city ? [where('city', '==', city)] : [];
+        
+        const allFilters = [...nameFilter, ...cityFilter];
+
+        if (allFilters.length === 0) return null; // Don't search if no criteria
+        
+        // This may require composite indexes in Firestore, which Firebase will prompt you to create in the console logs.
+        return query(q, ...allFilters);
+
+    }, [firestore, searchTerm, city]);
 
     const { data: productResults, isLoading: productsLoading } = useCollection<Product>(productsQuery);
     const { data: businessResults, isLoading: businessesLoading } = useCollection<UserProfile>(businessesQuery);
@@ -72,7 +80,7 @@ function SearchResultsContent() {
     
     useEffect(() => {
         const results: SearchResult[] = [];
-        if (productResults) {
+        if (productResults && !city) { // Only show product results if city is not being filtered
             results.push(...productResults.map(p => ({ type: 'product' as const, data: p })));
         }
         if (businessResults) {
@@ -80,15 +88,22 @@ function SearchResultsContent() {
         }
         // Simple combination, could add more sophisticated sorting later
         setCombinedResults(results);
-    }, [productResults, businessResults]);
+    }, [productResults, businessResults, city]);
     
     const isLoading = productsLoading || businessesLoading;
+
+    const getTitle = () => {
+        if (searchTerm && city) return `"${searchTerm}" in ${city}`;
+        if (searchTerm) return `"${searchTerm}"`;
+        if (city) return `Businesses in ${city}`;
+        return "All Results";
+    }
 
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="ml-4">Searching for "{queryTerm}"...</p>
+                <p className="ml-4">Searching...</p>
             </div>
         );
     }
@@ -98,7 +113,7 @@ function SearchResultsContent() {
             <div className="text-left mb-8">
                 <p className="text-lg text-muted-foreground">Search results for</p>
                 <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-                  "{queryTerm}"
+                  {getTitle()}
                 </h1>
             </div>
             
@@ -170,7 +185,7 @@ function SearchResultsContent() {
                 <div className="text-center py-16 bg-muted/50 rounded-lg">
                     <SearchX className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="text-xl font-semibold mt-4">No Results Found</h3>
-                    <p className="text-muted-foreground mt-2">Your search for "{queryTerm}" did not match any products or businesses.</p>
+                    <p className="text-muted-foreground mt-2">Your search did not match any products or businesses.</p>
                      <Button asChild variant="secondary" className="mt-6">
                         <Link href="/">
                             Back to Home

@@ -23,7 +23,7 @@ export default function Home() {
         <section className="relative container mx-auto px-4 py-20 md:py-32">
           <WallpaperManager />
 
-          <ProductSearch />
+          <ProductSearch placeholder="Search for products, businesses, or cities..." />
 
           <div className="grid md:grid-cols-2 gap-12 items-center mt-12">
             <div className="flex flex-col items-start text-left">

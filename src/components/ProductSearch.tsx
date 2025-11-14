@@ -22,12 +22,21 @@ export function ProductSearch({ placeholder }: ProductSearchProps) {
   const { t } = useLanguage();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [city, setCity] = useState('');
   const [date, setDate] = useState<Date>();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const params = new URLSearchParams();
     if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      params.set('q', searchQuery.trim());
+    }
+    if (city.trim()) {
+      params.set('city', city.trim());
+    }
+
+    if (params.toString()) {
+        router.push(`/search?${params.toString()}`);
     }
   };
 
@@ -59,6 +68,17 @@ export function ProductSearch({ placeholder }: ProductSearchProps) {
           </AccordionTrigger>
           <AccordionContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 border rounded-md bg-muted/50">
+              {/* City */}
+               <div className="space-y-2">
+                <Label htmlFor="city">{t('signup.city')}</Label>
+                <Input 
+                    id="city" 
+                    placeholder={t('signup.city_placeholder')} 
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                />
+              </div>
+
               {/* Price Range */}
               <div className="space-y-2">
                 <Label htmlFor="min-price">{t('product_search.price_range')}</Label>
