@@ -7,11 +7,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, SearchX } from 'lucide-react';
+import { Loader2, SearchX, Store, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, or, and } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, UserProfile } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 interface Variety {
     id: string;
@@ -31,38 +31,66 @@ interface Product {
     varieties: Variety[];
 }
 
+// Combine Product and Business into a single result type
+type SearchResult = 
+    | { type: 'product'; data: Product }
+    | { type: 'business'; data: UserProfile };
+
+
 function SearchResultsContent() {
     const searchParams = useSearchParams();
     const { t } = useLanguage();
     const queryTerm = searchParams.get('q') || '';
     const firestore = useFirestore();
-
+    
     // NOTE: Firestore does not support full-text search on its own.
     // This implementation can only perform basic prefix matching on a single field.
     // For a real-world app, a third-party search service like Algolia or Typesense would be necessary.
+    
     const productsQuery = useMemoFirebase(() => {
         if (!queryTerm) return null;
-        const productsCollection = collection(firestore, 'products');
-        // Simple query to find products where the name starts with the query term.
-        // This is case-sensitive. For case-insensitive, you'd need to store a lowercase version of the name.
-        return query(productsCollection, 
+        return query(collection(firestore, 'products'), 
             where('name', '>=', queryTerm),
             where('name', '<=', queryTerm + '\uf8ff')
         );
     }, [firestore, queryTerm]);
+    
+    const businessesQuery = useMemoFirebase(() => {
+        if (!queryTerm) return null;
+        const businessRoles = ["company", "wholesaler", "distributor", "shopkeeper"];
+        return query(collection(firestore, 'users'),
+            where('businessName', '>=', queryTerm),
+            where('businessName', '<=', queryTerm + '\uf8ff'),
+            where('role', 'in', businessRoles)
+        );
+    }, [firestore, queryTerm]);
 
-    const { data: results, isLoading: loading, error } = useCollection<Product>(productsQuery);
+    const { data: productResults, isLoading: productsLoading } = useCollection<Product>(productsQuery);
+    const { data: businessResults, isLoading: businessesLoading } = useCollection<UserProfile>(businessesQuery);
+    
+    const [combinedResults, setCombinedResults] = useState<SearchResult[]>([]);
+    
+    useEffect(() => {
+        const results: SearchResult[] = [];
+        if (productResults) {
+            results.push(...productResults.map(p => ({ type: 'product' as const, data: p })));
+        }
+        if (businessResults) {
+            results.push(...businessResults.map(b => ({ type: 'business' as const, data: b })));
+        }
+        // Simple combination, could add more sophisticated sorting later
+        setCombinedResults(results);
+    }, [productResults, businessResults]);
+    
+    const isLoading = productsLoading || businessesLoading;
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <p className="ml-4">Searching for products...</p>
+                <p className="ml-4">Searching for "{queryTerm}"...</p>
             </div>
         );
-    }
-     if (error) {
-        return <div className="text-center text-destructive py-10">Error loading search results: {error.message}</div>
     }
 
     return (
@@ -74,42 +102,75 @@ function SearchResultsContent() {
                 </h1>
             </div>
             
-            {results && results.length > 0 ? (
+            {combinedResults.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {results.map(product => (
-                        <Card key={product.id} className="flex flex-col">
-                           <CardHeader>
-                                <Image
-                                    alt={product.name}
-                                    className="aspect-video w-full rounded-md object-cover"
-                                    height="180"
-                                    src={product.varieties?.[0]?.image || images.search.result}
-                                    width="320"
-                                    data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"}
-                                />
-                                <CardTitle className="font-headline text-xl pt-2">{product.name}</CardTitle>
-                                <CardDescription>{product.category}</CardDescription>
-                           </CardHeader>
-                            <CardContent className="flex-grow">
-                                <ul className="text-sm text-muted-foreground space-y-1">
-                                    {product.varieties && product.varieties.map(v => <li key={v.id}>- {v.name}</li>)}
-                                </ul>
-                            </CardContent>
-                            <CardFooter>
-                                <Button asChild className="w-full">
-                                    <Link href={`/dashboard/products/${product.id}`}>
-                                        View Product Details
-                                    </Link>
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                    {combinedResults.map((result) => {
+                       if (result.type === 'product') {
+                           const product = result.data;
+                           return (
+                             <Card key={`prod-${product.id}`} className="flex flex-col">
+                               <CardHeader className="p-0">
+                                   <Image
+                                       alt={product.name}
+                                       className="aspect-video w-full rounded-t-lg object-cover"
+                                       height="180"
+                                       src={product.varieties?.[0]?.image || images.search.result}
+                                       width="320"
+                                       data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"}
+                                   />
+                               </CardHeader>
+                               <CardContent className="p-4 flex-grow">
+                                    <Badge variant="secondary" className="mb-2"><Package className="mr-1 h-3 w-3" />Product</Badge>
+                                    <CardTitle className="font-headline text-xl">{product.name}</CardTitle>
+                                    <CardDescription>{product.category}</CardDescription>
+                               </CardContent>
+                               <CardFooter className="p-4 pt-0">
+                                   <Button asChild className="w-full">
+                                       <Link href={`/products/item/${product.id}`}>
+                                           View Product
+                                       </Link>
+                                   </Button>
+                               </CardFooter>
+                           </Card>
+                           );
+                       }
+                       if (result.type === 'business') {
+                           const business = result.data;
+                           return (
+                             <Card key={`biz-${business.uid}`} className="flex flex-col">
+                                <CardHeader className="p-0">
+                                    <Image
+                                        alt={business.businessName}
+                                        className="aspect-video w-full rounded-t-lg object-cover"
+                                        height="180"
+                                        src={images.businesses.corner_store}
+                                        width="320"
+                                        data-ai-hint={"corner store"}
+                                    />
+                                </CardHeader>
+                               <CardContent className="p-4 flex-grow">
+                                   <Badge variant="outline" className="mb-2"><Store className="mr-1 h-3 w-3"/>Business</Badge>
+                                   <CardTitle className="font-headline text-xl">{business.businessName}</CardTitle>
+                                   <CardDescription>{business.address}</CardDescription>
+                               </CardContent>
+                               <CardFooter className="p-4 pt-0">
+                                   <Button asChild className="w-full">
+                                       <Link href={`/products/distributor/${business.uid}`}>
+                                           Visit Storefront
+                                       </Link>
+                                   </Button>
+                               </CardFooter>
+                           </Card>
+                           );
+                       }
+                       return null;
+                    })}
                 </div>
             ) : (
                 <div className="text-center py-16 bg-muted/50 rounded-lg">
                     <SearchX className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="text-xl font-semibold mt-4">No Products Found</h3>
-                    <p className="text-muted-foreground mt-2">Your search for "{queryTerm}" did not match any products.</p>
+                    <h3 className="text-xl font-semibold mt-4">No Results Found</h3>
+                    <p className="text-muted-foreground mt-2">Your search for "{queryTerm}" did not match any products or businesses.</p>
                      <Button asChild variant="secondary" className="mt-6">
                         <Link href="/">
                             Back to Home
@@ -124,10 +185,8 @@ function SearchResultsContent() {
 
 export default function SearchPage() {
     return (
-        <Suspense fallback={<div className="text-center py-10">Loading search results...</div>}>
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
             <SearchResultsContent />
         </Suspense>
     );
 }
-
-    
