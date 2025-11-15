@@ -5,15 +5,18 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Loader2, Package } from "lucide-react";
+import { Search, MapPin, Loader2, Package, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
-import { doc, collection, query, where } from "firebase/firestore";
+import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
 import { Wallpaper } from "@/components/Wallpaper";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface Variety {
     id: string;
@@ -34,11 +37,16 @@ interface BusinessProfile {
     businessName: string;
     address: string;
     storefrontWallpaper?: string;
+    fullName?: string;
+    role?: string;
 }
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
   const { t } = useLanguage();
   const firestore = useFirestore();
+  const router = useRouter();
+  const { user, userProfile } = useAuth();
+  const { toast } = useToast();
   const businessId = params.id;
 
   const businessDocRef = useMemoFirebase(() => doc(firestore, "users", businessId), [firestore, businessId]);
@@ -48,6 +56,50 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
   const isLoading = businessLoading || productsLoading;
+
+  const handleStartChat = async () => {
+    if (!user || !userProfile || !business) {
+      toast({ title: "Please sign in", description: "You need to be logged in to start a chat.", variant: "destructive"});
+      return;
+    }
+    if (user.uid === business.uid) {
+      toast({ title: "Cannot chat with yourself", description: "You cannot start a chat with your own business.", variant: "destructive"});
+      return;
+    }
+
+    try {
+      const chatsRef = collection(firestore, "chats");
+      const q = query(chatsRef, where('participants', 'array-contains', user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      let existingChat = null;
+      querySnapshot.forEach(doc => {
+        const chat = doc.data();
+        if (chat.participants.includes(business.uid)) {
+          existingChat = { id: doc.id, ...chat };
+        }
+      });
+      
+      if (existingChat) {
+        router.push(`/dashboard/chat?chatId=${existingChat.id}`);
+      } else {
+        const newChatRef = await addDoc(chatsRef, {
+          participants: [user.uid, business.uid],
+          participantProfiles: {
+            [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
+            [business.uid]: { name: business.fullName || business.businessName, role: business.role },
+          },
+          lastMessage: "Chat started...",
+          lastMessageTimestamp: serverTimestamp(),
+        });
+        router.push(`/dashboard/chat?chatId=${newChatRef.id}`);
+      }
+    } catch (error) {
+      console.error("Error starting chat:", error);
+      toast({ title: "Error", description: "Could not start chat.", variant: "destructive" });
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -71,13 +123,22 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       )}
       <div className="container mx-auto px-4 py-12">
         <div className={`mb-8 p-6 rounded-lg ${business.storefrontWallpaper ? 'bg-background/80 backdrop-blur-sm' : ''}`}>
-          <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-            {business.businessName}
-          </h1>
-          <p className="flex items-center text-lg text-muted-foreground mt-2">
-              <MapPin className="h-5 w-5 mr-2" />
-              {business.address}
-          </p>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-start">
+              <div>
+                  <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
+                    {business.businessName}
+                  </h1>
+                  <p className="flex items-center text-lg text-muted-foreground mt-2">
+                      <MapPin className="h-5 w-5 mr-2" />
+                      {business.address}
+                  </p>
+              </div>
+               {user && user.uid !== business.uid && (
+                <Button variant="outline" onClick={handleStartChat} className="mt-4 sm:mt-0">
+                    <MessageSquare className="mr-2 h-5 w-5" /> Chat with Business
+                </Button>
+              )}
+          </div>
         </div>
 
         <div className="mb-8">
