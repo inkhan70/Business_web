@@ -21,6 +21,7 @@ export interface UserProfile {
     purchaseHistory?: string[];
     ghostCoins?: number;
     storefrontWallpaper?: string;
+    balance?: number;
 }
 
 interface AuthContextType {

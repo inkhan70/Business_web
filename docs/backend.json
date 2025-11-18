@@ -20,7 +20,8 @@
         "isAdmin": { "type": "boolean", "description": "Flag to indicate if the user is an administrator." },
         "purchaseHistory": { "type": "array", "items": { "type": "string" }, "description": "List of order IDs for a buyer." },
         "ghostCoins": { "type": "number", "description": "The number of reward coins a buyer has." },
-        "storefrontWallpaper": { "type": "string", "format": "uri", "description": "URL for the business's custom storefront wallpaper." }
+        "storefrontWallpaper": { "type": "string", "format": "uri", "description": "URL for the business's custom storefront wallpaper." },
+        "balance": { "type": "number", "description": "The user's account balance." }
       },
       "required": ["uid", "email", "role", "createdAt"]
     },
