@@ -11,6 +11,8 @@ import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductSearch } from '@/components/ProductSearch';
 import images from '@/app/lib/placeholder-images.json';
+import { NewBusinesses } from '@/components/NewBusinesses';
+import { Separator } from '@/components/ui/separator';
 
 export default function Home() {
   const { t } = useLanguage();
@@ -71,6 +73,13 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <Separator className="my-8" />
+        
+        <section className="container mx-auto px-4 pb-20 md:pb-32">
+          <NewBusinesses />
+        </section>
+
       </div>
     </>
   );
