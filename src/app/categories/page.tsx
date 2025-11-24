@@ -34,7 +34,7 @@ const defaultCategories: Category[] = [
     { id: 'cat2', name: 'Drinks', icon: "GlassWater", order: 2},
     { id: 'cat3', name: 'Electronics', icon: "Laptop", order: 3},
     { id: 'cat4', name: 'Health', icon: "Pill", order: 4},
-    { id 'cat5', name: 'Shoes', icon: "Footprints", order: 5},
+    { id: 'cat5', name: 'Shoes', icon: "Footprints", order: 5},
     { id: 'cat6', name: 'Beauty', icon: "Scissors", order: 6},
     { id: 'cat7', name: 'Jewelry', icon: "Gem", order: 7},
     { id: 'cat8', name: 'Real Estate', icon: "Building", order: 8},
