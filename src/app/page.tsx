@@ -74,12 +74,6 @@ export default function Home() {
           </div>
         </section>
 
-        <Separator className="my-8" />
-        
-        <section className="container mx-auto px-4 pb-20 md:pb-32">
-          <NewBusinesses />
-        </section>
-
       </div>
     </>
   );
