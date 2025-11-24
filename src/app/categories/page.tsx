@@ -47,7 +47,6 @@ const defaultCategories: Category[] = [
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const { toast } = useToast();
   const { t } = useLanguage();
   const { userProfile } = useAuth();
   const firestore = useFirestore();
@@ -56,20 +55,19 @@ export default function CategoriesPage() {
   const { data: categoriesDoc, isLoading: loading, error } = useDoc<CategoriesDoc>(categoriesDocRef);
 
   useEffect(() => {
+    // If there's an error (like permission denied for guests before rules update),
+    // or if we're done loading and the document doesn't exist, use the default categories.
+    if (error || (!loading && !categoriesDoc)) {
+      setCategories(defaultCategories);
+      return;
+    }
+    
+    // If we have a document and the list is valid, use it.
     if (categoriesDoc && categoriesDoc.list && categoriesDoc.list.length > 0) {
       setCategories(categoriesDoc.list.sort((a, b) => a.order - b.order));
-    } else if (error) {
-      console.error("Error loading categories from Firestore:", error);
-      toast({
-          title: "Displaying Default Categories",
-          description: "Could not load category data from the database.",
-          variant: "default",
-      });
-      setCategories(defaultCategories);
-    } else if (!loading && !categoriesDoc) {
-      setCategories(defaultCategories);
     }
-  }, [categoriesDoc, loading, error, toast]);
+    // If the doc exists but list is empty, `categories` remains empty, which is handled in JSX.
+  }, [categoriesDoc, loading, error]);
 
   const getCategoryLink = (category: Category) => {
     return `/roles?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`;
@@ -106,7 +104,7 @@ export default function CategoriesPage() {
         ) : categories.length === 0 ? (
              <div className="text-center text-muted-foreground py-12">
                 <p className="font-semibold">No categories found.</p>
-                <p>It looks like the category list is empty. An administrator needs to add categories.</p>
+                <p>It looks like the category list is empty. An administrator can add categories via the admin panel.</p>
             </div>
         ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-12">

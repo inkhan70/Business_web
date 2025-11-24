@@ -15,7 +15,10 @@ service cloud.firestore {
     
     function isAdmin() {
       // Check if the user is signed in and if their user document has isAdmin set to true.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      // Use exists() to prevent errors if the user doc doesn't exist yet.
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
     // --- App Configuration (e.g., Categories) ---
@@ -29,7 +32,7 @@ service cloud.firestore {
     // --- User Profiles ---
     // Controls access to user and business accounts.
     match /users/{userId} {
-      // Allow anyone to read user/business profiles for browsing purposes.
+      // Allow public read of profiles for browsing businesses.
       allow read: if true;
 
       // Users can ONLY create their own profile document. The document ID must match their auth UID.
@@ -49,6 +52,7 @@ service cloud.firestore {
       allow create: if isOwner(request.resource.data.userId);
 
       // Only the product owner or an admin can update or delete a product.
+      // Use `resource.data` to check the existing document's owner.
       allow update, delete: if isOwner(resource.data.userId) || isAdmin();
 
       // --- Product Reviews ---
@@ -60,7 +64,7 @@ service cloud.firestore {
         // Any signed-in user can CREATE a review.
         allow create: if isSignedIn();
 
-        // To maintain integrity, users cannot update or delete reviews. Only admins can.
+        // To maintain integrity, users cannot update or delete their own reviews. Only admins can.
         allow update, delete: if isAdmin();
       }
     }
@@ -89,7 +93,7 @@ service cloud.firestore {
       }
       
       // Only participants in the chat can read or update the chat metadata.
-      allow get, update: if isChatParticipant();
+      allow get, list, update: if isChatParticipant();
       
       // A user can only create a chat if they are listed as one of the participants.
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;

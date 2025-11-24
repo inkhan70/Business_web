@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
-import type { Category } from '@/app/admin/categories/page';
+import type { Category } from '@/app/categories/page';
 
 interface CategoriesDoc {
     list: Category[];
@@ -61,10 +61,10 @@ const formSchema = z.object({
   city: z.string().min(2, { message: "City is required." }),
   state: z.string().min(2, { message: "State is required." }),
 }).superRefine((data, ctx) => {
-    if (data.role !== 'buyer' && !data.businessName) {
+    if (data.role !== 'buyer' && (!data.businessName || data.businessName.length < 2)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Business name is required.",
+            message: "Business name is required and must be at least 2 characters.",
             path: ["businessName"],
         });
     }
@@ -75,10 +75,10 @@ const formSchema = z.object({
             path: ["category"],
         });
     }
-    if (data.role === 'buyer' && !data.fullName) {
+    if (data.role === 'buyer' && (!data.fullName || data.fullName.length < 2)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: "Full name is required.",
+            message: "Full name is required and must be at least 2 characters.",
             path: ["fullName"],
         });
     }
@@ -95,16 +95,18 @@ export default function SignUpPage() {
     const firestore = useFirestore();
     
     const categoriesDocRef = useMemoFirebase(() => doc(firestore, 'app_config', 'categories'), [firestore]);
-    const { data: categoriesDoc, isLoading: loadingCategories } = useDoc<CategoriesDoc>(categoriesDocRef);
+    const { data: categoriesDoc, isLoading: loadingCategories, error } = useDoc<CategoriesDoc>(categoriesDocRef);
 
     useEffect(() => {
+        if (error || (!loadingCategories && !categoriesDoc)) {
+            setCategories(defaultCategories);
+            return;
+        }
+
         if (categoriesDoc && categoriesDoc.list && categoriesDoc.list.length > 0) {
             setCategories(categoriesDoc.list);
-        } else if (!loadingCategories) {
-            // If done loading and categoriesDoc is null or list is empty, use defaults
-            setCategories(defaultCategories);
         }
-    }, [categoriesDoc, loadingCategories]);
+    }, [categoriesDoc, loadingCategories, error]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -299,7 +301,7 @@ export default function SignUpPage() {
                   )}
                 />
               ) : (
-                <div className="grid md:grid-cols-2 gap-6">
+                selectedRole && <div className="grid md:grid-cols-2 gap-6">
                    <FormField
                     control={form.control}
                     name="businessName"
@@ -326,9 +328,15 @@ export default function SignUpPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {categories.map(cat => (
-                              <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                            ))}
+                            {loadingCategories ? (
+                                <div className="p-4 text-center text-sm">Loading categories...</div>
+                            ) : categories.length > 0 ? (
+                                categories.map(cat => (
+                                  <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                                ))
+                            ) : (
+                                <div className="p-4 text-center text-sm">No categories available.</div>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
