@@ -56,20 +56,18 @@ export default function CategoriesPage() {
   const { data: categoriesDoc, isLoading: loading, error } = useDoc<CategoriesDoc>(categoriesDocRef);
 
   useEffect(() => {
-    if (categoriesDoc) {
-      const categoryList = categoriesDoc.list && categoriesDoc.list.length > 0 ? categoriesDoc.list : defaultCategories;
-      setCategories(categoryList.sort((a, b) => a.order - b.order));
+    if (categoriesDoc && categoriesDoc.list && categoriesDoc.list.length > 0) {
+      setCategories(categoriesDoc.list.sort((a, b) => a.order - b.order));
+    } else if (error) {
+      console.error("Error loading categories from Firestore:", error);
+      toast({
+          title: "Displaying Default Categories",
+          description: "Could not load category data from the database.",
+          variant: "default",
+      });
+      setCategories(defaultCategories);
     } else if (!loading && !categoriesDoc) {
-        setCategories(defaultCategories);
-    }
-    if (error) {
-        console.error("Error loading categories from Firestore:", error);
-        toast({
-            title: "Error Loading Data",
-            description: "Could not load category data. Displaying defaults.",
-            variant: "destructive",
-        });
-        setCategories(defaultCategories);
+      setCategories(defaultCategories);
     }
   }, [categoriesDoc, loading, error, toast]);
 
