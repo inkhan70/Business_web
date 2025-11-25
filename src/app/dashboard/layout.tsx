@@ -63,6 +63,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, [user, loading, router]);
     
     const handleSignOut = async () => {
+        if (!firebaseAuth) return;
         await signOut(firebaseAuth);
         router.push('/');
     };

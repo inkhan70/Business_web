@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { X, Award, ShoppingBag } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SESSION_STORAGE_KEY_PREFIX = 'adBannerDismissed_';
 
@@ -37,11 +38,11 @@ const allAds = [
 
 
 export function AdBanner() {
-  const [ad, setAd] = useState<typeof allAds[0] | null>(null);
+  const [ad, setAd] = useState<(typeof allAds)[0] | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const { userProfile } = useAuth();
   
-  // This is a placeholder. In a real app, this would be determined by user authentication and roles.
-  const currentUserRole = 'shopkeeper'; // Try changing to 'distributor' or 'guest'
+  const currentUserRole = userProfile?.role || 'guest';
 
   useEffect(() => {
     // 1. Find a suitable ad for the current user

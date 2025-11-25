@@ -8,7 +8,7 @@ const pwaConfig = withPWA({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: true,
+  disable: isDevelopment,
 });
 
 const nextConfig: NextConfig = {
@@ -35,4 +35,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default isDevelopment ? nextConfig : pwaConfig(nextConfig);
+export default pwaConfig(nextConfig);
