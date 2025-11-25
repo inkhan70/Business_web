@@ -129,6 +129,9 @@ export default function SignInPage() {
                 description: t('toast.signin_success_desc'),
             });
 
+            // Force a refresh to ensure the new auth state is recognized by the client
+            router.refresh();
+
             if (userProfile?.isAdmin) {
                 router.push("/admin");
             } else {
