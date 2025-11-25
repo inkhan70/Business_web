@@ -187,7 +187,7 @@ export default function SignUpPage() {
               description: t('toast.signup_success_desc_verification')
             });
 
-            router.push("/signin");
+            router.push(`/verify-email?email=${values.email}`);
 
         } catch (error: any) {
             if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
