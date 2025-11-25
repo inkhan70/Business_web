@@ -11,7 +11,6 @@ import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductSearch } from '@/components/ProductSearch';
 import images from '@/app/lib/placeholder-images.json';
-import { NewBusinesses } from '@/components/NewBusinesses';
 import { Separator } from '@/components/ui/separator';
 
 export default function Home() {
