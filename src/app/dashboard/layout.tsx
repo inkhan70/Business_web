@@ -12,7 +12,7 @@ import { useAuth as useFirebaseAuth } from "@/firebase";
 import { useEffect } from "react";
 import { signOut } from "firebase/auth";
 
-const sidebarNavItems = [
+const businessSidebarNavItems = [
     {
         title: "Dashboard",
         href: "/dashboard",
@@ -32,13 +32,11 @@ const sidebarNavItems = [
         title: "Orders",
         href: "/dashboard/orders",
         icon: Bell,
-        badge: "3"
     },
     {
         title: "Chat",
         href: "/dashboard/chat",
         icon: MessageSquare,
-        badge: "1"
     },
     {
         title: "Settings",
@@ -46,6 +44,29 @@ const sidebarNavItems = [
         icon: Settings,
     },
 ];
+
+const buyerSidebarNavItems = [
+     {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+    },
+    {
+        title: "Purchase History",
+        href: "/dashboard/orders",
+        icon: Bell,
+    },
+    {
+        title: "Chat",
+        href: "/dashboard/chat",
+        icon: MessageSquare,
+    },
+    {
+        title: "Settings",
+        href: "/dashboard/settings",
+        icon: Settings,
+    },
+]
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -75,6 +96,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
         );
     }
+    
+    const isBusiness = userProfile?.role && userProfile.role !== 'buyer';
+    const sidebarNavItems = isBusiness ? businessSidebarNavItems : buyerSidebarNavItems;
+
 
     const capitalizeFirstLetter = (string: string) => {
         if (!string) return string;
@@ -88,7 +113,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                    <div className="flex items-center space-x-3 p-2">
                        <UserCircle className="w-10 h-10 text-muted-foreground" />
                        <div>
-                           <p className="font-semibold text-sm">{userProfile?.businessName || user?.displayName || 'Business User'}</p>
+                           <p className="font-semibold text-sm">{userProfile?.businessName || userProfile?.fullName || 'User'}</p>
                            <p className="text-xs text-muted-foreground">{userProfile?.role ? capitalizeFirstLetter(userProfile.role) : 'User'}</p>
                        </div>
                    </div>
@@ -106,7 +131,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             >
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.title}</span>
-                                {item.badge && <Badge variant="destructive" className="ml-auto">{item.badge}</Badge>}
                             </Link>
                         ))}
                     </nav>

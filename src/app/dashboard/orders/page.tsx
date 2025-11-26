@@ -29,7 +29,7 @@ export default function OrdersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const isBusiness = userProfile?.role !== 'buyer';
+  const isBusiness = userProfile?.role && userProfile.role !== 'buyer';
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -55,12 +55,16 @@ export default function OrdersPage() {
     });
   };
 
+  const pageTitle = isBusiness ? 'Incoming Orders' : 'My Purchase History';
+  const pageDescription = isBusiness ? 'View and manage orders from your customers.' : 'Track your purchases and view pickup codes.';
+
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold font-headline">{isBusiness ? 'Incoming Orders' : 'My Purchase History'}</h1>
+        <h1 className="text-2xl font-bold font-headline">{pageTitle}</h1>
         <p className="text-muted-foreground">
-          {isBusiness ? 'View and manage orders from your customers.' : 'Track your purchases and view pickup codes.'}
+          {pageDescription}
         </p>
       </div>
 
@@ -123,5 +127,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-    
