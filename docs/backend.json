@@ -13,6 +13,7 @@
         "businessName": { "type": "string", "description": "The name of the business (for business roles)." },
         "fullName": { "type": "string", "description": "The full name of the user (for buyer role)." },
         "category": { "type": "string", "description": "The primary business category (for business roles)." },
+        "slogan": { "type": "string", "description": "A catchy slogan for the business, often AI-generated." },
         "address": { "type": "string", "description": "The user's or business's full address." },
         "city": { "type": "string", "description": "The city of the user or business." },
         "state": { "type": "string", "description": "The state or province." },
