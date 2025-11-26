@@ -22,7 +22,6 @@ export interface UserProfile {
     ghostCoins?: number;
     storefrontWallpaper?: string;
     balance?: number;
-    slogan?: string;
 }
 
 interface AuthContextType {

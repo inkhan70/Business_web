@@ -25,13 +25,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { Loader2, Upload, Trash2, ImageIcon, Sparkles } from "lucide-react";
+import { Loader2, Upload, Trash2, ImageIcon } from "lucide-react";
 import { Location } from "@/components/Location";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import Image from "next/image";
-import { generateSlogan } from "@/ai/flows/generate-slogan-flow";
 
 const profileFormSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters."),
@@ -39,7 +38,6 @@ const profileFormSchema = z.object({
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
   storefrontWallpaper: z.string().optional(),
-  slogan: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -50,7 +48,6 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [isGeneratingSlogan, setIsGeneratingSlogan] = useState(false);
     const firestore = useFirestore();
     const storage = getStorage();
 
@@ -64,7 +61,6 @@ export default function SettingsPage() {
             city: "",
             state: "",
             storefrontWallpaper: "",
-            slogan: "",
         },
         mode: "onChange",
     });
@@ -77,7 +73,6 @@ export default function SettingsPage() {
                 city: userProfile.city || "",
                 state: userProfile.state || "",
                 storefrontWallpaper: userProfile.storefrontWallpaper || "",
-                slogan: userProfile.slogan || "",
             });
             if (userProfile.storefrontWallpaper) {
                 setWallpaperPreview(userProfile.storefrontWallpaper);
@@ -181,40 +176,6 @@ export default function SettingsPage() {
         }
     }
 
-    const handleGenerateSlogan = async () => {
-        if (!userProfile?.businessName || !userProfile?.category) {
-            toast({
-                title: "Missing Information",
-                description: "Your business name and category are needed to generate a slogan.",
-                variant: "destructive"
-            });
-            return;
-        }
-        setIsGeneratingSlogan(true);
-        try {
-            const result = await generateSlogan({
-                businessName: userProfile.businessName,
-                category: userProfile.category
-            });
-            if (result.slogan) {
-                form.setValue('slogan', result.slogan);
-                toast({
-                    title: "Slogan Generated!",
-                    description: "A new slogan has been generated for your business.",
-                });
-            }
-        } catch (error) {
-            console.error("Error generating slogan:", error);
-            toast({
-                title: "Generation Failed",
-                description: "Could not generate a slogan at this time.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsGeneratingSlogan(false);
-        }
-    };
-
 
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !userProfile) {
@@ -230,7 +191,6 @@ export default function SettingsPage() {
                 address: data.address,
                 city: data.city,
                 state: data.state,
-                slogan: data.slogan,
             });
             
             toast({
@@ -288,24 +248,6 @@ export default function SettingsPage() {
                                             <FormControl>
                                                 <Input placeholder="Your Business Name" {...field} />
                                             </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                 <FormField
-                                    control={form.control}
-                                    name="slogan"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Business Slogan</FormLabel>
-                                            <div className="flex gap-2">
-                                                <FormControl>
-                                                    <Input placeholder="Your catchy business slogan" {...field} />
-                                                </FormControl>
-                                                <Button type="button" variant="outline" size="icon" onClick={handleGenerateSlogan} disabled={isGeneratingSlogan}>
-                                                    {isGeneratingSlogan ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>}
-                                                </Button>
-                                            </div>
                                             <FormMessage />
                                         </FormItem>
                                     )}
