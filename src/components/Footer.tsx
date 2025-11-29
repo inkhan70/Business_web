@@ -17,7 +17,7 @@ export function Footer() {
           </div>
           <div className="flex space-x-6 text-sm">
             <Link href="#" className="text-muted-foreground hover:text-foreground">{t('footer.about')}</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">{t('footer.contact')}</Link>
+            <Link href="/contact" className="text-muted-foreground hover:text-foreground">{t('footer.contact')}</Link>
             <Link href="#" className="text-muted-foreground hover:text-foreground">{t('footer.privacy')}</Link>
             <Link href="#" className="text-muted-foreground hover:text-foreground">{t('footer.terms')}</Link>
           </div>
@@ -29,3 +29,5 @@ export function Footer() {
     </footer>
   );
 }
+
+    
