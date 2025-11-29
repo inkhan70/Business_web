@@ -1,21 +1,11 @@
 
 "use client";
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import en from '@/locales/en.json';
-import ar from '@/locales/ar.json';
-import ur from '@/locales/ur.json';
-import fa from '@/locales/fa.json';
-import hi from '@/locales/hi.json';
-
 
 // Define the shape of the translations
 type Translations = typeof en;
-
-// Default languages bundled with the app
-const bundledTranslations: { [key: string]: Translations } = {
-  en, ar, ur, fa, hi,
-};
 
 const bundledLanguageInfo = [
     { code: "en", name: "English" },
@@ -43,48 +33,81 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 // Create the provider component
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState('en');
-  const [translations, setTranslations] = useState(() => bundledTranslations);
+  const [language, setLanguageState] = useState('en');
+  const [translations, setTranslations] = useState<Record<string, Translations>>({ en });
   const [availableLanguages, setAvailableLanguages] = useState<LanguageInfo[]>(() => bundledLanguageInfo);
 
-  const loadCustomLanguages = () => {
+  const loadCustomLanguages = useCallback(() => {
     const customLangsRaw = localStorage.getItem('customLanguages');
     if (customLangsRaw) {
         try {
             const customLangs: {code: string, name: string, dict: object}[] = JSON.parse(customLangsRaw);
-            const newTranslations = { ...bundledTranslations };
             const newLangInfo = [...bundledLanguageInfo];
 
             customLangs.forEach(lang => {
-                newTranslations[lang.code] = lang.dict as Translations;
                 if (!newLangInfo.some(l => l.code === lang.code)) {
                      newLangInfo.push({ code: lang.code, name: lang.name });
                 }
             });
 
-            setTranslations(newTranslations);
             setAvailableLanguages(newLangInfo);
         } catch (e) {
             console.error("Failed to parse custom languages", e);
         }
     } else {
-        setTranslations(bundledTranslations);
         setAvailableLanguages(bundledLanguageInfo);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadCustomLanguages();
     
-    // Listen for custom event when languages are added/removed
     window.addEventListener('languageChange', loadCustomLanguages);
 
     return () => {
         window.removeEventListener('languageChange', loadCustomLanguages);
     }
-  }, []);
+  }, [loadCustomLanguages]);
 
 
+  const setLanguage = useCallback((lang: string) => {
+    if (language === lang) return;
+
+    const loadTranslation = async () => {
+        try {
+            let newTranslation;
+            if (lang !== 'en' && !translations[lang]) {
+                const isCustom = !bundledLanguageInfo.some(l => l.code === lang);
+                if (isCustom) {
+                    const customLangsRaw = localStorage.getItem('customLanguages');
+                    if (customLangsRaw) {
+                        const customLangs = JSON.parse(customLangsRaw);
+                        const customLang = customLangs.find((l: LanguageInfo) => l.code === lang);
+                        if (customLang) {
+                            newTranslation = customLang.dict;
+                        }
+                    }
+                } else {
+                    // Dynamically import the language file
+                    const module = await import(`@/locales/${lang}.json`);
+                    newTranslation = module.default;
+                }
+            }
+
+            if (newTranslation) {
+                setTranslations(prev => ({ ...prev, [lang]: newTranslation }));
+            }
+            setLanguageState(lang);
+        } catch (error) {
+            console.error(`Could not load translation for ${lang}`, error);
+            setLanguageState('en'); // Fallback to English
+        }
+    };
+    
+    loadTranslation();
+
+  }, [language, translations]);
+  
   const t = (key: keyof Translations | string): string => {
     const lang_dict = translations[language] || translations['en'];
     const translationKey = key as keyof Translations;
