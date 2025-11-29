@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Mail, Phone, MapPin, Facebook, Twitter, Instagram } from "lucide-react";
 import Link from "next/link";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const addresses = [
   { country: "Afghanistan - Kabul", lines: ["Coantum HiTech", "Street 14, Wazir Akbar Khan", "Kabul 1001", "Afghanistan"] },
@@ -51,43 +52,44 @@ const addresses = [
 
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          Let's Talk!
+          {t('contact.title')}
         </h1>
         <p className="max-w-xl mx-auto text-lg text-muted-foreground mt-4">
-          We love hearing from you. Whether you have a question, feedback, or just want to say hello, don't be a stranger.
+          {t('contact.description')}
         </p>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Mail /> The Best Way to Reach Us</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Mail /> {t('contact.email_title')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Shoot us an email! We try to respond to all messages within one business day.</p>
+            <p className="text-muted-foreground">{t('contact.email_description')}</p>
             <a href="mailto:hello@yourcompany.com" className="text-primary font-bold mt-2 block">hello@yourcompany.com</a>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Phone /> Give Us a Ring</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Phone /> {t('contact.phone_title')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">Sometimes, a conversation is better. Feel free to call us.</p>
+            <p className="text-muted-foreground">{t('contact.phone_description')}</p>
             <p className="font-bold mt-2">+1 (555) 123-4567</p>
-            <p className="text-xs text-muted-foreground mt-1">Monday to Friday, 9 AM - 5 PM PST</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('contact.phone_hours')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Find Us Online</CardTitle>
+            <CardTitle>{t('contact.social_title')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">We're also pretty active on social media. Slide into our DMs!</p>
+            <p className="text-muted-foreground">{t('contact.social_description')}</p>
             <div className="flex gap-4 mt-2">
               <Link href="#" aria-label="Facebook"><Facebook className="h-6 w-6 text-primary hover:text-accent"/></Link>
               <Link href="#" aria-label="Twitter"><Twitter className="h-6 w-6 text-primary hover:text-accent"/></Link>
@@ -100,11 +102,11 @@ export default function ContactPage() {
       <div className="max-w-6xl mx-auto mt-8">
         <Card className="bg-secondary/30">
           <CardHeader>
-              <CardTitle>Need Quick Help?</CardTitle>
+              <CardTitle>{t('contact.faq_title')}</CardTitle>
           </CardHeader>
           <CardContent>
               <p className="text-muted-foreground">
-                  Check out our <Link href="/faq" className="text-primary font-bold underline">FAQ page</Link> – you might find an instant answer to your question there!
+                  {t('contact.faq_description_1')} <Link href="/faq" className="text-primary font-bold underline">{t('contact.faq_link')}</Link> – {t('contact.faq_description_2')}
               </p>
           </CardContent>
         </Card>
@@ -113,8 +115,8 @@ export default function ContactPage() {
       <Separator className="my-12" />
 
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold font-headline">Our Offices</h2>
-        <p className="text-muted-foreground mt-2">Find a Coantum HiTech location near you.</p>
+        <h2 className="text-3xl font-bold font-headline">{t('contact.offices_title')}</h2>
+        <p className="text-muted-foreground mt-2">{t('contact.offices_description')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
