@@ -6,11 +6,7 @@ import en from '@/locales/en.json';
 import ar from '@/locales/ar.json';
 import ur from '@/locales/ur.json';
 import fa from '@/locales/fa.json';
-import es from '@/locales/es.json';
-import fr from '@/locales/fr.json';
-import de from '@/locales/de.json';
 import hi from '@/locales/hi.json';
-import zh from '@/locales/zh.json';
 
 
 // Define the shape of the translations
@@ -18,7 +14,7 @@ type Translations = typeof en;
 
 // Default languages bundled with the app
 const bundledTranslations: { [key: string]: Translations } = {
-  en, ar, ur, fa, es, fr, de, hi, zh,
+  en, ar, ur, fa, hi,
 };
 
 const bundledLanguageInfo = [
@@ -26,11 +22,7 @@ const bundledLanguageInfo = [
     { code: "ar", name: "العربية (Arabic)" },
     { code: "ur", name: "اردو (Urdu)" },
     { code: "fa", name: "فارسی (Farsi)" },
-    { code: "es", name: "Español (Spanish)" },
-    { code: "fr", name: "Français (French)" },
-    { code: "de", name: "Deutsch (German)" },
     { code: "hi", name: "हिन्दी (Hindi)" },
-    { code: "zh", name: "中文 (Chinese)" },
 ];
 
 interface LanguageInfo {
