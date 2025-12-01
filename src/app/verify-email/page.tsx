@@ -1,365 +1,111 @@
+
 "use client";
 
-import Link from "next/link";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { Location } from "@/components/Location";
-import { useState, useEffect } from "react";
-import { Loader2, Eye, EyeOff } from "lucide-react";
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
-import type { Category } from '@/app/categories/page';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/firebase';
+import { applyActionCode, checkActionCode } from 'firebase/auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
-interface CategoriesDoc {
-    list: Category[];
-}
+function VerifyEmailContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const auth = useAuth();
+  
+  const mode = searchParams.get('mode');
+  const actionCode = searchParams.get('oobCode');
 
-const defaultCategories: Category[] = [
-    { id: 'cat1', name: 'Food', icon: "UtensilsCrossed", order: 1},
-    { id: 'cat2', name: 'Drinks', icon: "GlassWater", order: 2},
-    { id: 'cat3', name: 'Electronics', icon: "Laptop", order: 3},
-    { id: 'cat4', name: 'Health', icon: "Pill", order: 4},
-    { id: 'cat5', name: 'Shoes', icon: "Footprints", order: 5},
-    { id: 'cat6', name: 'Beauty', icon: "Scissors", order: 6},
-    { id: 'cat7', name: 'Jewelry', icon: "Gem", order: 7},
-    { id: 'cat8', name: 'Real Estate', icon: "Building", order: 8},
-    { id: 'cat9', name: 'Apparel', icon: 'Shirt', order: 9 },
-    { id: 'cat10', name: 'Home & Garden', icon: 'Home', order: 10 },
-    { id: 'cat11', name: 'Automotive', icon: 'Car', order: 11 },
-    { id: 'cat12', name: 'Services', icon: 'Wrench', order: 12 },
-    { id: 'cat13', name: 'Pets', icon: 'Bone', order: 13 },
-];
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('Verifying your email, please wait...');
 
-const formSchema = z.object({
-  email: z.string().email({ message: "A valid email is required." }).min(1, { message: "Email is required." }),
-  password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  role: z.enum(["company", "wholesaler", "distributor", "shopkeeper", "buyer"], {
-    required_error: "You need to select a role.",
-  }),
-  businessName: z.string().optional(),
-  category: z.string().optional(),
-  fullName: z.string().optional(),
-  address: z.string().min(10, { message: "Full address is required." }),
-  city: z.string().min(2, { message: "City is required." }),
-  state: z.string().min(2, { message: "State is required." }),
-}).superRefine((data, ctx) => {
-    if (data.role !== 'buyer' && (!data.businessName || data.businessName.length < 2)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Business name is required and must be at least 2 characters.",
-            path: ["businessName"],
+  useEffect(() => {
+    if (mode !== 'verifyEmail' || !actionCode) {
+      router.push('/');
+      return;
+    }
+
+    const handleVerifyEmail = async () => {
+      try {
+        // First, check if the code is valid.
+        await checkActionCode(auth, actionCode);
+        
+        // If valid, apply the code to verify the email.
+        await applyActionCode(auth, actionCode);
+        
+        setStatus('success');
+        setMessage('Your email has been successfully verified! You can now sign in.');
+        toast({
+          title: 'Email Verified',
+          description: 'You may now sign in with your credentials.',
         });
-    }
-    if (data.role !== 'buyer' && !data.category) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Business category is required.",
-            path: ["category"],
+
+      } catch (error: any) {
+        setStatus('error');
+        let errorMessage = 'An unknown error occurred. The link may be expired or invalid.';
+        if (error.code === 'auth/invalid-action-code') {
+          errorMessage = 'The verification link is invalid or has already been used. Please sign up again or request a new verification email.';
+        }
+        setMessage(errorMessage);
+        toast({
+          title: 'Verification Failed',
+          description: errorMessage,
+          variant: 'destructive',
         });
-    }
-    if (data.role === 'buyer' && (!data.fullName || data.fullName.length < 2)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Full name is required and must be at least 2 characters.",
-            path: ["fullName"],
-        });
-    }
-});
+      }
+    };
 
-export default function SignUpPage() {
-    const router = useRouter();
-    const { toast } = useToast();
-    const { t } = useLanguage();
-    const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const auth = useAuth();
-    const firestore = useFirestore();
-    
-    const categoriesDocRef = useMemoFirebase(() => doc(firestore, 'app_config', 'categories'), [firestore]);
-    const { data: categoriesDoc, isLoading: loadingCategories, error } = useDoc<CategoriesDoc>(categoriesDocRef);
-
-    useEffect(() => {
-        if (error || (!loadingCategories && !categoriesDoc)) {
-            setCategories(defaultCategories);
-            return;
-        }
-
-        if (categoriesDoc && categoriesDoc.list && categoriesDoc.list.length > 0) {
-            setCategories(categoriesDoc.list);
-        }
-    }, [categoriesDoc, loadingCategories, error]);
-
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            email: "",
-            password: "",
-            businessName: "",
-            fullName: "",
-            address: "",
-            city: "",
-            state: "",
-        },
-    });
-
-    const selectedRole = form.watch("role");
-
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        setIsLoading(true);
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            const user = userCredential.user;
-
-            const configRef = doc(firestore, "config", "user_count");
-            const userRef = doc(firestore, "users", user.uid);
-            
-            try {
-                await runTransaction(firestore, async (transaction) => {
-                    const configDoc = await transaction.get(configRef);
-                    let isAdmin = false;
-
-                    if (!configDoc.exists()) {
-                        // This is the first user.
-                        transaction.set(configRef, { count: 1 });
-                        isAdmin = true;
-                    } else {
-                        // Subsequent user.
-                        const newCount = configDoc.data().count + 1;
-                        transaction.update(configRef, { count: newCount });
-                        isAdmin = false;
-                    }
-                    
-                    const newUserProfile = {
-                        uid: user.uid,
-                        email: values.email,
-                        role: values.role,
-                        businessName: values.businessName || null,
-                        fullName: values.fullName || null,
-                        category: values.category || null,
-                        address: values.address,
-                        city: values.city,
-                        state: values.state,
-                        createdAt: new Date().toISOString(),
-                        isAdmin: isAdmin, 
-                        purchaseHistory: [],
-                        ghostCoins: 0,
-                        balance: 0,
-                    };
-
-                    transaction.set(userRef, newUserProfile);
-                });
-            } catch (transactionError: any) {
-                 if (transactionError.code === 'permission-denied') {
-                    const permissionError = new FirestorePermissionError({
-                        path: userRef.path,
-                        operation: 'create', 
-                        requestResourceData: { uid: user.uid, email: values.email, role: values.role },
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    throw permissionError;
-                }
-                throw transactionError;
-            }
-            
-            await sendEmailVerification(user);
-
-            toast({
-              title: t('toast.signup_success'),
-              description: t('toast.signup_success_desc_verification')
-            });
-
-            router.push(`/signin`);
-
-        } catch (error: any) {
-            if (error.name === 'FirebaseError' && error.code === 'permission-denied') {
-                // This error is already handled and emitted by the transaction block.
-                // We just need to prevent the generic error toast from showing.
-                return;
-            }
-
-            let description = "An unexpected error occurred. Please try again.";
-            if (error.code === 'auth/email-already-in-use') {
-                description = "This email is already registered. Please sign in or use a different email.";
-            }
-
-            toast({
-                title: "Sign-up Failed",
-                description: error.message || description,
-                variant: "destructive",
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    }
+    handleVerifyEmail();
+  }, [mode, actionCode, auth, router, toast]);
 
   return (
-    <div className="container flex items-center justify-center py-12">
-      <Card className="w-full max-w-2xl mx-auto">
+    <div className="container flex min-h-[calc(100vh-14rem)] items-center justify-center py-12">
+      <Card className="w-full max-w-md mx-auto">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-headline">{t('signup.title')}</CardTitle>
+          <CardTitle className="text-2xl font-headline">Email Verification</CardTitle>
           <CardDescription>
-            {t('signup.description')}
+            Finalizing your account setup.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>{t('signup.role')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t('signup.role_placeholder')} />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="buyer">Buyer / Customer</SelectItem>
-                                <SelectItem value="company">{t('signup.role_company')}</SelectItem>
-                                <SelectItem value="wholesaler">{t('signup.role_wholesaler')}</SelectItem>
-                                <SelectItem value="distributor">{t('signup.role_distributor')}</SelectItem>
-                                <SelectItem value="shopkeeper">{t('signup.role_shopkeeper')}</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('signup.email_label')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('signup.email_placeholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('signup.password')}</FormLabel>
-                       <div className="relative">
-                        <FormControl>
-                          <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
-                          >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {selectedRole === 'buyer' ? (
-                <FormField
-                  control={form.control}
-                  name="fullName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                selectedRole && <div className="grid md:grid-cols-2 gap-6">
-                   <FormField
-                    control={form.control}
-                    name="businessName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('signup.business_name')}</FormLabel>
-                        <FormControl>
-                          <Input placeholder={t('signup.business_name_placeholder')} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Business Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select your primary business category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {loadingCategories ? (
-                                <div className="p-4 text-center text-sm">Loading categories...</div>
-                            ) : categories.length > 0 ? (
-                                categories.map(cat => (
-                                  <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                                ))
-                            ) : (
-                                <div className="p-4 text-center text-sm">No categories available.</div>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-              
-                <Location />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('signup.create_account')}
+        <CardContent className="text-center">
+          {status === 'loading' && (
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="text-muted-foreground">{message}</p>
+            </div>
+          )}
+          {status === 'success' && (
+            <div className="flex flex-col items-center gap-4">
+              <CheckCircle className="h-10 w-10 text-green-500" />
+              <p className="text-muted-foreground">{message}</p>
+              <Button asChild className="mt-4">
+                <Link href="/signin">Go to Sign In</Link>
               </Button>
-            </form>
-          </Form>
-          <div className="mt-6 text-center text-sm">
-            {t('signup.have_account')}{" "}
-            <Link href="/signin" className="font-medium text-primary hover:underline">
-              {t('home.sign_in')}
-            </Link>
-          </div>
+            </div>
+          )}
+          {status === 'error' && (
+            <div className="flex flex-col items-center gap-4">
+              <XCircle className="h-10 w-10 text-destructive" />
+              <p className="text-destructive">{message}</p>
+               <Button asChild variant="secondary" className="mt-4">
+                <Link href="/signup">Back to Sign Up</Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <VerifyEmailContent />
+        </Suspense>
+    )
 }
