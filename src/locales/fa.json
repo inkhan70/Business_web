@@ -173,7 +173,7 @@
   "contact.faq_link": "سوالات متداول",
   "contact.faq_description_2": "ما را بررسی کنید - ممکن است پاسخ فوری به سوال خود را در آنجا پیدا کنید!",
   "contact.offices_title": "دفاتر ما",
-  "contact.offices_description": "یک مکان Coantum HiTech در نزدیکی خود پیدا کنید.",
+  "contact.offices_description": "یک مکان cluster lab در نزدیکی خود پیدا کنید.",
   "Food": "غذا",
   "Drinks": "نوشیدنی",
   "Electronics": "الکترونیک",
@@ -188,3 +188,5 @@
   "Services": "خدمات",
   "Pets": "حیوانات خانگی"
 }
+
+    

@@ -173,7 +173,7 @@
   "contact.faq_link": "अक्सर पूछे जाने वाले प्रश्न पृष्ठ",
   "contact.faq_description_2": "आपको वहां अपने प्रश्न का तत्काल उत्तर मिल सकता है!",
   "contact.offices_title": "हमारे कार्यालय",
-  "contact.offices_description": "अपने पास Coantum HiTech स्थान खोजें।",
+  "contact.offices_description": "अपने पास cluster lab स्थान खोजें।",
   "Food": "खाना",
   "Drinks": "पेय",
   "Electronics": "इलेक्ट्रानिक्स",
@@ -188,3 +188,5 @@
   "Services": "सेवाएं",
   "Pets": "पालतू जानवर"
 }
+
+    
