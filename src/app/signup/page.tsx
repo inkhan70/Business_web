@@ -162,7 +162,7 @@ export default function SignUpPage() {
                         isAdmin: isAdmin, 
                         purchaseHistory: [],
                         ghostCoins: 0,
-                        balance: 0,
+                        balance: 0, // Set initial balance to 0
                     };
 
                     transaction.set(userRef, newUserProfile);
