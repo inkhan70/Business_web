@@ -23,6 +23,7 @@ export interface UserProfile {
     storefrontWallpaper?: string;
     balance?: number;
     slogan?: string;
+    totalItemsPurchased?: number;
 }
 
 interface AuthContextType {

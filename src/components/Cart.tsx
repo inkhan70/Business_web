@@ -23,7 +23,7 @@ import type { Address } from "./ItemDelivery";
 import images from '@/app/lib/placeholder-images.json';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -82,13 +82,13 @@ export function Cart() {
     try {
       const ordersCollection = collection(firestore, 'orders');
       const orderId = uuidv4();
+      const totalItemsInOrder = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-      // For simplicity, we'll group all items into one order, though multi-business logic is complex.
       const newOrder = {
         id: orderId,
         buyerId: user.uid,
         buyerName: userProfile.fullName || user.email,
-        businessId: cart[0].userId, // Assuming single business for simplicity
+        businessId: cart[0].userId,
         items: cart.map(item => ({
           productId: item.productId,
           productName: item.productName,
@@ -99,7 +99,7 @@ export function Cart() {
           image: item.image,
         })),
         deliveryAddress: `${deliveryAddress.address}, ${deliveryAddress.city}, ${deliveryAddress.state}`,
-        totalCost: subtotal + 5.00, // Including transport cost
+        totalCost: subtotal + 5.00,
         orderDate: serverTimestamp(),
         status: "Pending",
         pickupCode: Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 8).toUpperCase(),
@@ -107,25 +107,38 @@ export function Cart() {
       
       await addDoc(ordersCollection, newOrder);
 
-      // --- Reward Logic ---
-      // Check if this is the user's first purchase
-      const isFirstPurchase = !userProfile.purchaseHistory || userProfile.purchaseHistory.length === 0;
-
       const userDocRef = doc(firestore, "users", user.uid);
+
+      // --- Reward Logic ---
+      const isFirstPurchase = !userProfile.purchaseHistory || userProfile.purchaseHistory.length === 0;
+      const currentTotalItems = userProfile.totalItemsPurchased || 0;
+      const newTotalItems = currentTotalItems + totalItemsInOrder;
+      const coinsEarned = Math.floor(newTotalItems / 3) - Math.floor(currentTotalItems / 3);
+      
+      const updates: any = {
+        purchaseHistory: arrayUnion(orderId),
+        totalItemsPurchased: newTotalItems,
+      };
+
       if (isFirstPurchase) {
-        // Award the $5 bonus for the first purchase
-        await updateDoc(userDocRef, {
-          purchaseHistory: arrayUnion(orderId),
-          balance: 5.00
-        });
+        updates.balance = 5.00;
+      }
+      if (coinsEarned > 0) {
+        updates.ghostCoins = increment(coinsEarned);
+      }
+
+      await updateDoc(userDocRef, updates);
+      
+      if (isFirstPurchase) {
          toast({
             title: "Welcome Bonus Unlocked!",
             description: "A $5 credit has been added to your account for your next purchase."
         });
-      } else {
-        // Just update the purchase history
-        await updateDoc(userDocRef, {
-          purchaseHistory: arrayUnion(orderId),
+      }
+      if (coinsEarned > 0) {
+        toast({
+            title: "Ghost Coins Earned!",
+            description: `You have earned ${coinsEarned} Ghost Coin(s)!`
         });
       }
       

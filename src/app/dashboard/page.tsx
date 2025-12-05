@@ -2,9 +2,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MoreHorizontal, PlusCircle, Trash2, Edit, Loader2, Users, Wallet } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Trash2, Edit, Loader2, Users, Wallet, Gem } from "lucide-react";
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -31,7 +31,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, doc, deleteDoc, runTransaction, DocumentReference, DocumentData } from "firebase/firestore";
+import { useState } from "react";
 
 interface Variety {
     id: string;
@@ -51,9 +52,9 @@ interface Product {
     varieties: Variety[];
 }
 
-export default function DashboardPage() {
+function BusinessDashboard() {
     const { toast } = useToast();
-    const { user, userProfile } = useAuth();
+    const { user } = useAuth();
     const firestore = useFirestore();
 
     const productsQuery = useMemoFirebase(() => 
@@ -81,163 +82,210 @@ export default function DashboardPage() {
         }
     };
 
-
-  return (
-    <div>
-        <div className="flex items-center justify-between mb-6">
-            <div>
-                <h1 className="text-2xl font-bold font-headline">Dashboard</h1>
-                <p className="text-muted-foreground">An overview of your business activity.</p>
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold font-headline">Business Dashboard</h1>
+                    <p className="text-muted-foreground">An overview of your business activity.</p>
+                </div>
+                <div className="flex space-x-2">
+                    <Button asChild>
+                        <Link href="/dashboard/products">
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+                        </Link>
+                    </Button>
+                </div>
             </div>
-            <div className="flex space-x-2">
-                <Button asChild>
-                    <Link href="/dashboard/products">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Add Product
-                    </Link>
-                </Button>
-            </div>
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Account Balance</CardTitle>
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
+                <CardHeader>
+                    <CardTitle>Manage Products</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">${userProfile?.balance?.toFixed(2) || '0.00'}</div>
-                    <p className="text-xs text-muted-foreground">Available to use for payments.</p>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
+                                <TableHead>Product / Brand</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="hidden md:table-cell">Inventory</TableHead>
+                                <TableHead className="hidden md:table-cell">Varieties</TableHead>
+                                <TableHead><span className="sr-only">Actions</span></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow><TableCell colSpan={6} className="h-24 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" /></TableCell></TableRow>
+                            ) : error ? (
+                                <TableRow><TableCell colSpan={6} className="text-center text-destructive py-12">Error loading products: {error.message}</TableCell></TableRow>
+                            ) : products && products.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-12">
+                                        <Users className="mx-auto h-10 w-10 mb-2 text-muted-foreground"/>
+                                        <p className="font-semibold mb-2">No products found.</p>
+                                        <p className="text-muted-foreground mb-4">Get started by adding your first product.</p>
+                                        <Button asChild size="sm"><Link href="/dashboard/products"><PlusCircle className="mr-2 h-4 w-4" /> Add Product</Link></Button>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                products && products.map((product) => (
+                                    <TableRow key={product.id}>
+                                        <TableCell className="hidden sm:table-cell">
+                                            <Image alt={product.name} className="aspect-square rounded-md object-cover" height="40" src={product.varieties?.[0]?.image || images.products.dashboard_product} width="40" data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"} />
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            <Link href={`/dashboard/products/${product.id}`} className="hover:underline">{product.name}</Link>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={product.status === 'Active' ? 'default' : product.status === 'Low Stock' ? 'secondary' : 'destructive'} className={product.status === 'Active' ? 'bg-green-100 text-green-800' : product.status === 'Low Stock' ? 'bg-yellow-100 text-yellow-800' : ''}>{product.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="hidden md:table-cell">{product.inventory}</TableCell>
+                                        <TableCell className="hidden md:table-cell">{product.varieties?.length || 0}</TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem asChild><Link href={`/dashboard/products?edit=${product.id}`}><Edit className="mr-2 h-4 w-4" /> Edit</Link></DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <AlertDialog><AlertDialogTrigger asChild>
+                                                            <DropdownMenuItem className="text-red-500 focus:text-red-500 focus:bg-red-50" onSelect={(e) => e.preventDefault()}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                                <AlertDialogDescription>This action cannot be undone. This will permanently delete the product "{product.name}".</AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(product.id, product.name)}>Delete</AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
         </div>
-
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Manage Products</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
-                            <TableHead>Product / Brand</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="hidden md:table-cell">Inventory</TableHead>
-                            <TableHead className="hidden md:table-cell">Varieties</TableHead>
-                            <TableHead>
-                                <span className="sr-only">Actions</span>
-                            </TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
-                                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-                                </TableCell>
-                            </TableRow>
-                        ) : error ? (
-                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-destructive py-12">
-                                   Error loading products: {error.message}
-                                </TableCell>
-                            </TableRow>
-                        ) : products && products.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center py-12">
-                                    <Users className="mx-auto h-10 w-10 mb-2 text-muted-foreground"/>
-                                    <p className="font-semibold mb-2">No products found.</p>
-                                    <p className="text-muted-foreground mb-4">Get started by adding your first product.</p>
-                                    <Button asChild size="sm">
-                                        <Link href="/dashboard/products">
-                                            <PlusCircle className="mr-2 h-4 w-4" /> Add Product
-                                        </Link>
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            products && products.map((product) => (
-                                <TableRow key={product.id}>
-                                    <TableCell className="hidden sm:table-cell">
-                                        <Image
-                                            alt={product.name}
-                                            className="aspect-square rounded-md object-cover"
-                                            height="40"
-                                            src={product.varieties?.[0]?.image || images.products.dashboard_product}
-                                            width="40"
-                                            data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        <Link href={`/dashboard/products/${product.id}`} className="hover:underline">
-                                            {product.name}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge 
-                                            variant={product.status === 'Active' ? 'default' : product.status === 'Low Stock' ? 'secondary' : 'destructive'} 
-                                            className={product.status === 'Active' ? 'bg-green-100 text-green-800' : product.status === 'Low Stock' ? 'bg-yellow-100 text-yellow-800' : ''}
-                                        >
-                                            {product.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="hidden md:table-cell">{product.inventory}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{product.varieties?.length || 0}</TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                                <span className="sr-only">Toggle menu</span>
-                                            </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem asChild>
-                                                    <Link href={`/dashboard/products?edit=${product.id}`}>
-                                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <DropdownMenuItem 
-                                                            className="text-red-500 focus:text-red-500 focus:bg-red-50"
-                                                            onSelect={(e) => e.preventDefault()}
-                                                        >
-                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                        </DropdownMenuItem>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                This action cannot be undone. This will permanently delete the product "{product.name}".
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction 
-                                                                className="bg-destructive hover:bg-destructive/90"
-                                                                onClick={() => handleDelete(product.id, product.name)}>
-                                                                Delete
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
-        </Card>
-    </div>
-  );
+    );
 }
 
-    
+function BuyerDashboard() {
+    const { userProfile, user } = useAuth();
+    const { toast } = useToast();
+    const firestore = useFirestore();
+    const [isConverting, setIsConverting] = useState(false);
+
+    const handleConvertCoins = async () => {
+        if (!user || !userProfile || !userProfile.ghostCoins || userProfile.ghostCoins <= 0) {
+            toast({ title: "No coins to convert.", variant: "destructive" });
+            return;
+        }
+
+        setIsConverting(true);
+        const userDocRef = doc(firestore, "users", user.uid);
+
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const userDoc = await transaction.get(userDocRef);
+                if (!userDoc.exists()) {
+                    throw "Document does not exist!";
+                }
+
+                const currentCoins = userDoc.data().ghostCoins || 0;
+                if (currentCoins === 0) {
+                    toast({ title: "You have no Ghost Coins to convert." });
+                    return;
+                }
+                
+                const conversionRate = 0.95;
+                const valueToAdd = currentCoins * conversionRate;
+                const newBalance = (userDoc.data().balance || 0) + valueToAdd;
+
+                transaction.update(userDocRef, {
+                    ghostCoins: 0,
+                    balance: newBalance
+                });
+            });
+
+            toast({
+                title: "Conversion Successful!",
+                description: `${userProfile.ghostCoins} Ghost Coins have been converted to $${(userProfile.ghostCoins * 0.95).toFixed(2)}.`
+            });
+        } catch (e) {
+            console.error("Conversion failed: ", e);
+            toast({ title: "Conversion Failed", description: "There was an error converting your coins.", variant: "destructive" });
+        } finally {
+            setIsConverting(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold font-headline">Buyer Dashboard</h1>
+                <p className="text-muted-foreground">An overview of your account and rewards.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Account Balance</CardTitle>
+                        <Wallet className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${userProfile?.balance?.toFixed(2) || '0.00'}</div>
+                        <p className="text-xs text-muted-foreground">Available for your next purchase.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Ghost Coins</CardTitle>
+                        <Gem className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{userProfile?.ghostCoins || 0}</div>
+                        <p className="text-xs text-muted-foreground">Est. Value: <span className="font-semibold">${((userProfile?.ghostCoins || 0) * 0.95).toFixed(2)}</span></p>
+                    </CardContent>
+                </Card>
+            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Convert Your Ghost Coins</CardTitle>
+                    <CardDescription>Turn your earned Ghost Coins into account credit. 1 Ghost Coin = $0.95.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="mb-4">You have <strong className="text-primary">{userProfile?.ghostCoins || 0}</strong> Ghost Coins ready to be converted.</p>
+                    <Button onClick={handleConvertCoins} disabled={isConverting || !userProfile?.ghostCoins || userProfile.ghostCoins <= 0}>
+                        {isConverting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Convert to Credit
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+export default function DashboardPage() {
+    const { userProfile, loading } = useAuth();
+
+    if (loading) {
+        return (
+             <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
+
+    if (!userProfile) {
+        return <div>User profile not found.</div>
+    }
+
+    return userProfile.role === 'buyer' ? <BuyerDashboard /> : <BusinessDashboard />;
+}
