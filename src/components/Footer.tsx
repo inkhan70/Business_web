@@ -19,7 +19,7 @@ export function Footer() {
             <Link href="/about" className="text-muted-foreground hover:text-foreground">{t('footer.about')}</Link>
             <Link href="/contact" className="text-muted-foreground hover:text-foreground">{t('footer.contact')}</Link>
             <Link href="#" className="text-muted-foreground hover:text-foreground">{t('footer.privacy')}</Link>
-            <Link href="#" className="text-muted-foreground hover:text-foreground">{t('footer.terms')}</Link>
+            <Link href="/terms" className="text-muted-foreground hover:text-foreground">{t('footer.terms')}</Link>
           </div>
         </div>
         <div className="mt-8 border-t border-border pt-4 text-center text-xs text-muted-foreground">
