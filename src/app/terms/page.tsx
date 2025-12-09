@@ -4,6 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
+import Link from "next/link";
 
 export default function TermsOfServicePage() {
   const { t } = useLanguage();
