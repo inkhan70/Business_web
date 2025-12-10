@@ -142,6 +142,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "productId", "userId", "userName", "rating", "createdAt"]
+    },
+     "Ad": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ad",
+      "type": "object",
+      "description": "Represents an advertisement to be displayed in the app.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "icon": { "type": "string", "enum": ["ShoppingBag", "Award", "Megaphone"], "description": "The name of the lucide-react icon to display." },
+        "targetAudience": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["guest", "buyer", "company", "wholesaler", "distributor", "shopkeeper"] }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "description", "icon", "targetAudience", "createdAt"]
     }
   },
   "auth": {
@@ -171,6 +189,10 @@
     "/chats/{chatId}/messages/{messageId}": {
       "schema": { "$ref": "#/entities/Message" },
       "description": "Stores messages for a specific chat conversation."
+    },
+    "/ads/{adId}": {
+        "schema": { "$ref": "#/entities/Ad" },
+        "description": "Stores advertisements managed by administrators."
     }
   }
 }

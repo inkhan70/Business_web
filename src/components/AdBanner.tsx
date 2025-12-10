@@ -4,47 +4,42 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { X, Award, ShoppingBag } from 'lucide-react';
+import { X, Award, ShoppingBag, Megaphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+
+interface Ad {
+    id: string;
+    title: string;
+    description: string;
+    icon: "ShoppingBag" | "Award" | "Megaphone";
+    targetAudience: string[];
+}
+
+const iconMap = {
+    ShoppingBag,
+    Award,
+    Megaphone
+};
 
 const SESSION_STORAGE_KEY_PREFIX = 'adBannerDismissed_';
 
-// --- Placeholder Data ---
-// In a real app, this would come from a database or a CMS.
-const allAds = [
-    {
-        id: 'soup_ad_1',
-        title: "New! Hearty Chicken Noodle Soup",
-        description: "Perfect for the winter season. Stock your shelves now!",
-        icon: ShoppingBag,
-        targetAudience: ['shopkeeper', 'guest'], // Can be seen by shopkeepers and guests
-    },
-    {
-        id: 'logistics_ad_2',
-        title: "Streamline Your Deliveries",
-        description: "Optimize your routes with our new logistics partnership.",
-        icon: Award,
-        targetAudience: ['distributor', 'wholesaler'], // Only for distributors and wholesalers
-    },
-    {
-        id: 'default_ad_3',
-        title: "A Special Offer for Our Valued Members!",
-        description: "Get 20% off on your next purchase. Use code: MEMBER20",
-        icon: Award,
-        targetAudience: ['guest'], // Default ad for guests if no other ad matches
-    }
-];
-// --- End Placeholder Data ---
-
-
 export function AdBanner() {
-  const [ad, setAd] = useState<(typeof allAds)[0] | null>(null);
+  const [ad, setAd] = useState<Ad | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const { userProfile } = useAuth();
+  const firestore = useFirestore();
   
   const currentUserRole = userProfile?.role || 'guest';
 
+  const adsQuery = useMemoFirebase(() => query(collection(firestore, 'ads')), [firestore]);
+  const { data: allAds, isLoading } = useCollection<Ad>(adsQuery);
+
+
   useEffect(() => {
+    if (isLoading || !allAds) return;
+
     // 1. Find a suitable ad for the current user
     const suitableAds = allAds.filter(ad => ad.targetAudience.includes(currentUserRole));
     const selectedAd = suitableAds.length > 0 ? suitableAds[0] : null;
@@ -58,7 +53,7 @@ export function AdBanner() {
         }
     }
 
-  }, [currentUserRole]);
+  }, [currentUserRole, allAds, isLoading]);
 
   const handleDismiss = () => {
     if (ad) {
@@ -71,7 +66,7 @@ export function AdBanner() {
     return null;
   }
   
-  const AdIcon = ad.icon;
+  const AdIcon = iconMap[ad.icon] || Megaphone;
 
   return (
     <div className="container mx-auto px-4 pt-6">

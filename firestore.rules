@@ -105,6 +105,14 @@ service cloud.firestore {
       }
     }
 
+    // --- Advertisements ---
+    match /ads/{adId} {
+      // Anyone can read the ads.
+      allow read: if true;
+      // Only admins can create, update, or delete ads.
+      allow write: if isAdmin();
+    }
+
     // --- Transaction-only collections (e.g., user_count) ---
     // No direct client access is allowed. These should only be modified via secure backend transactions.
     match /config/{docId} {
