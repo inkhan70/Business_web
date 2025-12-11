@@ -35,4 +35,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default pwaConfig(nextConfig);
+export default isDevelopment ? nextConfig : pwaConfig(nextConfig);
