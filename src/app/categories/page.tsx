@@ -70,7 +70,13 @@ export default function CategoriesPage() {
   }, [categoriesDoc, loading, error]);
 
   const getCategoryLink = (category: Category) => {
-    return `/roles?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`;
+    const categoryName = category.name.toLowerCase().replace(/\s+/g, '-');
+    if (category.name === 'Services') {
+      // For Services, skip the roles page and go directly to businesses.
+      // We can default to a common role like 'company' or any other logic.
+      return `/businesses?category=${categoryName}&role=company`;
+    }
+    return `/roles?category=${categoryName}`;
   }
 
   return (
