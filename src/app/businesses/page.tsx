@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { MapPin, ArrowRight, Loader2, Store } from "lucide-react";
+import { MapPin, ArrowRight, Loader2, Store, Heart } from "lucide-react";
 import Image from "next/image";
 import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,6 +14,8 @@ import { ProductSearch } from "@/components/ProductSearch";
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase, UserProfile } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
+import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
+import { cn } from "@/lib/utils";
 
 // --- Helper Functions ---
 // Haversine formula to calculate distance between two lat/lon points
@@ -46,6 +48,7 @@ function BusinessesContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
   const firestore = useFirestore();
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   
   const category = searchParams.get('category') || 'all';
   const role = searchParams.get('role') || 'shopkeeper';
@@ -83,6 +86,7 @@ function BusinessesContent() {
     if (fetchedBusinesses) {
       let allBusinessesWithData: Business[] = fetchedBusinesses.map((biz) => ({
         ...biz,
+        id: biz.uid,
         lat: 34.0522 + (Math.random() - 0.5) * 2, // Fake lat around LA
         lon: -118.2437 + (Math.random() - 0.5) * 2, // Fake lon around LA
         image: images.businesses.corner_store, // Placeholder image
@@ -130,8 +134,28 @@ function BusinessesContent() {
     if (displayedBusinesses.length > 0) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {displayedBusinesses.map((biz) => (
-              <Card key={biz.uid} className="flex flex-col">
+            {displayedBusinesses.map((biz) => {
+              const favorite = isFavorite(biz.uid);
+              return (
+              <Card key={biz.uid} className="flex flex-col relative">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-2 z-10 bg-black/30 hover:bg-black/50 text-white hover:text-white"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        const favData: FavoriteBusiness = {
+                            id: biz.uid,
+                            name: biz.businessName,
+                            address: biz.address,
+                            image: biz.image,
+                            dataAiHint: biz.dataAiHint,
+                        };
+                        favorite ? removeFavorite(biz.uid) : addFavorite(favData);
+                    }}
+                >
+                    <Heart className={cn("h-5 w-5", favorite ? "fill-red-500 text-red-500" : "")} />
+                </Button>
                 <CardHeader className="p-0">
                   <Image src={biz.image || images.businesses.supermarket_aisle} alt={biz.businessName || 'Business'} width={350} height={200} className="rounded-t-lg object-cover w-full h-40" data-ai-hint={biz.dataAiHint || 'business exterior'} />
                 </CardHeader>
@@ -155,7 +179,7 @@ function BusinessesContent() {
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
+            )})}
           </div>
         )
     }

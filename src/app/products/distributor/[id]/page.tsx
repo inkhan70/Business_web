@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin, Loader2, Package, MessageSquare } from "lucide-react";
+import { Search, MapPin, Loader2, Package, MessageSquare, Heart } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import images from '@/app/lib/placeholder-images.json';
@@ -17,6 +17,8 @@ import { Wallpaper } from "@/components/Wallpaper";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
+import { cn } from "@/lib/utils";
 
 interface Variety {
     id: string;
@@ -47,6 +49,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const businessId = params.id;
 
   const businessDocRef = useMemoFirebase(() => doc(firestore, "users", businessId), [firestore, businessId]);
@@ -56,6 +59,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
 
   const isLoading = businessLoading || productsLoading;
+  const favorite = business ? isFavorite(business.uid) : false;
 
   const handleStartChat = async () => {
     if (!user || !userProfile || !business) {
@@ -99,6 +103,18 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       toast({ title: "Error", description: "Could not start chat.", variant: "destructive" });
     }
   }
+  
+  const handleToggleFavorite = () => {
+    if (!business) return;
+    const favData: FavoriteBusiness = {
+        id: business.uid,
+        name: business.businessName,
+        address: business.address,
+        image: business.storefrontWallpaper || images.businesses.corner_store,
+        dataAiHint: 'storefront'
+    };
+    favorite ? removeFavorite(business.uid) : addFavorite(favData);
+  }
 
 
   if (isLoading) {
@@ -133,11 +149,17 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                       {business.address}
                   </p>
               </div>
-               {user && user.uid !== business.uid && (
-                <Button variant="outline" onClick={handleStartChat} className="mt-4 sm:mt-0">
-                    <MessageSquare className="mr-2 h-5 w-5" /> Chat with Business
-                </Button>
-              )}
+               <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                    <Button variant="outline" onClick={handleToggleFavorite}>
+                        <Heart className={cn("mr-2 h-5 w-5", favorite ? "fill-red-500 text-red-500" : "")} /> 
+                        {favorite ? "Favorited" : "Favorite"}
+                    </Button>
+                    {user && user.uid !== business.uid && (
+                        <Button variant="outline" onClick={handleStartChat}>
+                            <MessageSquare className="mr-2 h-5 w-5" /> Chat
+                        </Button>
+                    )}
+               </div>
           </div>
         </div>
 

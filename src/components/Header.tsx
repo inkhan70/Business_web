@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Globe, Menu, LogOut, Search } from 'lucide-react';
+import { Globe, Menu, LogOut, Search, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -38,6 +38,9 @@ export function Header() {
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
+            <Link href="/favorites" className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-1">
+                <Heart className="h-4 w-4" /> Favorites
+            </Link>
             {user && user.emailVerified && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
           </nav>
         </div>
@@ -97,6 +100,9 @@ export function Header() {
                     </Link>
                     <div className="flex flex-col space-y-4">
                         <Link href="/categories" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.categories')}</Link>
+                        <Link href="/favorites" className="transition-colors hover:text-foreground/80 text-foreground/60 flex items-center gap-1">
+                            <Heart className="h-4 w-4" /> Favorites
+                        </Link>
                          {user && user.emailVerified && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
                         
                         <Accordion type="single" collapsible className="w-full">
