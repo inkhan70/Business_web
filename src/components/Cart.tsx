@@ -21,9 +21,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { ItemDelivery } from "./ItemDelivery";
 import type { Address } from "./ItemDelivery";
 import images from '@/app/lib/placeholder-images.json';
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, UserProfile } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, increment, getDoc } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -80,6 +80,26 @@ export function Cart() {
 
     setIsPlacingOrder(true);
     try {
+      const businessId = cart[0].userId;
+      const businessDocRef = doc(firestore, "users", businessId);
+      const businessDocSnap = await getDoc(businessDocRef);
+
+      if (!businessDocSnap.exists()) {
+        throw new Error("Business owner not found.");
+      }
+
+      const businessProfile = businessDocSnap.data() as UserProfile;
+
+      if (businessProfile.membershipTier !== 'pro') {
+        toast({
+          title: "Order Not Accepted",
+          description: "This business is not currently accepting online orders. Please try another seller.",
+          variant: "destructive",
+        });
+        setIsPlacingOrder(false);
+        return;
+      }
+
       const ordersCollection = collection(firestore, 'orders');
       const orderId = uuidv4();
       const totalItemsInOrder = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -88,7 +108,7 @@ export function Cart() {
         id: orderId,
         buyerId: user.uid,
         buyerName: userProfile.fullName || user.email,
-        businessId: cart[0].userId,
+        businessId: businessId,
         items: cart.map(item => ({
           productId: item.productId,
           productName: item.productName,
@@ -109,7 +129,6 @@ export function Cart() {
 
       const userDocRef = doc(firestore, "users", user.uid);
 
-      // --- Reward Logic ---
       const isFirstPurchase = !userProfile.purchaseHistory || userProfile.purchaseHistory.length === 0;
       const currentTotalItems = userProfile.totalItemsPurchased || 0;
       const newTotalItems = currentTotalItems + totalItemsInOrder;

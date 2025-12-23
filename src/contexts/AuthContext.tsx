@@ -24,6 +24,7 @@ export interface UserProfile {
     balance?: number;
     slogan?: string;
     totalItemsPurchased?: number;
+    membershipTier?: 'community' | 'pro'; // Add membership tier
 }
 
 interface AuthContextType {
