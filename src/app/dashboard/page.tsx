@@ -182,6 +182,7 @@ function BuyerDashboard() {
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isConverting, setIsConverting] = useState(false);
+    const conversionRate = 0.010;
 
     const handleConvertCoins = async () => {
         if (!user || !userProfile || !userProfile.ghostCoins || userProfile.ghostCoins <= 0) {
@@ -205,7 +206,6 @@ function BuyerDashboard() {
                     return;
                 }
                 
-                const conversionRate = 0.95;
                 const valueToAdd = currentCoins * conversionRate;
                 const newBalance = (userDoc.data().balance || 0) + valueToAdd;
 
@@ -217,7 +217,7 @@ function BuyerDashboard() {
 
             toast({
                 title: "Conversion Successful!",
-                description: `${userProfile.ghostCoins} Ghost Coins have been converted to $${(userProfile.ghostCoins * 0.95).toFixed(2)}.`
+                description: `${userProfile.ghostCoins} Ghost Coins have been converted to $${(userProfile.ghostCoins * conversionRate).toFixed(2)}.`
             });
         } catch (e) {
             console.error("Conversion failed: ", e);
@@ -251,14 +251,14 @@ function BuyerDashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{userProfile?.ghostCoins || 0}</div>
-                        <p className="text-xs text-muted-foreground">Est. Value: <span className="font-semibold">${((userProfile?.ghostCoins || 0) * 0.95).toFixed(2)}</span></p>
+                        <p className="text-xs text-muted-foreground">Est. Value: <span className="font-semibold">${((userProfile?.ghostCoins || 0) * conversionRate).toFixed(2)}</span></p>
                     </CardContent>
                 </Card>
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Convert Your Ghost Coins</CardTitle>
-                    <CardDescription>Turn your earned Ghost Coins into account credit. 1 Ghost Coin = $0.95.</CardDescription>
+                    <CardDescription>Turn your earned Ghost Coins into account credit. 1 Ghost Coin = ${conversionRate.toFixed(3)}.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <p className="mb-4">You have <strong className="text-primary">{userProfile?.ghostCoins || 0}</strong> Ghost Coins ready to be converted.</p>

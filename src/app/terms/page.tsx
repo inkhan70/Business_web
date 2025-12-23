@@ -60,8 +60,8 @@ export default function TermsOfServicePage() {
               </p>
                <ul className="list-disc list-inside mt-4 space-y-2">
                 <li><strong>First Purchase Bonus:</strong> New Buyers who complete their first purchase will receive a one-time credit of $5.00 applied to their account balance. This credit can be used for any future purchase on the platform.</li>
-                <li><strong>Ghost Coin Program:</strong> Buyers earn "Ghost Coins" based on their purchasing activity. Currently, one (1) Ghost Coin is issued for every three (3) items purchased. This rate is subject to change.</li>
-                <li><strong>Coin Conversion:</strong> Ghost Coins can be converted into your account balance at a rate of 1 Ghost Coin = $0.95 USD. This conversion rate is subject to change. The resulting balance can be used for purchases within the app.</li>
+                <li><strong>Ghost Coin Program:</strong> Buyers earn "Ghost Coins" based on their purchasing activity. Currently, one (1) Ghost Coin is issued for every four (4) items purchased. This rate is subject to change.</li>
+                <li><strong>Coin Conversion:</strong> Ghost Coins can be converted into your account balance at a rate of 1 Ghost Coin = $0.010 USD. This conversion rate is subject to change. The resulting balance can be used for purchases within the app.</li>
                 <li><strong>No Cash Value:</strong> Account balances and Ghost Coins have no cash value outside of the business_web platform and cannot be withdrawn or transferred.</li>
               </ul>
             </section>
@@ -84,7 +84,7 @@ export default function TermsOfServicePage() {
               </p>
             </section>
             
-            <Separator />
+             <Separator />
 
              <section>
               <h2 className="text-2xl font-bold font-headline mb-4 text-foreground">6. Disclaimers and Limitation of Liability</h2>

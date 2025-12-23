@@ -113,7 +113,7 @@ export function Cart() {
       const isFirstPurchase = !userProfile.purchaseHistory || userProfile.purchaseHistory.length === 0;
       const currentTotalItems = userProfile.totalItemsPurchased || 0;
       const newTotalItems = currentTotalItems + totalItemsInOrder;
-      const coinsEarned = Math.floor(newTotalItems / 3) - Math.floor(currentTotalItems / 3);
+      const coinsEarned = Math.floor(newTotalItems / 4) - Math.floor(currentTotalItems / 4);
       
       const updates: any = {
         purchaseHistory: arrayUnion(orderId),
