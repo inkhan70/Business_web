@@ -1,65 +1,55 @@
-"use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
-import { doc } from "firebase/firestore";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+'use server';
+/**
+ * @fileOverview A flow for generating a business slogan using AI.
+ *
+ * - generateSlogan - A function that calls the AI model to generate a slogan.
+ * - GenerateSloganInput - The input type for the generation.
+ * - GenerateSloganOutput - The output type for the generation.
+ */
 
-export interface UserProfile {
-    uid: string;
-    email: string;
-    businessName: string;
-    fullName?: string;
-    role: string;
-    category: string;
-    address: string;
-    city: string;
-    state: string;
-    createdAt: string; // Keep as string to match what's in Firestore
-    isAdmin?: boolean;
-    purchaseHistory?: string[];
-    ghostCoins?: number;
-    storefrontWallpaper?: string;
-    balance?: number;
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+
+const GenerateSloganInputSchema = z.object({
+  businessName: z.string().describe('The name of the business.'),
+  category: z.string().describe('The business category.'),
+});
+export type GenerateSloganInput = z.infer<typeof GenerateSloganInputSchema>;
+
+const GenerateSloganOutputSchema = z.object({
+  slogan: z.string().describe('The generated business slogan.'),
+});
+export type GenerateSloganOutput = z.infer<typeof GenerateSloganOutputSchema>;
+
+export async function generateSlogan(
+  input: GenerateSloganInput
+): Promise<GenerateSloganOutput> {
+  return generateSloganFlow(input);
 }
 
-interface AuthContextType {
-  user: User | null;
-  userProfile: UserProfile | null;
-  loading: boolean;
-}
+const prompt = ai.definePrompt({
+  name: 'generateSloganPrompt',
+  input: { schema: GenerateSloganInputSchema },
+  output: { schema: GenerateSloganOutputSchema },
+  prompt: `You are a branding expert who excels at writing short, catchy slogans for businesses.
+  
+Generate a memorable slogan (5-8 words) for the following business. The slogan should be professional and relevant to its category.
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  userProfile: null,
-  loading: true,
+Business Name: {{{businessName}}}
+Category: {{{category}}}
+
+Do not include quotation marks in your response.`,
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-
-  // Use the useDoc hook to get a real-time, memoized user profile from Firestore.
-  // This is now the single source of truth for the user's profile.
-  const userDocRef = useMemoFirebase(() => 
-    user ? doc(firestore, 'users', user.uid) : null,
-    [user, firestore]
-  );
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
-
-  const loading = isUserLoading || (user && isProfileLoading);
-
-  return (
-    <AuthContext.Provider value={{ user, userProfile: userProfile || null, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+const generateSloganFlow = ai.defineFlow(
+  {
+    name: 'generateSloganFlow',
+    inputSchema: GenerateSloganInputSchema,
+    outputSchema: GenerateSloganOutputSchema,
+  },
+  async (input) => {
+    const { output } = await prompt(input);
+    return output!;
   }
-  return context;
-};
+);

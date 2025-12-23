@@ -25,12 +25,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { Loader2, Upload, Trash2, ImageIcon } from "lucide-react";
+import { Loader2, Upload, Trash2, ImageIcon, Sparkles } from "lucide-react";
 import { Location } from "@/components/Location";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import Image from "next/image";
+import { generateSlogan } from "@/ai/flows/generate-slogan-flow";
 
 const profileFormSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters."),
@@ -48,6 +49,7 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isGeneratingSlogan, setIsGeneratingSlogan] = useState(false);
     const firestore = useFirestore();
     const storage = getStorage();
 
@@ -176,6 +178,35 @@ export default function SettingsPage() {
         }
     }
 
+    const handleGenerateSlogan = async () => {
+        if (!user || !userProfile?.businessName || !userProfile?.category) {
+            toast({ title: "Missing Info", description: "Business name and category are required to generate a slogan.", variant: "destructive" });
+            return;
+        }
+
+        setIsGeneratingSlogan(true);
+        try {
+            const result = await generateSlogan({
+                businessName: userProfile.businessName,
+                category: userProfile.category,
+            });
+
+            if (result.slogan) {
+                const userDocRef = doc(firestore, "users", user.uid);
+                await updateDoc(userDocRef, { slogan: result.slogan });
+                toast({
+                    title: "Slogan Generated!",
+                    description: `Your new slogan is: "${result.slogan}"`,
+                });
+            }
+        } catch (error) {
+            console.error("Error generating slogan:", error);
+            toast({ title: "Generation Failed", description: "Could not generate slogan.", variant: "destructive" });
+        } finally {
+            setIsGeneratingSlogan(false);
+        }
+    };
+
 
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !userProfile) {
@@ -215,6 +246,8 @@ export default function SettingsPage() {
         if (!string) return string;
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
+    
+    const isBusiness = userProfile?.role && userProfile.role !== 'buyer';
 
     if (!userProfile) {
         return (
@@ -280,6 +313,29 @@ export default function SettingsPage() {
                     </Form>
                 </CardContent>
             </Card>
+
+            {isBusiness && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>AI Marketing Tools</CardTitle>
+                    <CardDescription>Generate marketing assets for your business profile.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div>
+                        <Label>Business Slogan</Label>
+                        {userProfile.slogan ? (
+                            <p className="text-lg italic text-muted-foreground mt-2">"{userProfile.slogan}"</p>
+                        ) : (
+                            <p className="text-sm text-muted-foreground mt-2">No slogan generated yet.</p>
+                        )}
+                    </div>
+                    <Button variant="outline" onClick={handleGenerateSlogan} disabled={isGeneratingSlogan}>
+                        {isGeneratingSlogan ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        {userProfile.slogan ? "Regenerate Slogan" : "Generate Slogan with AI"}
+                    </Button>
+                </CardContent>
+            </Card>
+            )}
 
             <Card>
                 <CardHeader>

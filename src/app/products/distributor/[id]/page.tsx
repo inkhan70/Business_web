@@ -41,6 +41,7 @@ interface BusinessProfile {
     storefrontWallpaper?: string;
     fullName?: string;
     role?: string;
+    slogan?: string;
 }
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
@@ -144,6 +145,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                   <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
                     {business.businessName}
                   </h1>
+                  {business.slogan && <p className="text-xl italic text-muted-foreground mt-2">"{business.slogan}"</p>}
                   <p className="flex items-center text-lg text-muted-foreground mt-2">
                       <MapPin className="h-5 w-5 mr-2" />
                       {business.address}
