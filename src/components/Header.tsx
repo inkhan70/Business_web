@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Globe, Menu, LogOut, Search, Heart } from 'lucide-react';
+import { Globe, Menu, LogOut, Search, Heart, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -42,6 +42,9 @@ export function Header() {
                 <Heart className="h-4 w-4" /> Favorites
             </Link>
             {user && user.emailVerified && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
+            <Link href="/test-deployment" className="transition-colors hover:text-foreground/80 text-green-400 flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" /> Test Page
+            </Link>
           </nav>
         </div>
         
@@ -104,6 +107,9 @@ export function Header() {
                             <Heart className="h-4 w-4" /> Favorites
                         </Link>
                          {user && user.emailVerified && <Link href="/dashboard" className="transition-colors hover:text-foreground/80 text-foreground/60">{t('header.dashboard')}</Link>}
+                         <Link href="/test-deployment" className="transition-colors hover:text-foreground/80 text-green-400 flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4" /> Test Page
+                         </Link>
                         
                         <Accordion type="single" collapsible className="w-full">
                             <AccordionItem value="item-1" className="border-b-0">
@@ -155,3 +161,5 @@ export function Header() {
     </header>
   );
 }
+
+    
