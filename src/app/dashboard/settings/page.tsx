@@ -25,7 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { Loader2, Upload, Trash2, ImageIcon, Sparkles } from "lucide-react";
+import { Loader2, Upload, Trash2, ImageIcon, Sparkles, Banknote } from "lucide-react";
 import { Location } from "@/components/Location";
 import { useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
@@ -377,6 +377,23 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+             {isBusiness && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Local Payment Settings</CardTitle>
+                        <CardDescription>Connect your local payment accounts to receive funds from sales. This feature is coming soon.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="p-8 text-center border-dashed border-2 rounded-md flex flex-col items-center">
+                            <Banknote className="h-10 w-10 text-muted-foreground mb-4" />
+                            <p className="font-medium">Local payment integration is not yet available.</p>
+                            <p className="text-sm text-muted-foreground">Check back later to connect your bank or mobile money accounts.</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
-}
+
+    
