@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle, Camera, Sparkles } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Trash2, Library, PlusCircle, Camera, Sparkles, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -42,6 +42,7 @@ import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'fireba
 import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { generateDescription } from '@/ai/flows/generate-description-flow';
 import type { Category } from '@/app/admin/categories/page';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -366,6 +367,7 @@ export default function ProductForm() {
     }
     
     const isCategoryFixed = !!userProfile?.category;
+    const isProMember = userProfile?.membershipTier === 'pro';
 
     if (isLoading) {
         return (
@@ -570,11 +572,24 @@ export default function ProductForm() {
                                                                 </Button>
                                                                 <Input id={`image-upload-${index}`} type="file" className="sr-only" onChange={(e) => handleImageChange(e, index)} accept="image/*" disabled={isSubmitting}/>
                                                             </Label>
-                                                            <Button type="button" variant="outline" size="sm" className="w-full" asChild>
-                                                                <Link href={`/dashboard/camera?from=product-form&varietyIndex=${index}`}>
-                                                                    <Camera className="h-4 w-4" />
-                                                                </Link>
-                                                            </Button>
+                                                            <TooltipProvider>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <div className="w-full">
+                                                                            <Button type="button" variant="outline" size="sm" className="w-full" asChild disabled={!isProMember}>
+                                                                                <Link href={`/dashboard/camera?from=product-form&varietyIndex=${index}`}>
+                                                                                    <Camera className="h-4 w-4" />
+                                                                                </Link>
+                                                                            </Button>
+                                                                        </div>
+                                                                    </TooltipTrigger>
+                                                                    {!isProMember && (
+                                                                        <TooltipContent>
+                                                                            <p className="flex items-center gap-2"><Star className="h-4 w-4 text-yellow-400 fill-yellow-400" /> Pro Feature: Upgrade to unlock.</p>
+                                                                        </TooltipContent>
+                                                                    )}
+                                                                </Tooltip>
+                                                            </TooltipProvider>
                                                               <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
                                                                 <DialogTrigger asChild>
                                                                     <Button type="button" variant="outline" size="sm" className="w-full" disabled={!currentCategory}>
@@ -637,3 +652,5 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    
