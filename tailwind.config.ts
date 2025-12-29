@@ -94,11 +94,11 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
        backgroundSize: {
-        'size-200': '200% 200%',
+        '200%': '200%',
       },
       backgroundPosition: {
-        'pos-0': '0% 0%',
-        'pos-100': '100% 100%',
+        '0%': '0% 0%',
+        '100%': '100% 100%',
       },
     },
   },

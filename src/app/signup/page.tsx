@@ -32,22 +32,6 @@ interface CategoriesDoc {
     list: Category[];
 }
 
-const defaultCategories: Category[] = [
-    { id: 'cat1', name: 'Food', icon: "UtensilsCrossed", order: 1},
-    { id: 'cat2', name: 'Drinks', icon: "GlassWater", order: 2},
-    { id: 'cat3', name: 'Electronics', icon: "Laptop", order: 3},
-    { id: 'cat4', name: 'Health', icon: "Pill", order: 4},
-    { id: 'cat5', name: 'Shoes', icon: "Footprints", order: 5},
-    { id: 'cat6', name: 'Beauty', icon: "Scissors", order: 6},
-    { id: 'cat7', name: 'Jewelry', icon: "Gem", order: 7},
-    { id: 'cat8', name: 'Real Estate', icon: "Building", order: 8},
-    { id: 'cat9', name: 'Apparel', icon: 'Shirt', order: 9 },
-    { id: 'cat10', name: 'Home & Garden', icon: 'Home', order: 10 },
-    { id: 'cat11', name: 'Automotive', icon: 'Car', order: 11 },
-    { id: 'cat12', name: 'Services', icon: 'Wrench', order: 12 },
-    { id: 'cat13', name: 'Pets', icon: 'Bone', order: 13 },
-];
-
 const formSchema = z.object({
   email: z.string().email({ message: "A valid email is required." }).min(1, { message: "Email is required." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
@@ -98,15 +82,13 @@ export default function SignUpPage() {
     const { data: categoriesDoc, isLoading: loadingCategories, error } = useDoc<CategoriesDoc>(categoriesDocRef);
 
     useEffect(() => {
-        if (error || (!loadingCategories && !categoriesDoc)) {
-            setCategories(defaultCategories);
-            return;
-        }
-
         if (categoriesDoc && categoriesDoc.list && categoriesDoc.list.length > 0) {
-            setCategories(categoriesDoc.list);
+            setCategories(categoriesDoc.list.sort((a, b) => a.order - b.order));
+        } else if (!loadingCategories) {
+            // Handle case where doc exists but list is empty, or doc doesn't exist
+             setCategories([]);
         }
-    }, [categoriesDoc, loadingCategories, error]);
+    }, [categoriesDoc, loadingCategories]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
