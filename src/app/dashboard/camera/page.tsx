@@ -6,9 +6,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ArrowLeft, VideoOff, Camera, Upload, RotateCw, Check } from 'lucide-react';
+import { ArrowLeft, VideoOff, Camera, RotateCw, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
+
+const OPTIMAL_WIDTH = 1280;
+const OPTIMAL_HEIGHT = 720;
+
 
 export default function CameraPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -46,7 +50,12 @@ export default function CameraPage() {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: {
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
+        });
         setHasCameraPermission(true);
 
         if (videoRef.current) {
@@ -77,12 +86,18 @@ export default function CameraPage() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      
+      // Set canvas to the optimal size
+      canvas.width = OPTIMAL_WIDTH;
+      canvas.height = OPTIMAL_HEIGHT;
+
       const context = canvas.getContext('2d');
       if (context) {
-        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
-        const dataUrl = canvas.toDataURL('image/png');
+        // Draw the video frame onto the canvas, resizing it in the process
+        context.drawImage(video, 0, 0, OPTIMAL_WIDTH, OPTIMAL_HEIGHT);
+        
+        // Get the resized image as a data URL (JPEG for better compression)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9); // 0.9 is the quality factor
         setCapturedImage(dataUrl);
       }
     }
