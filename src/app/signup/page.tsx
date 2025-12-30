@@ -146,7 +146,7 @@ export default function SignUpPage() {
                         ghostCoins: 0,
                         balance: 0,
                         totalItemsPurchased: 0,
-                        membershipTier: values.role === 'buyer' ? null : 'community',
+                        membershipTier: values.role === 'buyer' ? null : 'pro',
                     };
 
                     transaction.set(userRef, newUserProfile);
