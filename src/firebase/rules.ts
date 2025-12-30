@@ -1,0 +1,123 @@
+
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to make rules more readable
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      // Check if the user is signed in and if their user document has isAdmin set to true.
+      // Use exists() to prevent errors if the user doc doesn't exist yet.
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    // --- App Configuration (e.g., Categories) ---
+    // This rule allows ANYONE to read app configuration, which is necessary for public pages 
+    // like the sign-up page to function correctly. Write access is restricted to administrators.
+    match /app_config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- User Profiles ---
+    // Controls access to user and business accounts.
+    match /users/{userId} {
+      // Allow public read of profiles for browsing businesses.
+      allow read: if true;
+
+      // Users can ONLY create their own profile document. The document ID must match their auth UID.
+      allow create: if isOwner(userId);
+
+      // Users can ONLY update or delete their own profile. Admins can also manage users.
+      allow update, delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // --- Products ---
+    // Controls access to product listings.
+    match /products/{productId} {
+      // Allow ANYONE to read product information for browsing.
+      allow read: if true;
+
+      // Authenticated users can create products if the product's 'userId' field matches their own auth UID.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+
+      // Only the product owner or an admin can update or delete a product.
+      // Use `resource.data` to check the existing document's owner.
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+
+      // --- Product Reviews ---
+      // Sub-collection for reviews on a product.
+      match /reviews/{reviewId} {
+        // ANYONE can read reviews.
+        allow read: if true;
+
+        // A signed-in user can CREATE a review only if the 'userId' in the review matches their own auth UID.
+        allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+
+        // To maintain integrity, users cannot update or delete their own reviews. Only admins can.
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // --- Orders ---
+    // Secures customer order information.
+    match /orders/{orderId} {
+      // Only the buyer, the business owner, or an admin can read an order.
+      allow read: if isSignedIn() && (isOwner(resource.data.buyerId) || isOwner(resource.data.businessId) || isAdmin());
+
+      // Buyers can create their own orders.
+      allow create: if isOwner(request.resource.data.buyerId);
+      
+      // The buyer or business owner can update the order (e.g., to change status).
+      allow update: if isSignedIn() && (isOwner(resource.data.buyerId) || isOwner(resource.data.businessId));
+      
+      // Only admins can delete orders.
+      allow delete: if isAdmin();
+    }
+
+    // --- Chat ---
+    // Secures direct messages between users.
+    match /chats/{chatId} {
+      function isChatParticipant() {
+        return isSignedIn() && request.auth.uid in resource.data.participants;
+      }
+      
+      // Only participants in the chat can read or update the chat metadata.
+      allow get, list, update: if isChatParticipant();
+      
+      // A user can only create a chat if they are listed as one of the participants.
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      
+      // --- Chat Messages ---
+      match /messages/{messageId} {
+        // Only chat participants can read or create messages within that chat.
+        allow read, create: if isChatParticipant();
+      }
+    }
+
+    // --- Advertisements ---
+    match /ads/{adId} {
+      // Anyone can read the ads.
+      allow read: if true;
+      // Only admins can create, update, or delete ads.
+      allow write: if isAdmin();
+    }
+
+    // --- Transaction-only collections (e.g., user_count) ---
+    // No direct client access is allowed. These should only be modified via secure backend transactions.
+    match /config/{docId} {
+      allow read, write: if false;
+    }
+  }
+}
