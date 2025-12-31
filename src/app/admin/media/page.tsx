@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2, ImageIcon, ImagePlus, Library } from "lucide-react";
-import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { useFirestore, useDoc, useMemoFirebase, storage } from "@/firebase";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 import { doc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import Image from "next/image";
@@ -39,7 +39,6 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 export default function AdminMediaPage() {
     const { toast } = useToast();
     const firestore = useFirestore();
-    const storage = getStorage();
 
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -212,3 +211,5 @@ export default function AdminMediaPage() {
         </div>
     );
 }
+
+    

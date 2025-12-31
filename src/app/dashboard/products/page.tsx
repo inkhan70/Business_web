@@ -37,9 +37,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import images from '@/app/lib/placeholder-images.json';
 import { v4 as uuidv4 } from 'uuid';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, storage } from '@/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject, uploadBytesResumable, UploadTaskSnapshot } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { generateDescription } from '@/ai/flows/generate-description-flow';
 import type { Category } from '@/app/admin/categories/page';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -110,7 +110,6 @@ export default function ProductForm() {
     const searchParams = useSearchParams();
     const editId = searchParams.get('edit');
     const firestore = useFirestore();
-    const storage = getStorage();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -351,10 +350,14 @@ export default function ProductForm() {
                 }
             }
 
-            // Step 2: Create upload tasks for new images
-            finalData.varieties.forEach((variety, index) => {
-                if (variety.imageFile && isDataURL(variety.imageFile)) {
-                    const uploadTask = new Promise<void>((resolve, reject) => {
+            // Step 2: Identify varieties with new images to upload
+            const varietiesToUpload = finalData.varieties.map((variety, index) => ({ variety, index }))
+                .filter(({ variety }) => variety.imageFile && isDataURL(variety.imageFile));
+
+            // Step 3: Create and await upload tasks if there are any
+            if (varietiesToUpload.length > 0) {
+                const tasks = varietiesToUpload.map(({ variety, index }) => {
+                    return new Promise<void>((resolve, reject) => {
                         const blob = dataURLtoBlob(variety.imageFile);
                         const storageRef = ref(storage, `images/${user.uid}/${productId}/${variety.id}`);
                         const task = uploadBytesResumable(storageRef, blob);
@@ -375,13 +378,8 @@ export default function ProductForm() {
                             }
                         );
                     });
-                    uploadTasks.push(uploadTask);
-                }
-            });
-
-            // Step 3: Await all uploads if there are any
-            if (uploadTasks.length > 0) {
-                await Promise.all(uploadTasks);
+                });
+                await Promise.all(tasks);
             }
     
             // Step 4: Prepare final data object for Firestore (without temporary fields)
@@ -719,3 +717,4 @@ export default function ProductForm() {
     );
 }
 
+    

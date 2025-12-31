@@ -27,9 +27,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Loader2, Upload, Trash2, ImageIcon, Sparkles, Banknote } from "lucide-react";
 import { Location } from "@/components/Location";
-import { useFirestore } from "@/firebase";
+import { useFirestore, storage } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import Image from "next/image";
 import { generateSlogan } from "@/ai/flows/generate-slogan-flow";
 
@@ -51,7 +51,6 @@ export default function SettingsPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isGeneratingSlogan, setIsGeneratingSlogan] = useState(false);
     const firestore = useFirestore();
-    const storage = getStorage();
 
     const [wallpaperPreview, setWallpaperPreview] = useState<string | null>(null);
 
@@ -395,5 +394,7 @@ export default function SettingsPage() {
             )}
         </div>
     );
+
+    
 
     
