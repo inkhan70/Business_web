@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils";
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Toaster } from "@/components/ui/toaster";
-import { Providers } from '@/components/Providers';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { CartProvider } from '@/contexts/CartContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { FirebaseProvider } from '@/contexts/FirebaseContext';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export const metadata: Metadata = {
@@ -29,15 +33,23 @@ export default function RootLayout({
         <meta name="theme-color" content="#fafafa" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
-        <Providers>
-          <FirebaseErrorListener />
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-          <Toaster />
-        </Providers>
+        <FirebaseProvider>
+          <AuthProvider>
+            <LanguageProvider>
+              <FavoritesProvider>
+                  <CartProvider>
+                    <FirebaseErrorListener />
+                    <div className="relative flex min-h-screen flex-col">
+                      <Header />
+                      <main className="flex-1">{children}</main>
+                      <Footer />
+                    </div>
+                    <Toaster />
+                  </CartProvider>
+              </FavoritesProvider>
+            </LanguageProvider>
+          </AuthProvider>
+        </FirebaseProvider>
       </body>
     </html>
   );

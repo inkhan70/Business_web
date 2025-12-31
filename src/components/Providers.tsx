@@ -5,11 +5,11 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseProvider } from '@/contexts/FirebaseContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <FirebaseClientProvider>
+        <FirebaseProvider>
             <AuthProvider>
               <LanguageProvider>
                 <FavoritesProvider>
@@ -19,6 +19,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </FavoritesProvider>
               </LanguageProvider>
             </AuthProvider>
-        </FirebaseClientProvider>
+        </FirebaseProvider>
     );
 }
