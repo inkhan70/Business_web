@@ -158,7 +158,7 @@ export default function ProductForm() {
         currentCategory ? query(collection(firestore, 'products'), where('category', '==', currentCategory)) : null,
         [firestore, currentCategory]
     );
-    const { data: categoryProducts } = useCollection<ProductForLibrary>(productsForLibraryQuery);
+    const { data: categoryProducts, isLoading: isLoadingLibrary } = useCollection<ProductForLibrary>(productsForLibraryQuery);
     
     useEffect(() => {
         if (userProfile?.category && !getValues('category')) {
@@ -319,7 +319,8 @@ export default function ProductForm() {
             return;
         }
 
-        if (userProfile.role === 'buyer') {
+        const isBusiness = userProfile?.role && userProfile.role !== 'buyer';
+        if (!isBusiness) {
             toast({
                 title: "Action Not Allowed",
                 description: "Only business accounts can add or edit products.",
@@ -634,8 +635,8 @@ export default function ProductForm() {
                                                             </TooltipProvider>
                                                               <Dialog open={isLibraryOpen.open && isLibraryOpen.fieldIndex === index} onOpenChange={(open) => setIsLibraryOpen({open, fieldIndex: open ? index : null })}>
                                                                 <DialogTrigger asChild>
-                                                                    <Button type="button" variant="outline" size="sm" className="w-full" disabled={!currentCategory}>
-                                                                        <Library className="h-4 w-4" />
+                                                                    <Button type="button" variant="outline" size="sm" className="w-full" disabled={!currentCategory || isLoadingLibrary}>
+                                                                        {isLoadingLibrary ? <Loader2 className="h-4 w-4 animate-spin" /> : <Library className="h-4 w-4" />}
                                                                     </Button>
                                                                 </DialogTrigger>
                                                                 <DialogContent className="max-w-4xl">
@@ -702,3 +703,5 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    
