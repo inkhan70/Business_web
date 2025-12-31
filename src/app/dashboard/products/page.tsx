@@ -303,6 +303,15 @@ export default function ProductForm() {
             return;
         }
 
+        if (userProfile.role !== 'buyer' && userProfile.membershipTier !== 'pro') {
+            toast({
+              title: "Pro Membership Required",
+              description: "Only businesses with a Pro membership can add or edit products.",
+              variant: "destructive",
+            });
+            return;
+        }
+
         setIsSubmitting(true);
         const productId = editId || uuidv4();
 
@@ -652,5 +661,7 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    
 
     

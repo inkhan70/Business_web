@@ -49,7 +49,7 @@ service cloud.firestore {
       // Allow ANYONE to read product information for browsing.
       allow read: if true;
 
-      // Authenticated users can create products if the product's 'userId' field matches their own auth UID.
+      // Authenticated users can create products only if the product's 'userId' field matches their own auth UID.
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
 
       // Only the product owner or an admin can update or delete a product.
@@ -121,3 +121,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
