@@ -58,7 +58,7 @@ export default function ProductImagesPage() {
                     }
                 });
             });
-            setImageLibrary(Array.from(uniqueImages.values()).reverse());
+            setImageLibrary(Array.from(uniqueImages.values()));
         }
     }, [products]);
 
