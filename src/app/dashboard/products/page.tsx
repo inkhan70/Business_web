@@ -39,10 +39,11 @@ import images from '@/app/lib/placeholder-images.json';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, query, where } from 'firebase/firestore';
-import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage, ref, uploadString, getDownloadURL, deleteObject, uploadBytesResumable, UploadTaskSnapshot } from 'firebase/storage';
 import { generateDescription } from '@/ai/flows/generate-description-flow';
 import type { Category } from '@/app/admin/categories/page';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Progress } from '@/components/ui/progress';
 
 const varietySchema = z.object({
   id: z.string(),
@@ -90,6 +91,17 @@ interface CategoriesDoc {
 // Helper function to check if a string is a data URL
 const isDataURL = (s: string) => s.startsWith('data:image');
 
+// Helper to convert data URL to Blob
+function dataURLtoBlob(dataurl: string) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)?.[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
+}
+
+
 export default function ProductForm() {
     const router = useRouter();
     const { toast } = useToast();
@@ -100,6 +112,7 @@ export default function ProductForm() {
     const storage = getStorage();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [imageLibrary, setImageLibrary] = useState<ImageAsset[]>([]);
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
@@ -114,7 +127,7 @@ export default function ProductForm() {
             status: "Active",
             inventory: 0,
             category: "",
-            varieties: [{ id: `var_${Date.now()}`, name: '', price: 0, image: '', dataAiHint: '' }],
+            varieties: [{ id: uuidv4(), name: '', price: 0, image: '', dataAiHint: '' }],
         },
         mode: "onChange",
     });
@@ -303,17 +316,18 @@ export default function ProductForm() {
             return;
         }
 
-        // Corrected check: Only 'buyer' role is disallowed from creating products.
         if (userProfile.role === 'buyer') {
             toast({
-              title: "Action Not Allowed",
-              description: "Only business accounts can add or edit products.",
-              variant: "destructive",
+                title: "Action Not Allowed",
+                description: "Only business accounts can add or edit products.",
+                variant: "destructive",
             });
             return;
         }
 
+
         setIsSubmitting(true);
+        setUploadProgress(0);
         const productId = editId || uuidv4();
 
         try {
@@ -323,12 +337,27 @@ export default function ProductForm() {
 
                 if (newVariety.imageFile) {
                     if(isDataURL(newVariety.imageFile)) {
-                        // New image to upload
+                        const blob = dataURLtoBlob(newVariety.imageFile);
                         const storageRef = ref(storage, `images/${user.uid}/${productId}/${newVariety.id}`);
-                        const snapshot = await uploadString(storageRef, newVariety.imageFile, 'data_url');
-                        newVariety.image = await getDownloadURL(snapshot.ref);
+                        const uploadTask = uploadBytesResumable(storageRef, blob);
+
+                        await new Promise<void>((resolve, reject) => {
+                            uploadTask.on('state_changed',
+                                (snapshot: UploadTaskSnapshot) => {
+                                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                    setUploadProgress(progress);
+                                },
+                                (error) => {
+                                    console.error("Upload failed:", error);
+                                    reject(error);
+                                },
+                                async () => {
+                                    newVariety.image = await getDownloadURL(uploadTask.snapshot.ref);
+                                    resolve();
+                                }
+                            );
+                        });
                     } else if (newVariety.imageFile === 'DELETE' && variety.image && variety.image.includes('firebasestorage')) {
-                        // Image marked for deletion
                         try {
                            const imageRef = ref(storage, variety.image);
                            await deleteObject(imageRef);
@@ -341,12 +370,11 @@ export default function ProductForm() {
                     }
                 }
                 
-                delete newVariety.imageFile; // Clean up the temporary field
+                delete newVariety.imageFile;
                 return newVariety;
             }));
 
             const finalData = { ...data, varieties: updatedVarieties, id: productId, userId: user.uid };
-
             const productRef = doc(firestore, "products", productId);
 
             if (editId) {
@@ -373,6 +401,7 @@ export default function ProductForm() {
             });
         } finally {
             setIsSubmitting(false);
+            setUploadProgress(null);
         }
     }
     
@@ -638,7 +667,7 @@ export default function ProductForm() {
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => append({ id: `var_${Date.now()}`, name: '', price: 0, image: '', dataAiHint: '' })}
+                                        onClick={() => append({ id: uuidv4(), name: '', price: 0, image: '', dataAiHint: '' })}
                                     >
                                         <PlusCircle className="mr-2 h-4 w-4" />
                                         Add Another Variety
@@ -648,6 +677,14 @@ export default function ProductForm() {
                                     )}
                                 </div>
                             </div>
+                            
+                            {isSubmitting && uploadProgress !== null && (
+                                <div className="space-y-2 pt-4">
+                                    <Label>Uploading Images...</Label>
+                                    <Progress value={uploadProgress} className="w-full" />
+                                    <p className="text-sm text-muted-foreground">{Math.round(uploadProgress)}% complete</p>
+                                </div>
+                            )}
 
                             <div className="flex justify-end space-x-2 pt-8">
                                  <Button type="submit" disabled={isSubmitting}>
@@ -662,9 +699,3 @@ export default function ProductForm() {
         </div>
     );
 }
-
-    
-
-    
-
-    
