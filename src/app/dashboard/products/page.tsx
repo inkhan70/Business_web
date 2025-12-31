@@ -271,7 +271,6 @@ export default function ProductForm() {
     const selectImageFromLibrary = (image: ImageAsset) => {
         if (isLibraryOpen.fieldIndex !== null) {
             setValue(`varieties.${isLibraryOpen.fieldIndex}.image`, image.src);
-            // Also update the data hint from the library image's alt text
             setValue(`varieties.${isLibraryOpen.fieldIndex}.dataAiHint`, image.alt);
             setValue(`varieties.${isLibraryOpen.fieldIndex}.imageFile`, undefined); // No new file to upload
             setIsLibraryOpen({open: false, fieldIndex: null});
@@ -329,73 +328,89 @@ export default function ProductForm() {
             return;
         }
 
-
         setIsSubmitting(true);
         setUploadProgress(0);
         const productId = editId || uuidv4();
-
+        
         try {
-            // Process image uploads
-            const updatedVarieties = await Promise.all(data.varieties.map(async (variety) => {
-                const newVariety = { ...variety };
-
-                if (newVariety.imageFile) {
-                    if(isDataURL(newVariety.imageFile)) {
-                        const blob = dataURLtoBlob(newVariety.imageFile);
-                        const storageRef = ref(storage, `images/${user.uid}/${productId}/${newVariety.id}`);
-                        const uploadTask = uploadBytesResumable(storageRef, blob);
-
-                        await new Promise<void>((resolve, reject) => {
-                            uploadTask.on('state_changed',
-                                (snapshot: UploadTaskSnapshot) => {
-                                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                                    setUploadProgress(progress);
-                                },
-                                (error) => {
-                                    console.error("Upload failed:", error);
-                                    reject(error);
-                                },
-                                async () => {
-                                    newVariety.image = await getDownloadURL(uploadTask.snapshot.ref);
-                                    resolve();
-                                }
-                            );
-                        });
-                    } else if (newVariety.imageFile === 'DELETE' && variety.image && variety.image.includes('firebasestorage')) {
-                        try {
-                           const imageRef = ref(storage, variety.image);
-                           await deleteObject(imageRef);
-                        } catch (error: any) {
-                            if (error.code !== 'storage/object-not-found') {
-                                console.warn("Could not delete old image, it may have already been removed:", error);
-                            }
+            const finalData = { ...data };
+            const uploadTasks: Promise<void>[] = [];
+    
+            // Step 1: Handle image deletions that were marked
+            for (const variety of finalData.varieties) {
+                if (variety.imageFile === 'DELETE' && variety.image && variety.image.includes('firebasestorage')) {
+                    try {
+                        const imageRef = ref(storage, variety.image);
+                        await deleteObject(imageRef);
+                    } catch (error: any) {
+                        if (error.code !== 'storage/object-not-found') {
+                            console.warn("Could not delete old image, it may have already been removed:", error);
                         }
-                        newVariety.image = "";
                     }
+                    variety.image = ""; // Clear the image URL from data
                 }
-                
-                delete newVariety.imageFile;
-                return newVariety;
-            }));
+            }
 
-            const finalData = { ...data, varieties: updatedVarieties, id: productId, userId: user.uid };
+            // Step 2: Create upload tasks for new images
+            finalData.varieties.forEach((variety, index) => {
+                if (variety.imageFile && isDataURL(variety.imageFile)) {
+                    const uploadTask = new Promise<void>((resolve, reject) => {
+                        const blob = dataURLtoBlob(variety.imageFile);
+                        const storageRef = ref(storage, `images/${user.uid}/${productId}/${variety.id}`);
+                        const task = uploadBytesResumable(storageRef, blob);
+
+                        task.on('state_changed',
+                            (snapshot) => {
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                setUploadProgress(progress);
+                            },
+                            (error) => {
+                                console.error(`Upload failed for variety ${index}:`, error);
+                                reject(error);
+                            },
+                            async () => {
+                                const downloadURL = await getDownloadURL(task.snapshot.ref);
+                                finalData.varieties[index].image = downloadURL;
+                                resolve();
+                            }
+                        );
+                    });
+                    uploadTasks.push(uploadTask);
+                }
+            });
+
+            // Step 3: Await all uploads if there are any
+            if (uploadTasks.length > 0) {
+                await Promise.all(uploadTasks);
+            }
+    
+            // Step 4: Prepare final data object for Firestore (without temporary fields)
+            const dataForFirestore = {
+                ...finalData,
+                id: productId,
+                userId: user.uid,
+                varieties: finalData.varieties.map(({ imageFile, ...rest }) => rest), // Remove imageFile
+            };
+
+            // Step 5: Save to Firestore
             const productRef = doc(firestore, "products", productId);
-
             if (editId) {
-                await updateDoc(productRef, finalData);
+                await updateDoc(productRef, dataForFirestore);
                 toast({ title: "Product Updated", description: `The product "${data.name}" has been saved.` });
             } else {
-                await setDoc(productRef, finalData);
+                await setDoc(productRef, dataForFirestore);
                 toast({ title: "Product Created", description: `The product "${data.name}" has been added.` });
             }
 
+            // Step 6: Update user profile if category was set for the first time
             if (!userProfile.category && data.category) {
-                 const userDocRef = doc(firestore, 'users', user.uid);
-                 await updateDoc(userDocRef, { category: data.category });
+                const userDocRef = doc(firestore, 'users', user.uid);
+                await updateDoc(userDocRef, { category: data.category });
             }
 
             router.push('/dashboard');
             router.refresh();
+
         } catch (error: any) {
             console.error("Error saving product: ", error);
             toast({
@@ -704,4 +719,3 @@ export default function ProductForm() {
     );
 }
 
-    
