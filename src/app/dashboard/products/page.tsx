@@ -303,10 +303,11 @@ export default function ProductForm() {
             return;
         }
 
-        if (userProfile.role !== 'buyer' && userProfile.membershipTier !== 'pro') {
+        // Corrected check: Only 'buyer' role is disallowed from creating products.
+        if (userProfile.role === 'buyer') {
             toast({
-              title: "Pro Membership Required",
-              description: "Only businesses with a Pro membership can add or edit products.",
+              title: "Action Not Allowed",
+              description: "Only business accounts can add or edit products.",
               variant: "destructive",
             });
             return;
@@ -661,6 +662,8 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    
 
     
 
