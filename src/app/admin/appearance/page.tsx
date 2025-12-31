@@ -24,7 +24,7 @@ export default function AppearancePage() {
   const searchParams = useSearchParams();
 
   const pagePath = searchParams.get('page') || '/';
-  const localStorageKey = `wallpaper_${pagePath}`;
+  const [localStorageKey, setLocalStorageKey] = useState('');
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -32,8 +32,11 @@ export default function AppearancePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // This code now runs only on the client, avoiding hydration errors.
+    const key = `wallpaper_${pagePath}`;
+    setLocalStorageKey(key);
     try {
-      const storedWallpaper = localStorage.getItem(localStorageKey);
+      const storedWallpaper = localStorage.getItem(key);
       if (storedWallpaper) {
         setPreviewImage(storedWallpaper);
       }
@@ -43,7 +46,7 @@ export default function AppearancePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [localStorageKey, toast]);
+  }, [pagePath, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
