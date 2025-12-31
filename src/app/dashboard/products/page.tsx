@@ -81,6 +81,7 @@ interface ProductForLibrary {
     varieties: {
         image?: string;
         name: string;
+        dataAiHint?: string;
     }[];
 }
 
@@ -212,7 +213,7 @@ export default function ProductForm() {
                         uniqueImages.set(variety.image, {
                             id: variety.image,
                             src: variety.image,
-                            alt: variety.name || product.name,
+                            alt: variety.dataAiHint || variety.name || product.name,
                         });
                     }
                 });
@@ -270,6 +271,8 @@ export default function ProductForm() {
     const selectImageFromLibrary = (image: ImageAsset) => {
         if (isLibraryOpen.fieldIndex !== null) {
             setValue(`varieties.${isLibraryOpen.fieldIndex}.image`, image.src);
+            // Also update the data hint from the library image's alt text
+            setValue(`varieties.${isLibraryOpen.fieldIndex}.dataAiHint`, image.alt);
             setValue(`varieties.${isLibraryOpen.fieldIndex}.imageFile`, undefined); // No new file to upload
             setIsLibraryOpen({open: false, fieldIndex: null});
         }
