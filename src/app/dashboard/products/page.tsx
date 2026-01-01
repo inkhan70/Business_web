@@ -338,56 +338,57 @@ export default function ProductForm() {
         const productId = editId || uuidv4();
         
         try {
-            // Handle image deletions
+            // Step 1: Identify which varieties need image uploads.
+            const varietiesToUpload = data.varieties.map((variety, index) => ({ variety, index }))
+                .filter(({ variety }) => variety.imageFile && isDataURL(variety.imageFile));
+
+            // Step 2: Create upload tasks for these varieties.
+            const uploadTasks = varietiesToUpload.map(({ variety }) => {
+                return new Promise<string>((resolve, reject) => {
+                    const blob = dataURLtoBlob(variety.imageFile);
+                    const storageRef = ref(storage, `products/${user.uid}/${productId}/${variety.id}`);
+                    const uploadTask = uploadBytesResumable(storageRef, blob);
+
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setUploadProgress(progress);
+                        },
+                        (error) => {
+                            console.error(`Upload failed for variety ${variety.id}:`, error);
+                            reject(error);
+                        },
+                        async () => {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve(downloadURL);
+                        }
+                    );
+                });
+            });
+
+            // Step 3: Run all upload tasks.
+            if (uploadTasks.length > 0) {
+                const downloadURLs = await Promise.all(uploadTasks);
+                // Step 4: Map the download URLs back to the correct varieties in the original data object.
+                varietiesToUpload.forEach((item, i) => {
+                    const originalIndex = item.index;
+                    data.varieties[originalIndex].image = downloadURLs[i];
+                });
+            }
+
+            // Step 5: Handle deletions (this logic remains the same)
             const deletionPromises = data.varieties.map(async (variety) => {
                 if (variety.imageFile === 'DELETE' && variety.image?.includes('firebasestorage')) {
                     const imageRef = ref(storage, variety.image);
-                    try {
-                        await deleteObject(imageRef);
-                    } catch (error: any) {
+                    try { await deleteObject(imageRef); } catch (error: any) {
                         if (error.code !== 'storage/object-not-found') console.warn("Could not delete old image:", error);
                     }
                     variety.image = ""; // Clear the image URL
                 }
             });
             await Promise.all(deletionPromises);
-
-            // Handle new image uploads
-            const uploadTasks: Promise<void>[] = [];
-            const varietiesWithNewImages = data.varieties.filter(v => v.imageFile && isDataURL(v.imageFile));
-
-            if (varietiesWithNewImages.length > 0) {
-                 varietiesWithNewImages.forEach((variety, i) => {
-                    const task = new Promise<void>((resolve, reject) => {
-                        const blob = dataURLtoBlob(variety.imageFile);
-                        const storageRef = ref(storage, `products/${user.uid}/${productId}/${variety.id}`);
-                        const uploadTask = uploadBytesResumable(storageRef, blob);
-
-                        uploadTask.on('state_changed',
-                            (snapshot) => {
-                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                                setUploadProgress(progress);
-                            },
-                            (error) => {
-                                console.error(`Upload failed for variety ${i}:`, error);
-                                reject(error);
-                            },
-                            async () => {
-                                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                                const originalVarietyIndex = data.varieties.findIndex(v => v.id === variety.id);
-                                if (originalVarietyIndex !== -1) {
-                                    data.varieties[originalVarietyIndex].image = downloadURL;
-                                }
-                                resolve();
-                            }
-                        );
-                    });
-                    uploadTasks.push(task);
-                });
-                await Promise.all(uploadTasks);
-            }
     
-            // Prepare final data for Firestore
+            // Step 6: Prepare final data for Firestore.
             const dataForFirestore = {
                 ...data,
                 id: productId,
@@ -395,7 +396,7 @@ export default function ProductForm() {
                 varieties: data.varieties.map(({ imageFile, ...rest }) => rest), // Remove imageFile before saving
             };
 
-            // Save to Firestore
+            // Step 7: Save to Firestore
             const productRef = doc(firestore, "products", productId);
             if (editId) {
                 await updateDoc(productRef, dataForFirestore);
