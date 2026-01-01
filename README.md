@@ -1,6 +1,6 @@
-# business_web: Your Local Business Connection
+# ConnectLocal: Your Local Business Connection
 
-Welcome to business_web, a platform designed to connect local producers, wholesalers, distributors, and shopkeepers with their customers and each other. Our goal is to empower local commerce by providing businesses with the tools they need to establish an online presence and for customers to easily find and purchase local goods.
+Welcome to ConnectLocal, a platform designed to connect local producers, wholesalers, distributors, and shopkeepers with their customers and each other. Our goal is to empower local commerce by providing businesses with the tools they need to establish an online presence and for customers to easily find and purchase local goods.
 
 ## Core Features
 
@@ -37,3 +37,51 @@ The application includes a simple admin panel for managing the platform itself.
 *   **Language Management**: Add new custom languages to the application by providing a language code, name, and a JSON dictionary of translations. These new languages become instantly available to all users.
 
 This application is built with a modern tech stack including **Next.js, React, TypeScript, and Tailwind CSS**, ensuring a fast, reliable, and user-friendly experience.
+
+---
+
+## Deployment with Firebase CLI
+
+You can deploy this application directly from your local machine using the Firebase Command Line Interface (CLI).
+
+### 1. Install the Firebase CLI
+
+If you don't have it installed, open your terminal and run the following command. You only need to do this once.
+
+```bash
+npm install -g firebase-tools
+```
+
+### 2. Log in to Firebase
+
+In your terminal, run this command to log in to the Google account associated with your Firebase project.
+
+```bash
+firebase login
+```
+
+### 3. Initialize Firebase in Your Project
+
+Navigate to your project's root directory in the terminal. If you haven't initialized Firebase for this project before, run:
+
+```bash
+firebase init hosting
+```
+
+Follow the on-screen prompts:
+*   Select **Use an existing project** and choose your `connectlocal-vrglt` project from the list.
+*   When asked "What do you want to use as your public directory?", just press **Enter** to accept the default. (The `apphosting.yaml` file correctly configures this).
+*   When asked "Configure as a single-page app (rewrite all urls to /index.html)?", type **N** and press **Enter**.
+*   When asked "Set up automatic builds and deploys with GitHub?", type **N** and press **Enter**.
+
+This will create a `firebase.json` file configured for hosting.
+
+### 4. Deploy Your App
+
+Now you're ready to deploy. Simply run the following command in your project's root directory:
+
+```bash
+firebase deploy
+```
+
+The Firebase CLI will build your Next.js application and deploy it to App Hosting. This process may take a few minutes. Once it's complete, you will see a "Hosting URL" in the terminal where your live application is available.
