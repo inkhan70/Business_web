@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -118,6 +119,7 @@ export default function ProductForm() {
     const [isLibraryOpen, setIsLibraryOpen] = useState<{open: boolean, fieldIndex: number | null}>({open: false, fieldIndex: null});
     const [appCategories, setAppCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(!!editId);
+    const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productFormSchema),
@@ -157,7 +159,11 @@ export default function ProductForm() {
         currentCategory ? query(collection(firestore, 'products'), where('category', '==', currentCategory)) : null,
         [firestore, currentCategory]
     );
-    const { data: categoryProducts, isLoading: isLoadingLibrary } = useCollection<ProductForLibrary>(productsForLibraryQuery);
+    const { data: categoryProducts, isLoading: isLibraryLoading } = useCollection<ProductForLibrary>(productsForLibraryQuery);
+
+    useEffect(() => {
+        setIsLoadingLibrary(isLibraryLoading);
+    }, [isLibraryLoading]);
     
     useEffect(() => {
         if (userProfile?.category && !getValues('category')) {
@@ -332,65 +338,64 @@ export default function ProductForm() {
         const productId = editId || uuidv4();
         
         try {
-            const finalData = { ...data };
-            const uploadTasks: Promise<void>[] = [];
-    
-            // Step 1: Handle image deletions that were marked
-            for (const variety of finalData.varieties) {
-                if (variety.imageFile === 'DELETE' && variety.image && variety.image.includes('firebasestorage')) {
+            // Handle image deletions
+            const deletionPromises = data.varieties.map(async (variety) => {
+                if (variety.imageFile === 'DELETE' && variety.image?.includes('firebasestorage')) {
+                    const imageRef = ref(storage, variety.image);
                     try {
-                        const imageRef = ref(storage, variety.image);
                         await deleteObject(imageRef);
                     } catch (error: any) {
-                        if (error.code !== 'storage/object-not-found') {
-                            console.warn("Could not delete old image, it may have already been removed:", error);
-                        }
+                        if (error.code !== 'storage/object-not-found') console.warn("Could not delete old image:", error);
                     }
-                    variety.image = ""; // Clear the image URL from data
+                    variety.image = ""; // Clear the image URL
                 }
-            }
+            });
+            await Promise.all(deletionPromises);
 
-            // Step 2: Identify varieties with new images to upload
-            const varietiesToUpload = finalData.varieties.map((variety, index) => ({ variety, index }))
-                .filter(({ variety }) => variety.imageFile && isDataURL(variety.imageFile));
+            // Handle new image uploads
+            const uploadTasks: Promise<void>[] = [];
+            const varietiesWithNewImages = data.varieties.filter(v => v.imageFile && isDataURL(v.imageFile));
 
-            // Step 3: Create and await upload tasks if there are any
-            if (varietiesToUpload.length > 0) {
-                const tasks = varietiesToUpload.map(({ variety, index }) => {
-                    return new Promise<void>((resolve, reject) => {
+            if (varietiesWithNewImages.length > 0) {
+                 varietiesWithNewImages.forEach((variety, i) => {
+                    const task = new Promise<void>((resolve, reject) => {
                         const blob = dataURLtoBlob(variety.imageFile);
-                        const storageRef = ref(storage, `images/${user.uid}/${productId}/${variety.id}`);
-                        const task = uploadBytesResumable(storageRef, blob);
+                        const storageRef = ref(storage, `products/${user.uid}/${productId}/${variety.id}`);
+                        const uploadTask = uploadBytesResumable(storageRef, blob);
 
-                        task.on('state_changed',
+                        uploadTask.on('state_changed',
                             (snapshot) => {
                                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                                 setUploadProgress(progress);
                             },
                             (error) => {
-                                console.error(`Upload failed for variety ${index}:`, error);
+                                console.error(`Upload failed for variety ${i}:`, error);
                                 reject(error);
                             },
                             async () => {
-                                const downloadURL = await getDownloadURL(task.snapshot.ref);
-                                finalData.varieties[index].image = downloadURL;
+                                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                                const originalVarietyIndex = data.varieties.findIndex(v => v.id === variety.id);
+                                if (originalVarietyIndex !== -1) {
+                                    data.varieties[originalVarietyIndex].image = downloadURL;
+                                }
                                 resolve();
                             }
                         );
                     });
+                    uploadTasks.push(task);
                 });
-                await Promise.all(tasks);
+                await Promise.all(uploadTasks);
             }
     
-            // Step 4: Prepare final data object for Firestore (without temporary fields)
+            // Prepare final data for Firestore
             const dataForFirestore = {
-                ...finalData,
+                ...data,
                 id: productId,
                 userId: user.uid,
-                varieties: finalData.varieties.map(({ imageFile, ...rest }) => rest), // Remove imageFile
+                varieties: data.varieties.map(({ imageFile, ...rest }) => rest), // Remove imageFile before saving
             };
 
-            // Step 5: Save to Firestore
+            // Save to Firestore
             const productRef = doc(firestore, "products", productId);
             if (editId) {
                 await updateDoc(productRef, dataForFirestore);
@@ -400,10 +405,9 @@ export default function ProductForm() {
                 toast({ title: "Product Created", description: `The product "${data.name}" has been added.` });
             }
 
-            // Step 6: Update user profile if category was set for the first time
+            // Update user profile category if not set
             if (!userProfile.category && data.category) {
-                const userDocRef = doc(firestore, 'users', user.uid);
-                await updateDoc(userDocRef, { category: data.category });
+                await updateDoc(doc(firestore, 'users', user.uid), { category: data.category });
             }
 
             router.push('/dashboard');
@@ -716,5 +720,7 @@ export default function ProductForm() {
         </div>
     );
 }
+
+    
 
     

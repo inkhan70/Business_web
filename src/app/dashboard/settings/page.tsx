@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -110,7 +111,7 @@ export default function SettingsPage() {
 
         try {
             // Upload new image
-            const storageRef = ref(storage, `images/${user.uid}/storefront-wallpaper.jpg`);
+            const storageRef = ref(storage, `products/${user.uid}/storefront-wallpaper.jpg`);
             const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
             const newImageUrl = await getDownloadURL(snapshot.ref);
 
@@ -394,6 +395,8 @@ export default function SettingsPage() {
             )}
         </div>
     );
+
+    
 
     
 
