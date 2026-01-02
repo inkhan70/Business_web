@@ -25,6 +25,7 @@ export interface UserProfile {
     slogan?: string;
     totalItemsPurchased?: number;
     membershipTier?: 'community' | 'pro';
+    businessDescription?: string;
 }
 
 interface AuthContextType {

@@ -33,6 +33,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import Image from "next/image";
 import { generateSlogan } from "@/ai/flows/generate-slogan-flow";
+import { Textarea } from "@/components/ui/textarea";
 
 const profileFormSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters."),
@@ -40,6 +41,7 @@ const profileFormSchema = z.object({
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
   storefrontWallpaper: z.string().optional(),
+  businessDescription: z.string().max(500, "Description cannot exceed 500 characters.").optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -63,6 +65,7 @@ export default function SettingsPage() {
             city: "",
             state: "",
             storefrontWallpaper: "",
+            businessDescription: "",
         },
         mode: "onChange",
     });
@@ -75,6 +78,7 @@ export default function SettingsPage() {
                 city: userProfile.city || "",
                 state: userProfile.state || "",
                 storefrontWallpaper: userProfile.storefrontWallpaper || "",
+                businessDescription: userProfile.businessDescription || "",
             });
             if (userProfile.storefrontWallpaper) {
                 setWallpaperPreview(userProfile.storefrontWallpaper);
@@ -222,6 +226,7 @@ export default function SettingsPage() {
                 address: data.address,
                 city: data.city,
                 state: data.state,
+                businessDescription: data.businessDescription,
             });
             
             toast({
@@ -299,6 +304,23 @@ export default function SettingsPage() {
                                         Your business category cannot be changed.
                                     </FormDescription>
                                 </div>
+                                <FormField
+                                    control={form.control}
+                                    name="businessDescription"
+                                    render={({ field }) => (
+                                        <FormItem className="md:col-span-2">
+                                        <FormLabel>About Your Business</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Tell customers about your business, your history, and what makes you special."
+                                                className="resize-y min-h-[100px]"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                              </div>
                             
                             <Location />
@@ -339,7 +361,7 @@ export default function SettingsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Storefront Wallpaper</CardTitle>
+                    <CardTitle>Storefront Hero Image</CardTitle>
                     <CardDescription>Upload a background image for your public business page. (Max 5MB)</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -395,9 +417,4 @@ export default function SettingsPage() {
             )}
         </div>
     );
-
-    
-
-    
-
-    
+}

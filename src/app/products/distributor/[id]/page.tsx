@@ -4,7 +4,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Search, MapPin, Loader2, Package, MessageSquare, Heart } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,12 +12,12 @@ import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase
 import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
-import { Wallpaper } from "@/components/Wallpaper";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
 import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 interface Variety {
     id: string;
@@ -42,6 +41,7 @@ interface BusinessProfile {
     fullName?: string;
     role?: string;
     slogan?: string;
+    businessDescription?: string;
 }
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
@@ -88,11 +88,18 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       if (existingChat) {
         router.push(`/dashboard/chat?chatId=${existingChat.id}`);
       } else {
+        const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
+        const businessUserProfile = businessUserDoc.docs[0]?.data();
+
+        if (!businessUserProfile) {
+            throw new Error("Could not find business owner's profile.");
+        }
+
         const newChatRef = await addDoc(chatsRef, {
           participants: [user.uid, business.uid],
           participantProfiles: {
             [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
-            [business.uid]: { name: business.fullName || business.businessName, role: business.role },
+            [business.uid]: { name: businessUserProfile.fullName || businessUserProfile.businessName, role: businessUserProfile.role },
           },
           lastMessage: "Chat started...",
           lastMessageTimestamp: serverTimestamp(),
@@ -133,15 +140,21 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   return (
     <>
       {business.storefrontWallpaper && (
-         <div
-            className="fixed inset-0 z-[-1] bg-cover bg-center transition-all duration-500"
-            style={{ backgroundImage: `url(${business.storefrontWallpaper})` }}
-        />
+         <div className="relative h-64 w-full">
+            <Image
+                src={business.storefrontWallpaper}
+                alt={`${business.businessName} storefront`}
+                fill
+                className="object-cover"
+                priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+         </div>
       )}
-      <div className="container mx-auto px-4 py-12">
-        <div className={`mb-8 p-6 rounded-lg ${business.storefrontWallpaper ? 'bg-background/80 backdrop-blur-sm' : ''}`}>
-          <div className="flex flex-col sm:flex-row justify-between sm:items-start">
-              <div>
+      <div className="container mx-auto px-4 pb-12">
+        <div className={cn("p-6 rounded-lg", !business.storefrontWallpaper && "pt-12")}>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-start -mt-16 relative z-10">
+              <div className="bg-background/80 backdrop-blur-sm p-4 rounded-lg">
                   <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
                     {business.businessName}
                   </h1>
@@ -151,7 +164,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                       {business.address}
                   </p>
               </div>
-               <div className="flex items-center gap-2 mt-4 sm:mt-0">
+               <div className="flex items-center gap-2 mt-4 sm:mt-0 bg-background/80 backdrop-blur-sm p-2 rounded-lg">
                     <Button variant="outline" onClick={handleToggleFavorite}>
                         <Heart className={cn("mr-2 h-5 w-5", favorite ? "fill-red-500 text-red-500" : "")} /> 
                         {favorite ? "Favorited" : "Favorite"}
@@ -163,7 +176,16 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                     )}
                </div>
           </div>
+
+           {business.businessDescription && (
+                <div className="mt-8 max-w-4xl bg-background/80 backdrop-blur-sm p-4 rounded-lg">
+                    <h2 className="text-2xl font-bold font-headline mb-2">About Us</h2>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{business.businessDescription}</p>
+                </div>
+            )}
         </div>
+
+        <Separator className="my-8" />
 
         <div className="mb-8">
           <ProductSearch placeholder={t('distributor_inventory.search_placeholder')} />
