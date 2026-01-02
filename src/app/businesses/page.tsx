@@ -51,8 +51,11 @@ function BusinessesContent() {
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   
   const category = searchParams.get('category') || 'all';
-  const role = searchParams.get('role') || 'shopkeeper';
+  const roleParam = searchParams.get('role') || 'shopkeeper';
   
+  // FIX: Convert URL role parameter (plural) to the singular form stored in Firestore.
+  const role = roleParam.endsWith('s') ? roleParam.slice(0, -1) : roleParam;
+
   const [displayedBusinesses, setDisplayedBusinesses] = useState<Business[]>([]);
   const [userCoords, setUserCoords] = useState<{lat: number, lon: number} | null>(null);
 
@@ -118,7 +121,7 @@ function BusinessesContent() {
   }, [fetchedBusinesses, userCoords]);
 
 
-  const roleTitle = t(`roles.${role}`);
+  const roleTitle = t(`roles.${roleParam}`); // Use original plural param for display
   const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
   if (loading) {

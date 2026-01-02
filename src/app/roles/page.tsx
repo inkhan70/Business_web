@@ -16,10 +16,10 @@ function RolesContent() {
     const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
     const roles = [
-      { name: t('roles.producers'), icon: Factory, href: (category: string) => `/businesses?category=${category}&role=producers` },
-      { name: t('roles.wholesalers'), icon: Warehouse, href: (category: string) => `/businesses?category=${category}&role=wholesalers` },
-      { name: t('roles.distributors'), icon: Truck, href: (category: string) => `/businesses?category=${category}&role=distributors` },
-      { name: t('roles.shopkeepers'), icon: Store, href: (category: string) => `/businesses?category=${category}&role=shopkeepers` },
+      { name: t('roles.producers'), param: 'producers', icon: Factory, href: (category: string) => `/businesses?category=${category}&role=producers` },
+      { name: t('roles.wholesalers'), param: 'wholesalers', icon: Warehouse, href: (category: string) => `/businesses?category=${category}&role=wholesalers` },
+      { name: t('roles.distributors'), param: 'distributors', icon: Truck, href: (category: string) => `/businesses?category=${category}&role=distributors` },
+      { name: t('roles.shopkeepers'), param: 'shopkeepers', icon: Store, href: (category: string) => `/businesses?category=${category}&role=shopkeepers` },
     ];
 
     return (
