@@ -1,8 +1,8 @@
 # Settings to manage and configure a Firebase App Hosting backend.
 # https://firebase.google.com/docs/app-hosting/configure
 
-# Explicitly set the source directory to the project root.
-sourceDirectory: src
+# Set the source directory to the project root so the build system can find package.json.
+sourceDirectory: .
 
 runConfig:
   # Increase this value if you'd like to automatically spin up
