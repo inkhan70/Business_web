@@ -13,7 +13,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { ProductSearch } from "@/components/ProductSearch";
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase, UserProfile } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, QueryConstraint } from "firebase/firestore";
 import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
 import { cn } from "@/lib/utils";
 
@@ -44,29 +44,40 @@ interface Business extends UserProfile {
     dataAiHint?: string;
 }
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+
 function BusinessesContent() {
   const searchParams = useSearchParams();
   const { t } = useLanguage();
   const firestore = useFirestore();
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   
-  const category = searchParams.get('category') || 'all';
+  const categoryParam = searchParams.get('category') || 'all';
   const roleParam = searchParams.get('role') || 'shopkeeper';
   
   // FIX: Convert URL role parameter (plural) to the singular form stored in Firestore.
   const role = roleParam.endsWith('s') ? roleParam.slice(0, -1) : roleParam;
+  const category = categoryParam === 'all' ? 'all' : capitalize(categoryParam);
 
   const [displayedBusinesses, setDisplayedBusinesses] = useState<Business[]>([]);
   const [userCoords, setUserCoords] = useState<{lat: number, lon: number} | null>(null);
 
   const businessesQuery = useMemoFirebase(() => {
     const usersCollection = collection(firestore, 'users');
-    const roleQuery = where('role', '==', role);
+    const constraints: QueryConstraint[] = [];
 
+    // Always filter by role
+    constraints.push(where('role', '==', role));
+
+    // Add category filter if it's not 'all'
     if (category !== 'all') {
-      return query(usersCollection, roleQuery, where('category', '==', category));
+      constraints.push(where('category', '==', category));
     }
-    return query(usersCollection, roleQuery);
+    
+    // The query requires a composite index on `role` and `category`. 
+    // Firestore will provide a link in the console error to create it automatically.
+    return query(usersCollection, ...constraints);
   }, [firestore, role, category]);
 
   const { data: fetchedBusinesses, isLoading: loading, error } = useCollection<UserProfile>(businessesQuery);
@@ -122,7 +133,7 @@ function BusinessesContent() {
 
 
   const roleTitle = t(`roles.${roleParam}`); // Use original plural param for display
-  const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+  const categoryTitle = category === 'all' ? 'All Businesses' : category;
 
   if (loading) {
     return (
@@ -207,9 +218,9 @@ function BusinessesContent() {
         </div>
 
       <div className="text-left mb-8">
-        <p className="text-lg text-muted-foreground">{t('roles.showing_role_for')} {roleTitle} for</p>
+        <p className="text-lg text-muted-foreground">{t('businesses.showing_role_for')} {roleTitle} for</p>
         <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
-          {categoryTitle} {t('businesses.in_city')}
+          {categoryTitle}
         </h1>
       </div>
 
