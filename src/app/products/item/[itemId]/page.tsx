@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useEffect } from 'react';
@@ -271,10 +272,10 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
                 <Button className="w-full" size="lg" onClick={handleAddToCart}>
                     <ShoppingCart className="mr-2 h-5 w-5" /> {t('item_detail.add_to_cart')}
                 </Button>
-                 <Button variant="outline" size="lg" onClick={handleStartChat}>
+                 <Button type="button" variant="outline" size="lg" onClick={handleStartChat}>
                     <MessageSquare className="mr-2 h-5 w-5" /> Chat
                 </Button>
-                <Button variant="outline" size="icon" onClick={handleShare}>
+                <Button type="button" variant="outline" size="icon" onClick={handleShare}>
                     <Share2 className="h-5 w-5" />
                 </Button>
               </div>
@@ -287,58 +288,58 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
 
       {/* Reviews Section */}
       <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl font-bold font-headline mb-6">Ratings & Reviews</h2>
-        
-        {/* Review Form */}
-        {user && (
-            <Card className="mb-8">
-                <CardHeader>
-                    <CardTitle>Write a Review</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleReviewSubmit} className="space-y-4">
-                        <div>
-                            <Label>Your Rating</Label>
-                            <div className="flex items-center gap-1 mt-2">
-                                {[1, 2, 3, 4, 5].map(star => (
-                                    <button key={star} type="button" onClick={() => setNewRating(star)}>
-                                        <Star className={`h-6 w-6 transition-colors ${newRating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                         <div>
-                            <Label htmlFor="comment">Your Comment</Label>
-                            <Textarea id="comment" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="What did you like or dislike?" />
-                        </div>
-                        <Button type="submit" disabled={isSubmittingReview}>
-                            {isSubmittingReview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Submit Review
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-        )}
+        <form onSubmit={handleReviewSubmit}>
+          <h2 className="text-2xl font-bold font-headline mb-6">Ratings & Reviews</h2>
+          
+          {/* Review Form */}
+          {user && (
+              <Card className="mb-8">
+                  <CardHeader>
+                      <CardTitle>Write a Review</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      <div>
+                          <Label>Your Rating</Label>
+                          <div className="flex items-center gap-1 mt-2">
+                              {[1, 2, 3, 4, 5].map(star => (
+                                  <button key={star} type="button" onClick={() => setNewRating(star)}>
+                                      <Star className={`h-6 w-6 transition-colors ${newRating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+                       <div>
+                          <Label htmlFor="comment">Your Comment</Label>
+                          <Textarea id="comment" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="What did you like or dislike?" />
+                      </div>
+                      <Button type="submit" disabled={isSubmittingReview}>
+                          {isSubmittingReview && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Submit Review
+                      </Button>
+                  </CardContent>
+              </Card>
+          )}
 
-        {/* Existing Reviews */}
-        <div className="space-y-6">
-            {reviewsLoading ? <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin"/></div> : 
-             reviews && reviews.length > 0 ? reviews.map(review => (
-                <Card key={review.id} className="bg-muted/50">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="font-semibold">{review.userName}</p>
-                            <span className="text-xs text-muted-foreground">{review.createdAt?.toDate().toLocaleDateString()}</span>
-                        </div>
-                         <div className="flex items-center gap-1 mb-2">
-                           {[1,2,3,4,5].map(star => <Star key={star} className={`h-4 w-4 ${review.rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />)}
-                        </div>
-                        <p className="text-sm">{review.comment}</p>
-                    </CardContent>
-                </Card>
-             )) : <p className="text-muted-foreground">No reviews yet. Be the first to leave one!</p>
-            }
-        </div>
+          {/* Existing Reviews */}
+          <div className="space-y-6">
+              {reviewsLoading ? <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin"/></div> : 
+               reviews && reviews.length > 0 ? reviews.map(review => (
+                  <Card key={review.id} className="bg-muted/50">
+                      <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-2">
+                              <p className="font-semibold">{review.userName}</p>
+                              <span className="text-xs text-muted-foreground">{review.createdAt?.toDate().toLocaleDateString()}</span>
+                          </div>
+                           <div className="flex items-center gap-1 mb-2">
+                             {[1,2,3,4,5].map(star => <Star key={star} className={`h-4 w-4 ${review.rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />)}
+                          </div>
+                          <p className="text-sm">{review.comment}</p>
+                      </CardContent>
+                  </Card>
+               )) : <p className="text-muted-foreground">No reviews yet. Be the first to leave one!</p>
+              }
+          </div>
+        </form>
       </div>
     </div>
   );
