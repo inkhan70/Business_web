@@ -8,7 +8,7 @@ import { Search, MapPin, Loader2, Package, MessageSquare, Heart } from "lucide-r
 import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore, useDoc, useCollection, useMemoFirebase, UserProfile } from "@/firebase";
 import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
@@ -33,16 +33,7 @@ interface Product {
     varieties: Variety[];
 }
 
-interface BusinessProfile {
-    uid: string;
-    businessName: string;
-    address: string;
-    storefrontWallpaper?: string;
-    fullName?: string;
-    role?: string;
-    slogan?: string;
-    businessDescription?: string;
-}
+// UserProfile is imported from firebase/index, which gets it from AuthContext
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
   const { t } = useLanguage();
@@ -54,7 +45,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   const businessId = params.id;
 
   const businessDocRef = useMemoFirebase(() => doc(firestore, "users", businessId), [firestore, businessId]);
-  const { data: business, isLoading: businessLoading } = useDoc<BusinessProfile>(businessDocRef);
+  const { data: business, isLoading: businessLoading } = useDoc<UserProfile>(businessDocRef);
 
   const productsQuery = useMemoFirebase(() => query(collection(firestore, "products"), where("userId", "==", businessId)), [firestore, businessId]);
   const { data: products, isLoading: productsLoading } = useCollection<Product>(productsQuery);
@@ -140,7 +131,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   return (
     <>
       {business.storefrontWallpaper && (
-         <div className="relative h-64 w-full">
+         <div className="relative h-64 md:h-80 w-full">
             <Image
                 src={business.storefrontWallpaper}
                 alt={`${business.businessName} storefront`}
@@ -152,9 +143,9 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
          </div>
       )}
       <div className="container mx-auto px-4 pb-12">
-        <div className={cn("p-6 rounded-lg", !business.storefrontWallpaper && "pt-12")}>
-          <div className="flex flex-col sm:flex-row justify-between sm:items-start -mt-16 relative z-10">
-              <div className="bg-background/80 backdrop-blur-sm p-4 rounded-lg">
+        <div className={cn("p-4 md:p-6 rounded-lg -mt-16 md:-mt-24 relative z-10", !business.storefrontWallpaper && "pt-12 mt-0")}>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-start bg-background/80 backdrop-blur-sm p-4 rounded-lg shadow-lg">
+              <div>
                   <h1 className="text-4xl md:text-5xl font-extrabold font-headline leading-tight tracking-tighter">
                     {business.businessName}
                   </h1>
@@ -164,7 +155,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                       {business.address}
                   </p>
               </div>
-               <div className="flex items-center gap-2 mt-4 sm:mt-0 bg-background/80 backdrop-blur-sm p-2 rounded-lg">
+               <div className="flex items-center gap-2 mt-4 sm:mt-0 p-2 rounded-lg">
                     <Button variant="outline" onClick={handleToggleFavorite}>
                         <Heart className={cn("mr-2 h-5 w-5", favorite ? "fill-red-500 text-red-500" : "")} /> 
                         {favorite ? "Favorited" : "Favorite"}
@@ -178,7 +169,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
           </div>
 
            {business.businessDescription && (
-                <div className="mt-8 max-w-4xl bg-background/80 backdrop-blur-sm p-4 rounded-lg">
+                <div className="mt-8 max-w-4xl bg-card border rounded-lg p-6">
                     <h2 className="text-2xl font-bold font-headline mb-2">About Us</h2>
                     <p className="text-muted-foreground whitespace-pre-wrap">{business.businessDescription}</p>
                 </div>
@@ -194,7 +185,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         {products && products.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <Card key={product.id} className="flex flex-col overflow-hidden">
+              <Card key={product.id} className="flex flex-col overflow-hidden group transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                 <CardHeader className="p-0">
                   <Image 
                     src={product.varieties?.[0]?.image || images.products.generic} 
@@ -207,7 +198,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                 </CardHeader>
                 <CardContent className="p-4 flex-grow">
                     <Link href={`/products/item/${product.id}`} className="hover:underline">
-                      <h3 className="font-bold font-headline">{product.name}</h3>
+                      <h3 className="font-bold font-headline text-lg">{product.name}</h3>
                     </Link>
                     <p className="text-muted-foreground text-sm mt-1">{product.varieties?.length || 0} varieties available</p>
                 </CardContent>
