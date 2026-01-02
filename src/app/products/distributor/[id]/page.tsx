@@ -184,7 +184,9 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                   />
                 </CardHeader>
                 <CardContent className="p-4 flex-grow">
-                    <h3 className="font-bold font-headline">{product.name}</h3>
+                    <Link href={`/products/item/${product.id}`} className="hover:underline">
+                      <h3 className="font-bold font-headline">{product.name}</h3>
+                    </Link>
                     <p className="text-muted-foreground text-sm mt-1">{product.varieties?.length || 0} varieties available</p>
                 </CardContent>
                 <CardFooter className="p-4 pt-0">
