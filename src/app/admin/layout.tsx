@@ -41,7 +41,7 @@ const sidebarNavItems = [
     {
         title: "Appearance",
         href: "/admin/appearance",
-        icon: Settings, // Using settings as a placeholder, as ImageIcon was invalid
+        icon: Settings,
     },
     {
         title: "Languages",
