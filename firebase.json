@@ -1,11 +1,11 @@
+
 {
   "firestore": {
     "rules": "firestore.rules",
     "database": "(default)"
   },
   "storage": {
-    "rules": "storage.rules",
-    "bucket": "distributors-connect-vrglt.firebasestorage.app"
+    "rules": "src/storage.rules"
   },
   "apphosting": {
     "backendId": "business-web",

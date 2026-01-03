@@ -48,11 +48,6 @@ const sidebarNavItems = [
         href: "/admin/languages",
         icon: Languages,
     },
-    {
-        title: "Settings",
-        href: "/admin/settings",
-        icon: Settings,
-    },
 ];
 
 

@@ -23,7 +23,7 @@ import type { Address } from "./ItemDelivery";
 import images from '@/app/lib/placeholder-images.json';
 import { useAuth, UserProfile } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, increment, getDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion, increment, getDoc, runTransaction } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -79,99 +79,90 @@ export function Cart() {
     }
 
     setIsPlacingOrder(true);
+
+    const businessId = cart[0].userId;
+    const businessDocRef = doc(firestore, "users", businessId);
+    const userDocRef = doc(firestore, "users", user.uid);
+
     try {
-      const businessId = cart[0].userId;
-      const businessDocRef = doc(firestore, "users", businessId);
-      const businessDocSnap = await getDoc(businessDocRef);
+      // Use a transaction to ensure all reads and writes are atomic.
+      await runTransaction(firestore, async (transaction) => {
+        const businessDoc = await transaction.get(businessDocRef);
+        const userDoc = await transaction.get(userDocRef);
 
-      if (!businessDocSnap.exists()) {
-        throw new Error("Business owner not found.");
-      }
+        if (!businessDoc.exists()) {
+          throw new Error("Business owner profile not found.");
+        }
+        if (!userDoc.exists()) {
+          throw new Error("Your user profile could not be found.");
+        }
+        
+        const businessProfile = businessDoc.data() as UserProfile;
+        const buyerProfile = userDoc.data() as UserProfile;
+        
+        // The check for 'pro' membership was missing.
+        if (businessProfile.membershipTier !== 'pro') {
+          throw new Error("This business is not currently accepting online orders.");
+        }
 
-      const businessProfile = businessDocSnap.data() as UserProfile;
+        const orderId = uuidv4();
+        const totalItemsInOrder = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-      if (businessProfile.membershipTier !== 'pro') {
-        toast({
-          title: "Order Not Accepted",
-          description: "This business is not currently accepting online orders. Please try another seller.",
-          variant: "destructive",
-        });
-        setIsPlacingOrder(false);
-        return;
-      }
+        const newOrder = {
+          id: orderId,
+          buyerId: user.uid,
+          buyerName: buyerProfile.fullName || user.email,
+          businessId: businessId,
+          items: cart.map(item => ({
+            productId: item.productId,
+            productName: item.productName,
+            varietyId: item.varietyId,
+            varietyName: item.varietyName,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image,
+          })),
+          deliveryAddress: `${deliveryAddress.address}, ${deliveryAddress.city}, ${deliveryAddress.state}`,
+          totalCost: subtotal + 5.00,
+          orderDate: serverTimestamp(),
+          status: "Pending",
+          pickupCode: Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 8).toUpperCase(),
+        };
 
-      const ordersCollection = collection(firestore, 'orders');
-      const orderId = uuidv4();
-      const totalItemsInOrder = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const ordersCollection = collection(firestore, 'orders');
+        transaction.set(doc(ordersCollection, orderId), newOrder);
 
-      const newOrder = {
-        id: orderId,
-        buyerId: user.uid,
-        buyerName: userProfile.fullName || user.email,
-        businessId: businessId,
-        items: cart.map(item => ({
-          productId: item.productId,
-          productName: item.productName,
-          varietyId: item.varietyId,
-          varietyName: item.varietyName,
-          quantity: item.quantity,
-          price: item.price,
-          image: item.image,
-        })),
-        deliveryAddress: `${deliveryAddress.address}, ${deliveryAddress.city}, ${deliveryAddress.state}`,
-        totalCost: subtotal + 5.00,
-        orderDate: serverTimestamp(),
-        status: "Pending",
-        pickupCode: Math.random().toString(36).substring(2, 10).toUpperCase() + Math.random().toString(36).substring(2, 8).toUpperCase(),
-      };
-      
-      await addDoc(ordersCollection, newOrder);
+        const isFirstPurchase = !buyerProfile.purchaseHistory || buyerProfile.purchaseHistory.length === 0;
+        const currentTotalItems = buyerProfile.totalItemsPurchased || 0;
+        const newTotalItems = currentTotalItems + totalItemsInOrder;
+        const coinsEarned = Math.floor(newTotalItems / 4) - Math.floor(currentTotalItems / 4);
+        
+        const userProfileUpdates: any = {
+          purchaseHistory: arrayUnion(orderId),
+          totalItemsPurchased: increment(totalItemsInOrder),
+        };
 
-      const userDocRef = doc(firestore, "users", user.uid);
-
-      const isFirstPurchase = !userProfile.purchaseHistory || userProfile.purchaseHistory.length === 0;
-      const currentTotalItems = userProfile.totalItemsPurchased || 0;
-      const newTotalItems = currentTotalItems + totalItemsInOrder;
-      const coinsEarned = Math.floor(newTotalItems / 4) - Math.floor(currentTotalItems / 4);
-      
-      const updates: any = {
-        purchaseHistory: arrayUnion(orderId),
-        totalItemsPurchased: newTotalItems,
-      };
-
-      if (isFirstPurchase) {
-        updates.balance = 5.00;
-      }
-      if (coinsEarned > 0) {
-        updates.ghostCoins = increment(coinsEarned);
-      }
-
-      await updateDoc(userDocRef, updates);
-      
-      if (isFirstPurchase) {
-         toast({
-            title: "Welcome Bonus Unlocked!",
-            description: "A $5 credit has been added to your account for your next purchase."
-        });
-      }
-      if (coinsEarned > 0) {
-        toast({
-            title: "Ghost Coins Earned!",
-            description: `You have earned ${coinsEarned} Ghost Coin(s)!`
-        });
-      }
+        if (isFirstPurchase) {
+          userProfileUpdates.balance = increment(5.00);
+        }
+        if (coinsEarned > 0) {
+          userProfileUpdates.ghostCoins = increment(coinsEarned);
+        }
+        
+        transaction.update(userDocRef, userProfileUpdates);
+      });
       
       toast({
         title: "Order Placed!",
-        description: "Your order has been successfully placed."
+        description: "Your order has been successfully placed. Check your dashboard for details."
       });
       clearCart();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error placing order: ", error);
       toast({
         title: "Error Placing Order",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive"
       });
     } finally {

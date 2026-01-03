@@ -90,7 +90,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
           participants: [user.uid, business.uid],
           participantProfiles: {
             [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
-            [business.uid]: { name: businessUserProfile.fullName || businessUserProfile.businessName, role: businessUserProfile.role },
+            [business.uid]: { name: businessUserProfile.businessName, role: businessUserProfile.role },
           },
           lastMessage: "Chat started...",
           lastMessageTimestamp: serverTimestamp(),

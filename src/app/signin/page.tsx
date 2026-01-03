@@ -34,6 +34,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { UserProfile } from "@/contexts/AuthContext";
+import { createDefaultUserProfile } from "@/lib/user-utils";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -102,19 +103,9 @@ export default function SignInPage() {
             } else {
                 // This is an old user. Create a profile for them on the fly.
                 console.log(`User profile for ${user.uid} not found. Creating a new one.`);
-                const newUserProfile: UserProfile = {
-                    uid: user.uid,
-                    email: user.email!,
-                    role: 'buyer', // Default role for migrated users
-                    businessName: '',
+                const newUserProfile = createDefaultUserProfile(user.uid, user.email || '', {
                     fullName: user.displayName || 'New User',
-                    category: '',
-                    address: '',
-                    city: '',
-                    state: '',
-                    createdAt: new Date().toISOString(),
-                    isAdmin: false,
-                };
+                });
                 await setDoc(userDocRef, newUserProfile);
                 userProfile = newUserProfile;
 

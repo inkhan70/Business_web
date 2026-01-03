@@ -27,6 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useDoc, useMemoFirebase } from "@/firebase";
 import { doc, setDoc, runTransaction, getDoc } from "firebase/firestore";
 import type { Category } from '@/app/categories/page';
+import { createDefaultUserProfile } from "@/lib/user-utils";
 
 interface CategoriesDoc {
     list: Category[];
@@ -130,25 +131,8 @@ export default function SignUpPage() {
                         isAdmin = false;
                     }
                     
-                    const newUserProfile = {
-                        uid: user.uid,
-                        email: values.email,
-                        role: values.role,
-                        businessName: values.businessName || null,
-                        fullName: values.fullName || null,
-                        category: values.category || null,
-                        address: values.address,
-                        city: values.city,
-                        state: values.state,
-                        createdAt: new Date().toISOString(),
-                        isAdmin: isAdmin, 
-                        purchaseHistory: [],
-                        ghostCoins: 0,
-                        balance: 0,
-                        totalItemsPurchased: 0,
-                        membershipTier: values.role === 'buyer' ? null : 'pro',
-                    };
-
+                    const newUserProfile = createDefaultUserProfile(user.uid, values.email, values, isAdmin);
+                    
                     transaction.set(userRef, newUserProfile);
                 });
             } catch (transactionError: any) {
