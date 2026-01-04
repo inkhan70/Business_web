@@ -3,22 +3,32 @@
 
 Your Firebase App Hosting is connected to a GitHub repository for automatic deployments. When you push your source code to the `master` (or `main`) branch on GitHub, Firebase will automatically build and deploy your application.
 
-Follow these steps to push your current code from this workspace to your GitHub repository.
+If you are seeing an "Authentication failed" error, follow these steps to use a Personal Access Token (PAT) to securely push your code.
 
-## Step-by-Step Instructions
+## Step 1: Create a GitHub Personal Access Token (PAT)
 
-Run these commands one by one in your terminal.
+First, you need to create a secure token on GitHub that this workspace can use as a password.
 
-### Step 1: Initialize Git and Connect to Your Repository
+1.  **Open GitHub:** [Click here to go to the Personal Access Tokens page on GitHub](https://github.com/settings/tokens/new). (You may need to sign in).
+2.  **Note:** Give your token a name, like `firebase-studio-deploy`.
+3.  **Expiration:** For simplicity, you can set the expiration to **"No expiration"**.
+4.  **Select scopes:** You MUST check the box next to **`repo`**. This gives the token permission to access and write to your repositories.
+5.  **Generate Token:** Scroll to the bottom and click the **"Generate token"** button.
+6.  **COPY THE TOKEN:** GitHub will show you the token *only once*. It will look like `ghp_...`. **Copy this token immediately** and save it somewhere safe, like a notepad, for the next steps.
 
-First, we need to make sure your local workspace is a Git repository and is connected to your remote GitHub repository.
+## Step 2: Push Your Code Using the Token
+
+Now, run these commands one by one in your terminal.
+
+### 2a: Initialize Git and Set Remote URL
+
+This command ensures Git is initialized. We will then remove the old remote URL and add a new one that includes your username.
 
 ```bash
-git init && git remote add origin https://github.com/inkhan70/Business_web.git
+git init && git remote remove origin && git remote add origin https://inkhan70@github.com/inkhan70/Business_web.git
 ```
-*(If you get an error saying `remote origin already exists`, that's okay! It just means it's already connected, and you can proceed to the next step.)*
 
-### Step 2: Add All Your Files
+### 2b: Add All Your Files
 
 This command stages all the files in your project, preparing them to be committed.
 
@@ -26,24 +36,23 @@ This command stages all the files in your project, preparing them to be committe
 git add .
 ```
 
-### Step 3: Commit Your Files
+### 2c: Commit Your Files
 
-This command saves your staged files as a new version in your local Git history.
+This command saves your staged files as a new version.
 
 ```bash
 git commit -m "Deploy latest version from Firebase Studio"
 ```
+*(If you get a message saying "nothing to commit," that's okay. Proceed to the next step.)*
 
-### Step 4: Push Your Code to GitHub
+### 2d: Push Your Code to GitHub
 
-This is the final step. This command uploads your committed code to your GitHub repository. **This is the action that will trigger your Firebase deployment.**
+This is the final, most important step. When you run this command, the terminal will prompt you for a **password**.
 
-Because your local branch might be `master` and your remote might be `main` (or vice-versa), and you might not have pulled the remote changes first, we will use a command that forces the push. This will overwrite the contents of your GitHub repository with the complete, correct code from your workspace.
-
-**Use this command to push your code:**
+**IMPORTANT: When prompted for your password, DO NOT enter your GitHub password. Instead, paste the Personal Access Token (PAT) you copied in Step 1.**
 
 ```bash
 git push -u origin master --force
 ```
 
-After you run this command, you can go to your Firebase Console, and you should see a new build and deployment in progress in the App Hosting section.
+After you run this command and use your PAT as the password, your code will be uploaded to GitHub, and your Firebase deployment will start automatically.
