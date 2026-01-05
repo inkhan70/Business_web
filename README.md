@@ -81,7 +81,7 @@ This will create a `firebase.json` file configured for hosting.
 Now you're ready to deploy. Simply run the following command in your project's root directory:
 
 ```bash
-firebase deploy
+firebase deploy --only apphosting
 ```
 
 The Firebase CLI will build your Next.js application and deploy it to App Hosting. This process may take a few minutes. Once it's complete, you will see a "Hosting URL" in the terminal where your live application is available.
