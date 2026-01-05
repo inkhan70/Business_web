@@ -12,6 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { ProductSearch } from '@/components/ProductSearch';
 import images from '@/app/lib/placeholder-images.json';
 import { Separator } from '@/components/ui/separator';
+import { NewBusinesses } from '@/components/NewBusinesses';
 
 export default function Home() {
   const { t } = useLanguage();
@@ -71,6 +72,10 @@ export default function Home() {
               />
             </div>
           </div>
+        </section>
+
+        <section className="container mx-auto px-4 py-16">
+          <NewBusinesses />
         </section>
 
       </div>
