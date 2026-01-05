@@ -4,31 +4,19 @@
     "database": "(default)"
   },
   "storage": {
-    "rules": "src/storage.rules"
+    "rules": "src/storage.rules",
+    "bucket": "distributors-connect-vrglt.firebasestorage.app"
   },
-  "apphosting": [
-    {
-      "backendId": "business-web",
-      "rootDir": "/",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "functions"
-      ],
-      "alwaysDeployFromSource": true
-    },
-    {
-      "backendId": "business-web",
-      "rootDir": "/",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "functions"
-      ]
-    }
-  ]
+  "apphosting": {
+    "backendId": "business-web",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "functions"
+    ],
+    "alwaysDeployFromSource": true
+  }
 }
