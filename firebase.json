@@ -9,8 +9,14 @@
     "bucket": "distributors-connect-vrglt.firebasestorage.app"
   },
   "apphosting": {
-    "backendId": "business-web",
-    "rootDir": "/",
+    "backends": [
+      {
+        "id": "business-web",
+        "repo": "inkhan70/Business_web",
+        "branch": "master",
+        "rootDir": "/"
+      }
+    ],
     "ignore": [
       "node_modules",
       ".git",
