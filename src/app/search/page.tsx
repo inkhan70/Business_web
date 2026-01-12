@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, SearchX, Store, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useCollection, useMemoFirebase, UserProfile } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import type { UserProfile } from '@/contexts/AuthContext';
 import { collection, query, where, and, or } from 'firebase/firestore';
 
 interface Variety {
@@ -74,7 +75,7 @@ function SearchResultsContent() {
     }, [firestore, searchTerm, city]);
 
     const { data: productResults, isLoading: productsLoading } = useCollection<Product>(productsQuery);
-    const { data: businessResults, isLoading: businessesLoading } = useCollection<UserProfile>(businessesQuery);
+    const { data: businessResults, isLoading: businessesLoading } = useCollection<UserProfile>(businessQuery);
     
     const [combinedResults, setCombinedResults] = useState<SearchResult[]>([]);
     

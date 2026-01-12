@@ -8,11 +8,11 @@ import { Search, MapPin, Loader2, Package, MessageSquare, Heart } from "lucide-r
 import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useDoc, useCollection, useMemoFirebase, UserProfile } from "@/firebase";
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, UserProfile } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
@@ -33,7 +33,7 @@ interface Product {
     varieties: Variety[];
 }
 
-// UserProfile is imported from firebase/index, which gets it from AuthContext
+// UserProfile is imported from AuthContext
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
   const { t } = useLanguage();
