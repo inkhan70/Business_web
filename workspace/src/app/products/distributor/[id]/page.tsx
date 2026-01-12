@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useLanguage } from "@/contexts/LanguageContext";
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
-import { UserProfile } from "@/contexts/AuthContext";
+import type { UserProfile } from "@/contexts/AuthContext";
 import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
@@ -33,6 +33,8 @@ interface Product {
     name: string;
     varieties: Variety[];
 }
+
+// UserProfile is imported from firebase/index, which gets it from AuthContext
 
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
   const { t } = useLanguage();
