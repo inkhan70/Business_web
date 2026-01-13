@@ -33,8 +33,6 @@ interface Product {
     varieties: Variety[];
 }
 
-// UserProfile is imported from AuthContext
-
 export default function DistributorInventoryPage({ params }: { params: { id: string } }) {
   const { t } = useLanguage();
   const firestore = useFirestore();
@@ -223,3 +221,5 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
     </>
   );
 }
+
+    

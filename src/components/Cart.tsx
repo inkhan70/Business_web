@@ -100,11 +100,6 @@ export function Cart() {
         const businessProfile = businessDoc.data() as UserProfile;
         const buyerProfile = userDoc.data() as UserProfile;
         
-        // The check for 'pro' membership was missing.
-        if (businessProfile.membershipTier !== 'pro') {
-          throw new Error("This business is not currently accepting online orders.");
-        }
-
         const orderId = uuidv4();
         const totalItemsInOrder = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -276,3 +271,5 @@ export function Cart() {
     </Sheet>
   );
 }
+
+    

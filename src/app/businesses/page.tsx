@@ -13,7 +13,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { ProductSearch } from "@/components/ProductSearch";
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import type { UserProfile } from "@/contexts/AuthContext";
+import { UserProfile } from "@/contexts/AuthContext";
 import { collection, query, where, QueryConstraint } from "firebase/firestore";
 import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
 import { cn } from "@/lib/utils";
@@ -257,3 +257,5 @@ export default function BusinessesPage() {
         </Suspense>
     )
 }
+
+    

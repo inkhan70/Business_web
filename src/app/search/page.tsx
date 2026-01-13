@@ -11,7 +11,7 @@ import { Loader2, SearchX, Store, Package } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { UserProfile } from '@/contexts/AuthContext';
+import { UserProfile } from '@/contexts/AuthContext';
 import { collection, query, where, and, or } from 'firebase/firestore';
 
 interface Variety {
@@ -206,3 +206,5 @@ export default function SearchPage() {
         </Suspense>
     );
 }
+
+    
