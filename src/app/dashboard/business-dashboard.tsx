@@ -134,7 +134,7 @@ export function BusinessDashboard() {
                                             <Image alt={product.name} className="aspect-square rounded-md object-cover" height="40" src={product.varieties?.[0]?.image || images.products.dashboard_product} width="40" data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"} />
                                         </TableCell>
                                         <TableCell className="font-medium">
-                                            <Link href={`/products/item/${product.id}`} className="hover:underline">{product.name}</Link>
+                                            <Link href={`/dashboard/products/${product.id}`} className="hover:underline">{product.name}</Link>
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={product.status === 'Active' ? 'default' : product.status === 'Low Stock' ? 'secondary' : 'destructive'} className={product.status === 'Active' ? 'bg-green-100 text-green-800' : product.status === 'Low Stock' ? 'bg-yellow-100 text-yellow-800' : ''}>{product.status}</Badge>

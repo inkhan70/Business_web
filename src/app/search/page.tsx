@@ -75,7 +75,7 @@ function SearchResultsContent() {
     }, [firestore, searchTerm, city]);
 
     const { data: productResults, isLoading: productsLoading } = useCollection<Product>(productsQuery);
-    const { data: businessResults, isLoading: businessesLoading } = useCollection<UserProfile>(businessQuery);
+    const { data: businessResults, isLoading: businessesLoading } = useCollection<UserProfile>(businessesQuery);
     
     const [combinedResults, setCombinedResults] = useState<SearchResult[]>([]);
     
