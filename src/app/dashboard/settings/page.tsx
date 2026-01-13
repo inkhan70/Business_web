@@ -33,6 +33,7 @@ import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storag
 import Image from "next/image";
 import { generateSlogan } from "@/ai/flows/generate-slogan-flow";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const profileFormSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters."),
