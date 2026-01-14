@@ -110,7 +110,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      let existingChat = null;
+      let existingChat: any = null;
       querySnapshot.forEach(doc => {
         const chat = doc.data();
         if (chat.participants.includes(product.userId)) {
