@@ -153,7 +153,7 @@ export default function SettingsPage() {
         }
         // Only proceed if there's a wallpaper URL in the profile, indicating one exists
         if (!userProfile?.storefrontWallpaper) {
-            toast({ title: "No Wallpaper", description: "There is no wallpaper to remove.", variant: "info" });
+            toast({ title: "No Wallpaper", description: "There is no wallpaper to remove." });
             return;
         }
 
