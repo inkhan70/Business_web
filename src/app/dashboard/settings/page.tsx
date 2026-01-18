@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +39,7 @@ const profileFormSchema = z.object({
   address: z.string().min(10, "Full address is required."),
   city: z.string().min(2, "City is required."),
   state: z.string().min(2, "State is required."),
+  // storefrontWallpaper is handled separately and not part of the form's direct input
   storefrontWallpaper: z.string().optional(),
   businessDescription: z.string().max(500, "Description cannot exceed 500 characters.").optional(),
 });
@@ -108,33 +108,25 @@ export default function SettingsPage() {
     };
     
     const handleWallpaperUpload = async (dataUrl: string) => {
-        if (!user) return;
+        if (!user) {
+            toast({ title: "Not Authenticated", description: "You must be logged in to upload a wallpaper.", variant: "destructive" });
+            return;
+        }
         setIsUploading(true);
 
-        const oldWallpaperUrl = userProfile?.storefrontWallpaper;
-
         try {
-            // Upload new image
-            const storageRef = ref(storage, `products/${user.uid}/storefront-wallpaper.jpg`);
+            // Define the fixed storage path for the user's storefront wallpaper.
+            // This ensures that subsequent uploads for the same user will overwrite the previous one.
+            const storagePath = `products/${user.uid}/storefront-wallpaper.jpg`;
+            const storageRef = ref(storage, storagePath);
+
+            // Upload new image. This will overwrite any existing file at the 'storagePath'.
             const snapshot = await uploadString(storageRef, dataUrl, 'data_url');
             const newImageUrl = await getDownloadURL(snapshot.ref);
 
-            // Update user profile with new URL
+            // Update user profile in Firestore with the new download URL.
             const userDocRef = doc(firestore, "users", user.uid);
             await updateDoc(userDocRef, { storefrontWallpaper: newImageUrl });
-
-            // Delete old image if it exists and is different
-            if (oldWallpaperUrl && oldWallpaperUrl !== newImageUrl) {
-                 try {
-                    const oldImageRef = ref(storage, oldWallpaperUrl);
-                    await deleteObject(oldImageRef);
-                } catch(deleteError: any) {
-                     // It's okay if the old image doesn't exist, just log a warning.
-                    if (deleteError.code !== 'storage/object-not-found') {
-                        console.warn("Could not delete old wallpaper:", deleteError);
-                    }
-                }
-            }
             
             setWallpaperPreview(newImageUrl);
             toast({
@@ -155,27 +147,41 @@ export default function SettingsPage() {
     }
 
     const handleRemoveWallpaper = async () => {
-        if (!user || !userProfile?.storefrontWallpaper) return;
+        if (!user) {
+            toast({ title: "Not Authenticated", description: "You must be logged in to remove your wallpaper.", variant: "destructive" });
+            return;
+        }
+        // Only proceed if there's a wallpaper URL in the profile, indicating one exists
+        if (!userProfile?.storefrontWallpaper) {
+            toast({ title: "No Wallpaper", description: "There is no wallpaper to remove.", variant: "info" });
+            return;
+        }
+
         setIsUploading(true);
         try {
-            const imageRef = ref(storage, userProfile.storefrontWallpaper);
+            // Use the fixed storage path for deletion.
+            // This assumes the wallpaper is always stored at `products/${user.uid}/storefront-wallpaper.jpg`.
+            const storagePath = `products/${user.uid}/storefront-wallpaper.jpg`;
+            const imageRef = ref(storage, storagePath);
             await deleteObject(imageRef);
 
+            // Clear the download URL from the user's Firestore profile
             const userDocRef = doc(firestore, "users", user.uid);
             await updateDoc(userDocRef, { storefrontWallpaper: "" });
             
             setWallpaperPreview(null);
             toast({ title: "Wallpaper Removed" });
         } catch (error: any) {
+            // Handle cases where the file might already be gone from Storage (e.g., manually deleted)
             if (error.code === 'storage/object-not-found') {
-                // If file doesn't exist in storage, just clear it from the profile
-                 const userDocRef = doc(firestore, "users", user.uid);
-                 await updateDoc(userDocRef, { storefrontWallpaper: "" });
-                 setWallpaperPreview(null);
-                 toast({ title: "Wallpaper Removed" });
+                console.warn("Attempted to delete wallpaper not found in storage. Clearing Firestore reference.", error);
+                const userDocRef = doc(firestore, "users", user.uid);
+                await updateDoc(userDocRef, { storefrontWallpaper: "" });
+                setWallpaperPreview(null);
+                toast({ title: "Wallpaper Removed (from profile, file not found in storage)" });
             } else {
                  console.error("Error removing wallpaper:", error);
-                 toast({ title: "Error", description: "Could not remove wallpaper.", variant: "destructive" });
+                 toast({ title: "Error", description: "Could not remove wallpaper. Please try again.", variant: "destructive" });
             }
         } finally {
             setIsUploading(false);
