@@ -14,8 +14,7 @@
         "id": "business-web",
         "repo": "inkhan70/Business_web",
         "branch": "master",
-        "rootDir": "/",
-        "webApp": "business-web"
+        "rootDir": "/"
       }
     ],
     "ignore": [
