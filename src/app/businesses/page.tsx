@@ -1,6 +1,5 @@
 
 "use client"
-
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +11,11 @@ import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ProductSearch } from "@/components/ProductSearch";
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { UserProfile } from "@/contexts/AuthContext";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"; // Fixed this line
+import { UserProfile } from "@/contexts/AuthContext"; // Keep this one!
 import { collection, query, where, QueryConstraint } from "firebase/firestore";
 import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
 // --- Helper Functions ---
 // Haversine formula to calculate distance between two lat/lon points
