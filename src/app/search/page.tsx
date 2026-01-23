@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, SearchX, Store, Package } from 'lucide-react';
+import { MapPin, ArrowRight, Loader2, Store, Heart, Package } from "lucide-react";
 import { useLanguage } from '@/contexts/LanguageContext';
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
