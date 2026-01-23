@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loading = isUserLoading || (user && isProfileLoading);
 
   return (
-    <AuthContext.Provider value={{ user, userProfile: userProfile || null, loading }}>
+    <AuthContext.Provider value={{ user, userProfile: userProfile || null, loading: loading ?? true }}>
       {children}
     </AuthContext.Provider>
   );
