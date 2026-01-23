@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, UserProfile } from "@/firebase";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import type { UserProfile } from "@/contexts/AuthContext";
 import { collection, query, where } from "firebase/firestore";
 import Link from 'next/link';
 import Image from 'next/image';
@@ -70,7 +71,7 @@ export function NewBusinesses() {
                                     <CardHeader className="p-0">
                                       <Image 
                                         src={biz.storefrontWallpaper || images.businesses.corner_store} 
-                                        alt={biz.businessName} 
+                                        alt={biz.businessName || ''} 
                                         width={400} 
                                         height={200} 
                                         className="rounded-t-lg object-cover w-full h-40" 
