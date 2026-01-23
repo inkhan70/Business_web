@@ -1,4 +1,3 @@
-
 {
   "firestore": {
     "rules": "firestore.rules",
@@ -12,15 +11,8 @@
     "backends": [
       {
         "id": "business-web",
-        "rootDir": "/"
+        "rootDir": "./" 
       }
-    ],
-    "ignore": [
-      "node_modules",
-      ".git",
-      "firebase-debug.log",
-      "firebase-debug.*.log",
-      "functions"
     ],
     "alwaysDeployFromSource": true
   },
@@ -28,8 +20,8 @@
     "public": "public",
     "ignore": [
       "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+      "*/.",
+      "*/node_modules/*"
     ]
   }
 }
