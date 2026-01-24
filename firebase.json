@@ -4,7 +4,7 @@
     "database": "(default)"
   },
   "storage": {
-    "rules": "src/storage.rules",
+    "rules": "storage.rules",
     "bucket": "distributors-connect-vrglt.firebasestorage.app"
   },
   "apphosting": {

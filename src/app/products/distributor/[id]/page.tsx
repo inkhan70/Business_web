@@ -66,7 +66,9 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      let existingChat: any = null;
+      // FIX 1: Explicitly define the type so TypeScript doesn't assume 'never'
+      let existingChat: { id: string; [key: string]: any } | null = null;
+      
       querySnapshot.forEach(doc => {
         const chat = doc.data();
         if (chat.participants.includes(business.uid)) {
@@ -74,7 +76,8 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         }
       });
       
-      if (existingChat) {
+      // FIX 2: Check for the 'id' property safely
+      if (existingChat && 'id' in existingChat) {
         router.push(`/dashboard/chat?chatId=${existingChat.id}`);
       } else {
         const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
@@ -87,8 +90,14 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         const newChatRef = await addDoc(chatsRef, {
           participants: [user.uid, business.uid],
           participantProfiles: {
-            [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
-            [business.uid]: { name: businessUserProfile.businessName, role: businessUserProfile.role },
+            [user.uid]: { 
+                name: userProfile.fullName || userProfile.businessName || "User", 
+                role: userProfile.role 
+            },
+            [business.uid]: { 
+                name: businessUserProfile.businessName || "Business", 
+                role: businessUserProfile.role 
+            },
           },
           lastMessage: "Chat started...",
           lastMessageTimestamp: serverTimestamp(),

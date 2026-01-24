@@ -51,13 +51,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
-  const loading = isUserLoading || (user && isProfileLoading);
+ // --- REPLACE FROM HERE ---
+ const loading = !!(isUserLoading || (user && isProfileLoading));
 
-  return (
-    <AuthContext.Provider value={{ user, userProfile: userProfile || null, loading: loading ?? true }}>
-      {children}
-    </AuthContext.Provider>
-  );
+ return (
+   <AuthContext.Provider value={{ 
+     user: user ?? null, 
+     userProfile: userProfile ?? null, 
+     loading 
+   }}>
+     {children}
+   </AuthContext.Provider>
+ );
 };
 
 export const useAuth = () => {
