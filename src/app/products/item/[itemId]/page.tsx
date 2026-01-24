@@ -110,7 +110,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      let existingChat: any = null;
+      let existingChat: { id: string; [key: string]: any; } | null = null;
       querySnapshot.forEach(doc => {
         const chat = doc.data();
         if (chat.participants.includes(product.userId)) {
@@ -131,8 +131,8 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
         const newChatRef = await addDoc(chatsRef, {
           participants: [user.uid, product.userId],
           participantProfiles: {
-            [user.uid]: { name: userProfile.fullName || userProfile.businessName, role: userProfile.role },
-            [product.userId]: { name: businessUserProfile.fullName || businessUserProfile.businessName, role: businessUserProfile.role },
+            [user.uid]: { name: userProfile.fullName || userProfile.businessName || "User", role: userProfile.role },
+            [product.userId]: { name: businessUserProfile.businessName || "Business", role: businessUserProfile.role },
           },
           lastMessage: "Chat started...",
           lastMessageTimestamp: serverTimestamp(),
