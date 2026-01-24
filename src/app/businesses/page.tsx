@@ -11,8 +11,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ProductSearch } from "@/components/ProductSearch";
 import images from '@/app/lib/placeholder-images.json';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"; // Fixed this line
-import { UserProfile } from "@/contexts/AuthContext"; // Keep this one!
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { UserProfile } from "@/contexts/AuthContext";
 import { collection, query, where, QueryConstraint } from "firebase/firestore";
 import { useFavorites, FavoriteBusiness } from "@/contexts/FavoritesContext";
 import { cn } from "@/lib/utils"
@@ -56,8 +56,15 @@ function BusinessesContent() {
   const categoryParam = searchParams.get('category') || 'all';
   const roleParam = searchParams.get('role') || 'shopkeeper';
   
-  // FIX: Convert URL role parameter (plural) to the singular form stored in Firestore.
-  const role = roleParam.endsWith('s') ? roleParam.slice(0, -1) : roleParam;
+  // Map user-facing role slugs from the URL to the role names stored in Firestore.
+  const roleMapping: { [key: string]: string } = {
+    producers: 'company',
+    wholesalers: 'wholesaler',
+    distributors: 'distributor',
+    shopkeepers: 'shopkeeper',
+    company: 'company', // Handle direct case as well
+  };
+  const role = roleMapping[roleParam] || 'shopkeeper';
   const category = categoryParam === 'all' ? 'all' : capitalize(categoryParam);
 
   const [displayedBusinesses, setDisplayedBusinesses] = useState<Business[]>([]);
