@@ -66,9 +66,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      // FIX 1: Explicitly define the type so TypeScript doesn't assume 'never'
-      let existingChat: { id: string; [key: string]: any } | null = null;
-      
+      let existingChat: { id: string; [key: string]: any; } | null = null;
       querySnapshot.forEach(doc => {
         const chat = doc.data();
         if (chat.participants.includes(business.uid)) {
@@ -76,7 +74,6 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         }
       });
       
-      // FIX 2: Check for the 'id' property safely
       if (existingChat && (existingChat as any).id) {
         router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
       } else {
