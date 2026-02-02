@@ -66,21 +66,20 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-     // 1. Explicitly define the type (already mostly there in your snippet)
-     let existingChat: { id: string; [key: string]: any } | null = null;
+      // FIX 1: Explicitly define the type so TypeScript doesn't assume 'never'
+      let existingChat: { id: string; [key: string]: any } | null = null;
       
-     querySnapshot.forEach(doc => {
-       const chat = doc.data();
-       if (chat.participants.includes(business.uid)) {
-         existingChat = { id: doc.id, ...chat };
-       }
-     });
-     
-     // 2. The Fixed Logic for line 81 (Fixed the backticks and the type)
-     if (existingChat && existingChat.id) {
-       router.push('/dashboard/chat?chatId=${existingChat.id}');
-     } else {
-       // ... rest of your code
+      querySnapshot.forEach(doc => {
+        const chat = doc.data();
+        if (chat.participants.includes(business.uid)) {
+          existingChat = { id: doc.id, ...chat };
+        }
+      });
+      
+      // FIX 2: Check for the 'id' property safely
+      if (existingChat && (existingChat as any).id) {
+        router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
+      } else {
         const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
         const businessUserProfile = businessUserDoc.docs[0]?.data();
 
