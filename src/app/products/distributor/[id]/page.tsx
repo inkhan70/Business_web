@@ -74,8 +74,10 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         }
       });
       
-      if (existingChat && (existingChat as any).id) {
-        router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
+      if (existingChat) {
+        // Use 'as any' to tell TypeScript to stop checking this line
+        const chatId = (existingChat as any).id;
+        router.push(`/dashboard/chat?chatId=${chatId}`);
       } else {
         const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
         const businessUserProfile = businessUserDoc.docs[0]?.data();
