@@ -2,6 +2,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  experimental: {
+    serverComponentsExternalPackages: ['@opentelemetry/instrumentation', 'require-in-the-middle'],
+  },
   images: {
     remotePatterns: [
       {
