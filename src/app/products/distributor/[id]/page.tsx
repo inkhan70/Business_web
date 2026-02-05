@@ -75,7 +75,9 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       });
 
       if (existingChat) {
-        router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
+        // This is the specific fix to bypass the 'never' error
+        const chatId = (existingChat as { id: string }).id;
+        router.push(`/dashboard/chat?chatId=${chatId}`);
         return;
       }
 
