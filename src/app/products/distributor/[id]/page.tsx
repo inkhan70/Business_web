@@ -75,7 +75,6 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       });
       
       if (existingChat) {
-        // Use 'as any' to tell TypeScript to stop checking this line
         const chatId = (existingChat as any).id;
         router.push(`/dashboard/chat?chatId=${chatId}`);
       } else {
