@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link";
@@ -73,8 +74,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
         }
       });
 
-      if (existingChat && existingChat.id) {
-        // Using 'as any' here is the final forced bypass for the build
+      if (existingChat && (existingChat as any).id) {
         router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
         return;
       }
