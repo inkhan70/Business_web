@@ -73,39 +73,42 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
           existingChat = { id: doc.id, ...chat };
         }
       });
-      
+
       if (existingChat) {
         router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
-      } else {
-        const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
-        const businessUserProfile = businessUserDoc.docs[0]?.data();
-
-        if (!businessUserProfile) {
-            throw new Error("Could not find business owner's profile.");
-        }
-
-        const newChatRef = await addDoc(chatsRef, {
-          participants: [user.uid, business.uid],
-          participantProfiles: {
-            [user.uid]: { 
-                name: userProfile.fullName || userProfile.businessName || "User", 
-                role: userProfile.role 
-            },
-            [business.uid]: { 
-                name: businessUserProfile.businessName || "Business", 
-                role: businessUserProfile.role 
-            },
-          },
-          lastMessage: "Chat started...",
-          lastMessageTimestamp: serverTimestamp(),
-        });
-        router.push(`/dashboard/chat?chatId=${newChatRef.id}`);
+        return;
       }
+
+      const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
+      const businessUserProfile = businessUserDoc.docs[0]?.data();
+
+      if (!businessUserProfile) {
+          throw new Error("Could not find business owner's profile.");
+      }
+
+      const newChatRef = await addDoc(chatsRef, {
+        participants: [user.uid, business.uid],
+        participantProfiles: {
+          [user.uid]: { 
+              name: userProfile.fullName || userProfile.businessName || "User", 
+              role: userProfile.role 
+          },
+          [business.uid]: { 
+              name: businessUserProfile.businessName || "Business", 
+              role: businessUserProfile.role 
+          },
+        },
+        lastMessage: "Chat started...",
+        lastMessageTimestamp: serverTimestamp(),
+      });
+
+      router.push(`/dashboard/chat?chatId=${newChatRef.id}`);
+
     } catch (error) {
       console.error("Error starting chat:", error);
       toast({ title: "Error", description: "Could not start chat.", variant: "destructive" });
     }
-  }
+  };
   
   const handleToggleFavorite = () => {
     if (!business) return;
