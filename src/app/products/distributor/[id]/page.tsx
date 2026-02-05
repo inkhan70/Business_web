@@ -75,9 +75,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       });
       
       if (existingChat) {
-        // This is the specific fix to bypass the 'never' error
-        const chatId = (existingChat as { id: string }).id;
-        router.push(`/dashboard/chat?chatId=${chatId}`);
+        router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
       } else {
         const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
         const businessUserProfile = businessUserDoc.docs[0]?.data();
