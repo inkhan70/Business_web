@@ -119,7 +119,7 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       });
       
       if (existingChat) {
-        const chatId = (existingChat as any).id;
+        const chatId = (existingChat as { id: string }).id;
         router.push(`/dashboard/chat?chatId=${chatId}`);
       } else {
         const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", product.userId)));
