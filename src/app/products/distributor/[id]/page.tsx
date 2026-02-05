@@ -66,16 +66,10 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      let existingChat: { id: string; [key: string]: any; } | null = null;
-      querySnapshot.forEach(doc => {
-        const chat = doc.data();
-        if (chat.participants.includes(business.uid)) {
-          existingChat = { id: doc.id, ...chat };
-        }
-      });
+      const existingChatDoc = querySnapshot.docs.find(doc => doc.data().participants.includes(business.uid));
 
-      if (existingChat && (existingChat as any).id) {
-        router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
+      if (existingChatDoc) {
+        router.push(`/dashboard/chat?chatId=${existingChatDoc.id}`);
         return;
       }
 

@@ -110,35 +110,31 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      let existingChat: { id: string; [key: string]: any; } | null = null;
-      querySnapshot.forEach(doc => {
-        const chat = doc.data();
-        if (chat.participants.includes(product.userId)) {
-          existingChat = { id: doc.id, ...chat };
-        }
-      });
-      
-      if (existingChat && (existingChat as any).id) {
-        router.push(`/dashboard/chat?chatId=${(existingChat as any).id}`);
-      } else {
-        const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", product.userId)));
-        const businessUserProfile = businessUserDoc.docs[0]?.data();
+      const existingChatDoc = querySnapshot.docs.find(doc => doc.data().participants.includes(product.userId));
 
-        if (!businessUserProfile) {
-            throw new Error("Could not find business owner's profile.");
-        }
-
-        const newChatRef = await addDoc(chatsRef, {
-          participants: [user.uid, product.userId],
-          participantProfiles: {
-            [user.uid]: { name: userProfile.fullName || userProfile.businessName || "User", role: userProfile.role },
-            [product.userId]: { name: businessUserProfile.businessName || "Business", role: businessUserProfile.role },
-          },
-          lastMessage: "Chat started...",
-          lastMessageTimestamp: serverTimestamp(),
-        });
-        router.push(`/dashboard/chat?chatId=${newChatRef.id}`);
+      if (existingChatDoc) {
+        router.push(`/dashboard/chat?chatId=${existingChatDoc.id}`);
+        return;
       }
+      
+      const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", product.userId)));
+      const businessUserProfile = businessUserDoc.docs[0]?.data();
+
+      if (!businessUserProfile) {
+          throw new Error("Could not find business owner's profile.");
+      }
+
+      const newChatRef = await addDoc(chatsRef, {
+        participants: [user.uid, product.userId],
+        participantProfiles: {
+          [user.uid]: { name: userProfile.fullName || userProfile.businessName || "User", role: userProfile.role },
+          [product.userId]: { name: businessUserProfile.businessName || "Business", role: businessUserProfile.role },
+        },
+        lastMessage: "Chat started...",
+        lastMessageTimestamp: serverTimestamp(),
+      });
+      router.push(`/dashboard/chat?chatId=${newChatRef.id}`);
+      
     } catch (error) {
       console.error("Error starting chat:", error);
       toast({ title: "Error", description: "Could not start chat.", variant: "destructive" });
