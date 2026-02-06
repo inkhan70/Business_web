@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link";
@@ -65,10 +66,17 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      const existingChatDoc = querySnapshot.docs.find(doc => doc.data().participants.includes(business.uid));
+      let existingChatId: string | null = null;
+      for (const doc of querySnapshot.docs) {
+          const chat = doc.data();
+          if (chat.participants.includes(business.uid)) {
+              existingChatId = doc.id;
+              break;
+          }
+      }
 
-      if (existingChatDoc) {
-        router.push(`/dashboard/chat?chatId=${existingChatDoc.id}`);
+      if (existingChatId) {
+        router.push(`/dashboard/chat?chatId=${existingChatId}`);
         return;
       }
 

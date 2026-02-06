@@ -110,10 +110,17 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       const q = query(chatsRef, where('participants', 'array-contains', user.uid));
       const querySnapshot = await getDocs(q);
       
-      const existingChatDoc = querySnapshot.docs.find(doc => doc.data().participants.includes(product.userId));
+      let existingChatId: string | null = null;
+      for (const doc of querySnapshot.docs) {
+          const chat = doc.data();
+          if (chat.participants.includes(product.userId)) {
+              existingChatId = doc.id;
+              break;
+          }
+      }
 
-      if (existingChatDoc) {
-        router.push(`/dashboard/chat?chatId=${existingChatDoc.id}`);
+      if (existingChatId) {
+        router.push(`/dashboard/chat?chatId=${existingChatId}`);
         return;
       }
       
