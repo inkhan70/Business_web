@@ -110,11 +110,12 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
       const querySnapshot = await getDocs(q);
       
       let existingChatId: string | null = null;
+      // Using a for...of loop for clearer type inference
       for (const doc of querySnapshot.docs) {
           const chat = doc.data();
           if (chat.participants.includes(product.userId)) {
               existingChatId = doc.id;
-              break;
+              break; // Exit loop once chat is found
           }
       }
 
@@ -346,5 +347,3 @@ export default function ItemDetailPage({ params }: { params: { itemId: string } 
     </div>
   );
 }
-
-    
