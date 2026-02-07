@@ -67,12 +67,11 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const querySnapshot = await getDocs(q);
       
       let existingChatId: string | null = null;
-      // Using a for...of loop for clearer type inference
       for (const doc of querySnapshot.docs) {
           const chat = doc.data();
           if (chat.participants.includes(business.uid)) {
               existingChatId = doc.id;
-              break; // Exit loop once chat is found
+              break;
           }
       }
 
@@ -232,3 +231,5 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
     </>
   );
 }
+
+    
