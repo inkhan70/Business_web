@@ -10,7 +10,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import images from '@/app/lib/placeholder-images.json';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from "@/firebase";
 import { doc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
-import { useEffect } from "react";
 import { ProductSearch } from "@/components/ProductSearch";
 import { useAuth, UserProfile } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -67,10 +66,11 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       const querySnapshot = await getDocs(q);
       
       let existingChatId: string | null = null;
-      for (const doc of querySnapshot.docs) {
-          const chat = doc.data();
-          if (chat.participants.includes(business.uid)) {
-              existingChatId = doc.id;
+      for (const docSnap of querySnapshot.docs) {
+          // FIX: Explicitly type the data to avoid the 'never' error
+          const chatData = docSnap.data() as { participants: string[] };
+          if (chatData.participants.includes(business.uid)) {
+              existingChatId = docSnap.id;
               break;
           }
       }
@@ -81,7 +81,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       }
 
       const businessUserDoc = await getDocs(query(collection(firestore, "users"), where("uid", "==", business.uid)));
-      const businessUserProfile = businessUserDoc.docs[0]?.data();
+      const businessUserProfile = businessUserDoc.docs[0]?.data() as UserProfile | undefined;
 
       if (!businessUserProfile) {
           throw new Error("Could not find business owner's profile.");
@@ -123,7 +123,6 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
     favorite ? removeFavorite(business.uid) : addFavorite(favData);
   }
 
-
   if (isLoading) {
     return (
         <div className="container mx-auto px-4 py-12 flex justify-center items-center h-64">
@@ -137,7 +136,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background">
       {business.storefrontWallpaper && (
          <div className="relative h-64 md:h-80 w-full">
             <Image
@@ -195,41 +194,36 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
             {products.map((product) => (
               <Card key={product.id} className="flex flex-col overflow-hidden group transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                 <CardHeader className="p-0">
-                  <Image 
-                    src={product.varieties?.[0]?.image || images.products.generic} 
-                    alt={product.name} 
-                    width={300} 
-                    height={300} 
-                    className="object-cover w-full h-48" 
-                    data-ai-hint={product.varieties?.[0]?.dataAiHint || "product image"} 
-                  />
+                  <div className="relative h-48 w-full">
+                    <Image 
+                        src={product.varieties?.[0]?.image || images.products.placeholder} 
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="p-4 flex-grow">
-                    <Link href={`/products/item/${product.id}`} className="hover:underline">
-                      <h3 className="font-bold font-headline text-lg">{product.name}</h3>
-                    </Link>
-                    <p className="text-muted-foreground text-sm mt-1">{product.varieties?.length || 0} varieties available</p>
+                    <CardTitle className="line-clamp-1">{product.name}</CardTitle>
+                    <CardDescription className="mt-2">
+                        {product.varieties?.length || 0} {t('distributor_inventory.varieties')}
+                    </CardDescription>
                 </CardContent>
                 <CardFooter className="p-4 pt-0">
-                    <Button asChild className="w-full" variant="outline">
-                        <Link href={`/products/item/${product.id}`}>
-                            {t('distributor_inventory.view_details')}
-                        </Link>
+                    <Button asChild className="w-full">
+                        <Link href={`/products/item/${product.id}`}>{t('common.view_details')}</Link>
                     </Button>
                 </CardFooter>
               </Card>
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-muted/50 rounded-lg">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mt-4">No Products Found</h3>
-              <p className="text-muted-foreground mt-2">This business has not listed any products yet.</p>
+          <div className="text-center py-12 bg-muted/30 rounded-lg">
+            <Package className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+            <h3 className="mt-4 text-lg font-medium">{t('distributor_inventory.no_products')}</h3>
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
-
-    
