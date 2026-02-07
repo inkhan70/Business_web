@@ -67,8 +67,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
       
       let existingChatId: string | null = null;
       for (const docSnap of querySnapshot.docs) {
-          // FIX: Explicitly type the data to avoid the 'never' error
-          const chatData = docSnap.data() as { participants: string[] };
+          const chatData = docSnap.data();
           if (chatData.participants.includes(business.uid)) {
               existingChatId = docSnap.id;
               break;
@@ -196,7 +195,7 @@ export default function DistributorInventoryPage({ params }: { params: { id: str
                 <CardHeader className="p-0">
                   <div className="relative h-48 w-full">
                     <Image 
-                        src={product.varieties?.[0]?.image || images.products.placeholder} 
+                        src={product.varieties?.[0]?.image || images.products.generic} 
                         alt={product.name}
                         fill
                         className="object-cover"
